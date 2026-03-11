@@ -15,6 +15,7 @@
 
 import { readFileSync, existsSync, readdirSync } from 'fs'
 import { join, basename } from 'path'
+import { fileURLToPath } from 'url'
 import { neon } from '@neondatabase/serverless'
 import { drizzle } from 'drizzle-orm/neon-http'
 import { sql } from 'drizzle-orm'
@@ -40,7 +41,7 @@ const db = drizzle(neon(DATABASE_URL), { schema })
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 
-const ROOT       = join(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1'), '../../')
+const ROOT       = join(fileURLToPath(import.meta.url), '../../')
 const REPORTS_DIR    = join(ROOT, 'web/.reports')
 const CLIENTS_FILE   = join(ROOT, 'web/.config/clients.json')
 const OBJECTIVES_DIR = join(ROOT, 'web/.objectives')
