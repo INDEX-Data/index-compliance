@@ -502,13 +502,13 @@ export function DIBCACObjectives({ reportId }: Props) {
   }
   const domains = Object.keys(byDomain).sort()
 
-  const filterOptions: { value: ObjectiveFilter; label: string; count: number; color: string }[] = [
-    { value: 'all',         label: 'All',          count: data.objectives.length,                                                                                         color: 'text-[#18181B]' },
-    { value: 'needs_action',label: 'Needs Action',  count: data.summary.requiresManual + data.summary.notAssessed + data.summary.notMet,                                  color: 'text-blue-600' },
-    { value: 'met',         label: 'Met',           count: data.summary.met + data.summary.partiallyMet,                                                                  color: 'text-emerald-600' },
-    { value: 'not_met',     label: 'Not Met',       count: data.summary.notMet,                                                                                           color: 'text-red-600' },
-    { value: 'physical',    label: 'Physical',      count: data.summary.requiresPhysical,                                                                                 color: 'text-orange-500' },
-  ].filter(f => f.count > 0 || f.value === 'all')
+  const filterOptions = ([
+    { value: 'all'          as ObjectiveFilter, label: 'All',          count: data.objectives.length,                                                                                         color: 'text-[#18181B]' },
+    { value: 'needs_action' as ObjectiveFilter, label: 'Needs Action', count: data.summary.requiresManual + data.summary.notAssessed + data.summary.notMet,                                  color: 'text-blue-600' },
+    { value: 'met'          as ObjectiveFilter, label: 'Met',          count: data.summary.met + data.summary.partiallyMet,                                                                  color: 'text-emerald-600' },
+    { value: 'not_met'      as ObjectiveFilter, label: 'Not Met',      count: data.summary.notMet,                                                                                           color: 'text-red-600' },
+    { value: 'physical'     as ObjectiveFilter, label: 'Physical',     count: data.summary.requiresPhysical,                                                                                 color: 'text-orange-500' },
+  ] as { value: ObjectiveFilter; label: string; count: number; color: string }[]).filter(f => f.count > 0 || f.value === 'all')
 
   return (
     <div>

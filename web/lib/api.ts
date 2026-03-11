@@ -1,5 +1,5 @@
 // Typed fetch wrappers for the compliance REST API
-// All calls go to /api/* which Next.js proxies to http://localhost:3001/api/*
+// All calls go to /api/* which Next.js proxies to the Express API server.
 
 import type {
   ConfigStatus, FrameworkMeta, ReportMeta,
@@ -10,8 +10,31 @@ import type {
 
 const BASE = '/api'
 
+// ── Clerk token store ──────────────────────────────────────────────────────
+// Updated by <ClerkTokenSync /> in the root layout. All fetch helpers read it.
+let _clerkToken: string | null = null
+
+/** Called by ClerkTokenSync to keep the token fresh (every ~50 s). */
+export function setClerkToken(token: string | null) {
+  _clerkToken = token
+}
+
+/** Returns current Clerk token, or null in dev (no Clerk configured). */
+export function getClerkToken(): string | null {
+  return _clerkToken
+}
+
+function authHeaders(): HeadersInit {
+  return _clerkToken ? { Authorization: `Bearer ${_clerkToken}` } : {}
+}
+
+// ── Base fetch helpers ────────────────────────────────────────────────────
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { cache: 'no-store' })
+  const res = await fetch(`${BASE}${path}`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error ?? `HTTP ${res.status}`)
@@ -22,7 +45,7 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body?: object): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
@@ -35,7 +58,7 @@ async function post<T>(path: string, body?: object): Promise<T> {
 async function put<T>(path: string, body?: object): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
@@ -46,7 +69,10 @@ async function put<T>(path: string, body?: object): Promise<T> {
 }
 
 async function del<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { method: 'DELETE' })
+  const res = await fetch(`${BASE}${path}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
     throw new Error(err.error ?? `HTTP ${res.status}`)
@@ -106,11 +132,13 @@ export const deleteReport  = (id: string) => del<{ ok: boolean }>(`/reports/${id
 
 // ── Word report export ────────────────────────────────────────────────────────
 // Fetches the .docx from the API and triggers a browser download.
-// Calls port 3001 directly (bypasses the Next.js proxy) to avoid the proxy's
-// short read-timeout which kills long-running Claude AI generation requests.
+// Uses the Next.js proxy (/api/*) so it works in both dev and production.
 // Returns null on success, or an error message string.
 export async function exportWordReport(reportId: string): Promise<string | null> {
-  const res = await fetch(`http://localhost:3001/api/reports/${reportId}/export/word`, { cache: 'no-store' })
+  const res = await fetch(`${BASE}/reports/${reportId}/export/word`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
     return (err as { error?: string; code?: string }).error ?? `HTTP ${res.status}`
@@ -134,10 +162,17 @@ export async function exportWordReport(reportId: string): Promise<string | null>
 }
 
 // ── SSE URL builder ──────────────────────────────────────────────────────────
+// EventSource doesn't support custom headers, so the Clerk token is passed
+// as a query parameter (?token=...) which the API server also accepts.
 
 export const getAssessStreamUrl = (frameworkId: string, clientId?: string) => {
-  const base = `${BASE}/assess/stream/${frameworkId}`
-  return clientId ? `${base}?clientId=${encodeURIComponent(clientId)}` : base
+  const params = new URLSearchParams()
+  if (clientId) params.set('clientId', clientId)
+  if (_clerkToken) params.set('token', _clerkToken)
+  const qs = params.toString()
+  return qs
+    ? `${BASE}/assess/stream/${frameworkId}?${qs}`
+    : `${BASE}/assess/stream/${frameworkId}`
 }
 
 // ── DIBCAC 320 Objectives ─────────────────────────────────────────────────────
@@ -167,8 +202,10 @@ export const resetObjectives = (reportId: string) =>
 
 /** Download DIBCAC worksheet CSV */
 export function exportDIBCACWorksheet(reportId: string): void {
+  // Append token as query param since we're triggering a navigation (not a fetch)
+  const tokenQs = _clerkToken ? `?token=${encodeURIComponent(_clerkToken)}` : ''
   const a = document.createElement('a')
-  a.href = `http://localhost:3001/api/reports/${reportId}/objectives/export/csv`
+  a.href = `${BASE}/reports/${reportId}/objectives/export/csv${tokenQs}`
   a.download = `DIBCAC_Worksheet_${reportId}.csv`
   document.body.appendChild(a)
   a.click()

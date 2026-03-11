@@ -4,7 +4,7 @@
 // Runs on :3001 independently from the MCP server (src/index.ts)
 // =============================================================================
 
-import express from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import {
   readFileSync, writeFileSync, existsSync,
   mkdirSync, readdirSync, unlinkSync,
@@ -40,6 +40,75 @@ import type {
   DIBCACObjectiveSummary,
 } from "./types.js";
 
+// ── Optional DB (Neon + Drizzle) — only loaded when DATABASE_URL is set ────
+// When DATABASE_URL is absent the server falls back to file-based storage.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let db: any = null;
+let dbSchema: typeof import("./db/schema.js") | null = null;
+let drizzleOps: typeof import("drizzle-orm") | null = null;
+
+async function initDB() {
+  if (!process.env.DATABASE_URL) return;
+  try {
+    const [clientMod, schemaMod, ormMod] = await Promise.all([
+      import("./db/client.js"),
+      import("./db/schema.js"),
+      import("drizzle-orm"),
+    ]);
+    db         = clientMod.db as any;
+    dbSchema   = schemaMod;
+    drizzleOps = ormMod as any;
+    console.log("[INDEX] Database     →  Neon PostgreSQL ✓");
+  } catch (err) {
+    console.warn("[INDEX] Database     →  ⚠ failed to connect, falling back to file storage:", (err as Error).message);
+  }
+}
+
+// ── Optional Clerk auth — only loaded when CLERK_SECRET_KEY is set ─────────
+let clerkClient: { verifyToken: (token: string) => Promise<{ sub: string }> } | null = null;
+
+async function initClerk() {
+  if (!process.env.CLERK_SECRET_KEY) return;
+  try {
+    const { createClerkClient } = await import("@clerk/backend");
+    clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY }) as any;
+    console.log("[INDEX] Auth         →  Clerk ✓");
+  } catch (err) {
+    console.warn("[INDEX] Auth         →  ⚠ Clerk failed to load:", (err as Error).message);
+  }
+}
+
+// Augment Request type to carry the authenticated user id
+export interface AuthedRequest extends Request { userId?: string; }
+
+// ── Clerk JWT middleware (applied to all routes except /api/health) ─────────
+// In dev (no CLERK_SECRET_KEY) every request is treated as the "dev" user.
+const DEV_USER_ID = "dev";
+
+async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
+  // Health check is always public
+  if (req.path === "/api/health") return next();
+
+  // No Clerk configured → dev mode, use a placeholder user
+  if (!clerkClient) {
+    req.userId = DEV_USER_ID;
+    return next();
+  }
+
+  // Accept token from Authorization header OR ?token= query param (for EventSource / SSE)
+  const token = req.headers.authorization?.replace("Bearer ", "")
+    ?? (req.query.token as string | undefined);
+  if (!token) return void res.status(401).json({ error: "Unauthorized — no token" });
+
+  try {
+    const payload = await clerkClient.verifyToken(token);
+    req.userId = payload.sub;
+    next();
+  } catch {
+    res.status(401).json({ error: "Unauthorized — invalid token" });
+  }
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 
@@ -52,9 +121,25 @@ function ensureDir(dir: string) {
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 }
 
-// ─── Report persistence ────────────────────────────────────────────────────
+// ─── Report persistence (DB-first, file fallback) ─────────────────────────
 
-function saveReport(report: ComplianceReport) {
+async function saveReport(report: ComplianceReport, userId: string = DEV_USER_ID) {
+  if (db && dbSchema && drizzleOps) {
+    const { reports: reportsTable } = dbSchema;
+    const { eq } = drizzleOps;
+    await (db as any).insert(reportsTable).values({
+      id:          report.reportId,
+      userId,
+      frameworkId: report.frameworkId,
+      data:        report,
+      generatedAt: new Date(report.generatedAt),
+    }).onConflictDoUpdate({
+      target: reportsTable.id,
+      set:    { data: report, generatedAt: new Date(report.generatedAt) },
+    });
+    return;
+  }
+  // File fallback
   ensureDir(REPORTS_DIR);
   writeFileSync(
     join(REPORTS_DIR, `${report.reportId}.json`),
@@ -63,7 +148,16 @@ function saveReport(report: ComplianceReport) {
   );
 }
 
-function loadReport(reportId: string): ComplianceReport | null {
+async function loadReport(reportId: string, userId: string = DEV_USER_ID): Promise<ComplianceReport | null> {
+  if (db && dbSchema && drizzleOps) {
+    const { reports: reportsTable } = dbSchema;
+    const { eq, and } = drizzleOps;
+    const rows = await (db as any).select()
+      .from(reportsTable)
+      .where(and(eq(reportsTable.id, reportId), eq(reportsTable.userId, userId)));
+    return rows[0]?.data as ComplianceReport ?? null;
+  }
+  // File fallback
   try {
     const f = join(REPORTS_DIR, `${reportId}.json`);
     if (!existsSync(f)) return null;
@@ -71,7 +165,28 @@ function loadReport(reportId: string): ComplianceReport | null {
   } catch { return null; }
 }
 
-function listReportMetas() {
+async function listReportMetas(userId: string = DEV_USER_ID) {
+  if (db && dbSchema && drizzleOps) {
+    const { reports: reportsTable } = dbSchema;
+    const { eq, desc } = drizzleOps;
+    const rows = await (db as any).select().from(reportsTable)
+      .where(eq(reportsTable.userId, userId))
+      .orderBy(desc(reportsTable.generatedAt));
+    return rows.map((row: any) => {
+      const r = row.data as ComplianceReport;
+      return {
+        reportId:          r.reportId,
+        frameworkId:       r.frameworkId,
+        frameworkName:     r.frameworkName,
+        tenantDisplayName: r.tenantDisplayName,
+        generatedAt:       r.generatedAt,
+        summary:           r.summary,
+        clientId:          r.clientId,
+        clientName:        r.clientName,
+      };
+    });
+  }
+  // File fallback
   try {
     ensureDir(REPORTS_DIR);
     return readdirSync(REPORTS_DIR)
@@ -158,12 +273,24 @@ function resolveClient(clientIdParam?: string): Client | null {
 const app = express();
 app.use(express.json());
 
-// Allow the Next.js dashboard (port 3000) to call the API directly
-app.use((_req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+// CORS — allowed origins read from env var so the same binary works in dev and prod
+// Dev default: http://localhost:3000
+// Production (Vercel): set ALLOWED_ORIGINS=https://your-app.vercel.app
+const allowedOrigins = new Set(
+  (process.env.ALLOWED_ORIGINS ?? "http://localhost:3000")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin ?? "";
+  const allowed = allowedOrigins.has(origin) ? origin : [...allowedOrigins][0];
+  res.setHeader("Access-Control-Allow-Origin", allowed);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  if (_req.method === "OPTIONS") { res.sendStatus(204); return; }
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") { res.sendStatus(204); return; }
   next();
 });
 
@@ -361,7 +488,7 @@ app.get("/api/frameworks/:id/controls", (req, res) => {
 // GET /api/assess/stream/:frameworkId?clientId=xxx
 // clientId is optional — defaults to first configured client
 
-app.get("/api/assess/stream/:frameworkId", async (req, res) => {
+app.get("/api/assess/stream/:frameworkId", async (req: AuthedRequest, res) => {
   const client = resolveClient(req.query.clientId as string | undefined);
   if (!client) {
     res.status(401).json({ error: "No clients configured. Add a client first." });
@@ -427,12 +554,12 @@ app.get("/api/assess/stream/:frameworkId", async (req, res) => {
     clientName:         client.name,
   };
 
-  saveReport(report);
+  await saveReport(report, req.userId);
 
   // Auto-initialize DIBCAC 320 objectives for CMMC L2 assessments
   if (report.frameworkId === "CMMC_L2") {
     const objStatuses = initObjectivesFromReport(report);
-    saveObjectives(report.reportId, objStatuses);
+    await saveObjectives(report.reportId, objStatuses);
     const objSummary = buildObjectiveSummary(objStatuses);
     send({ type: "objectives_initialized", reportId: report.reportId, summary: objSummary });
   }
@@ -461,15 +588,26 @@ app.post("/api/assess/:frameworkId/control/:controlId", async (req, res) => {
 
 // ── Reports: list / get / delete ───────────────────────────────────────────
 
-app.get("/api/reports", (_req, res) => res.json(listReportMetas()));
+app.get("/api/reports", async (req: AuthedRequest, res) => {
+  res.json(await listReportMetas(req.userId));
+});
 
-app.get("/api/reports/:id", (req, res) => {
-  const r = loadReport(req.params.id);
+app.get("/api/reports/:id", async (req: AuthedRequest, res) => {
+  const r = await loadReport(req.params.id, req.userId);
   if (!r) return void res.status(404).json({ error: "Not found" });
   res.json(r);
 });
 
-app.delete("/api/reports/:id", (req, res) => {
+app.delete("/api/reports/:id", async (req: AuthedRequest, res) => {
+  if (db && dbSchema && drizzleOps) {
+    const { reports: reportsTable } = dbSchema;
+    const { eq, and } = drizzleOps;
+    const deleted = await (db as any).delete(reportsTable)
+      .where(and(eq(reportsTable.id, req.params.id), eq(reportsTable.userId, req.userId!)));
+    if (deleted.rowCount === 0) return void res.status(404).json({ error: "Not found" });
+    return void res.json({ ok: true });
+  }
+  // File fallback
   const f = join(REPORTS_DIR, `${req.params.id}.json`);
   if (!existsSync(f)) return void res.status(404).json({ error: "Not found" });
   unlinkSync(f);
@@ -496,8 +634,8 @@ function resolveAnthropicKey(): string | null {
 // GET /api/reports/:id/export/word
 // Anthropic API key is baked into server infrastructure — no user config needed.
 
-app.get("/api/reports/:id/export/word", async (req, res) => {
-  const report = loadReport(req.params.id);
+app.get("/api/reports/:id/export/word", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
   if (!report) return void res.status(404).json({ error: "Report not found" });
 
   const apiKey = resolveAnthropicKey();
@@ -541,7 +679,24 @@ function objectivesPath(reportId: string) {
   return join(OBJECTIVES_DIR, `${reportId}.json`);
 }
 
-function loadObjectives(reportId: string): ObjectiveStatus[] {
+async function loadObjectives(reportId: string): Promise<ObjectiveStatus[]> {
+  if (db && dbSchema && drizzleOps) {
+    const { objectiveStatuses } = dbSchema;
+    const { eq } = drizzleOps;
+    const rows = await (db as any).select().from(objectiveStatuses)
+      .where(eq(objectiveStatuses.reportId, reportId));
+    return rows.map((r: any) => ({
+      objectiveId:     r.objectiveId,
+      status:          r.status,
+      evidenceSource:  r.evidenceSource ?? "none",
+      attestationText: r.attestationText ?? undefined,
+      documentRef:     r.documentRef ?? undefined,
+      documentName:    r.documentName ?? undefined,
+      assessedAt:      r.assessedAt?.toISOString() ?? undefined,
+      assessedBy:      r.assessedBy ?? undefined,
+    })) as ObjectiveStatus[];
+  }
+  // File fallback
   try {
     const f = objectivesPath(reportId);
     if (!existsSync(f)) return [];
@@ -549,7 +704,32 @@ function loadObjectives(reportId: string): ObjectiveStatus[] {
   } catch { return []; }
 }
 
-function saveObjectives(reportId: string, statuses: ObjectiveStatus[]) {
+async function saveObjectives(reportId: string, statuses: ObjectiveStatus[]) {
+  if (db && dbSchema && drizzleOps) {
+    const { objectiveStatuses } = dbSchema;
+    const { eq } = drizzleOps;
+    // Bulk upsert — delete existing then insert (simpler than per-row upsert for 320 rows)
+    await (db as any).delete(objectiveStatuses).where(eq(objectiveStatuses.reportId, reportId));
+    if (statuses.length > 0) {
+      const rows = statuses.map(s => ({
+        reportId:        reportId,
+        objectiveId:     s.objectiveId,
+        status:          s.status,
+        evidenceSource:  s.evidenceSource ?? null,
+        attestationText: s.attestationText ?? null,
+        documentRef:     s.documentRef ?? null,
+        documentName:    s.documentName ?? null,
+        assessedAt:      s.assessedAt ? new Date(s.assessedAt) : null,
+        assessedBy:      s.assessedBy ?? null,
+      }));
+      // Insert in batches of 100 to stay within Neon's parameter limits
+      for (let i = 0; i < rows.length; i += 100) {
+        await (db as any).insert(objectiveStatuses).values(rows.slice(i, i + 100));
+      }
+    }
+    return;
+  }
+  // File fallback
   writeFileSync(objectivesPath(reportId), JSON.stringify(statuses, null, 2), "utf8");
 }
 
@@ -667,16 +847,16 @@ app.get("/api/objectives", (_req, res) => {
 
 // ── DIBCAC Objectives: status for a report ─────────────────────────────────
 
-app.get("/api/reports/:id/objectives", (req, res) => {
-  const report = loadReport(req.params.id);
+app.get("/api/reports/:id/objectives", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
   if (!report) return void res.status(404).json({ error: "Report not found" });
 
-  let statuses = loadObjectives(req.params.id);
+  let statuses = await loadObjectives(req.params.id);
 
   // Auto-initialize if not yet done (e.g. reports created before this feature)
   if (statuses.length === 0 && report.frameworkId === "CMMC_L2") {
     statuses = initObjectivesFromReport(report);
-    saveObjectives(req.params.id, statuses);
+    await saveObjectives(req.params.id, statuses);
   }
 
   // Merge objective definitions with statuses for a rich response
@@ -700,8 +880,8 @@ app.get("/api/reports/:id/objectives", (req, res) => {
 
 // ── DIBCAC Objectives: attest (manual attestation) ─────────────────────────
 
-app.post("/api/reports/:id/objectives/:objId/attest", (req, res) => {
-  const report = loadReport(req.params.id);
+app.post("/api/reports/:id/objectives/:objId/attest", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
   if (!report) return void res.status(404).json({ error: "Report not found" });
 
   const obj = DIBCAC_OBJECTIVES.find(o => o.objectiveId === req.params.objId);
@@ -714,7 +894,7 @@ app.post("/api/reports/:id/objectives/:objId/attest", (req, res) => {
     documentName?: string;
   };
 
-  let statuses = loadObjectives(req.params.id);
+  let statuses = await loadObjectives(req.params.id);
   if (statuses.length === 0) {
     statuses = initObjectivesFromReport(report);
   }
@@ -728,36 +908,36 @@ app.post("/api/reports/:id/objectives/:objId/attest", (req, res) => {
     documentRef:     documentRef,
     documentName:    documentName,
     assessedAt:      new Date().toISOString(),
-    assessedBy:      "manual",
+    assessedBy:      req.userId ?? "manual",
   };
 
   if (idx >= 0) statuses[idx] = updated;
   else statuses.push(updated);
 
-  saveObjectives(req.params.id, statuses);
+  await saveObjectives(req.params.id, statuses);
   res.json({ ok: true, objective: updated, summary: buildObjectiveSummary(statuses) });
 });
 
 // ── DIBCAC Objectives: bulk reset (re-initialize from control assessments) ──
 
-app.post("/api/reports/:id/objectives/reset", (req, res) => {
-  const report = loadReport(req.params.id);
+app.post("/api/reports/:id/objectives/reset", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
   if (!report) return void res.status(404).json({ error: "Report not found" });
   if (report.frameworkId !== "CMMC_L2")
     return void res.status(400).json({ error: "DIBCAC objectives only apply to CMMC L2 assessments" });
 
   const statuses = initObjectivesFromReport(report);
-  saveObjectives(req.params.id, statuses);
+  await saveObjectives(req.params.id, statuses);
   res.json({ ok: true, summary: buildObjectiveSummary(statuses) });
 });
 
 // ── DIBCAC Objectives: export as DIBCAC worksheet CSV ─────────────────────
 
-app.get("/api/reports/:id/objectives/export/csv", (req, res) => {
-  const report = loadReport(req.params.id);
+app.get("/api/reports/:id/objectives/export/csv", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
   if (!report) return void res.status(404).json({ error: "Report not found" });
 
-  let statuses = loadObjectives(req.params.id);
+  let statuses = await loadObjectives(req.params.id);
   if (statuses.length === 0 && report.frameworkId === "CMMC_L2") {
     statuses = initObjectivesFromReport(report);
   }
@@ -785,12 +965,24 @@ app.get("/api/reports/:id/objectives/export/csv", (req, res) => {
 
 // ─── Start ─────────────────────────────────────────────────────────────────
 
-const PORT = parseInt(process.env.API_PORT ?? "3001");
-app.listen(PORT, () => {
-  const clients = listClients();
-  console.log(`\n[INDEX] Compliance API  →  http://localhost:${PORT}`);
-  console.log(`[INDEX] Clients         →  ${clients.length} configured${clients.length ? ` (${clients.map(c => c.name).join(", ")})` : " — open http://localhost:3000/setup"}`);
-  const anthropicKey = resolveAnthropicKey();
-  console.log(`[INDEX] Anthropic API   →  ${anthropicKey ? "✓ key present" : "✗ key not found (set ANTHROPIC_API_KEY)"}`);
-  console.log(`[INDEX] Reports stored  →  ${REPORTS_DIR}\n`);
-});
+const PORT = parseInt(process.env.PORT ?? process.env.API_PORT ?? "3001");
+
+async function start() {
+  // Initialize optional services before accepting requests
+  await Promise.all([initDB(), initClerk()]);
+
+  // Apply Clerk JWT middleware globally (after DB/Clerk are ready)
+  app.use(requireAuth as any);
+
+  app.listen(PORT, () => {
+    const clients = listClients();
+    console.log(`\n[INDEX] Compliance API  →  http://localhost:${PORT}`);
+    console.log(`[INDEX] Clients         →  ${clients.length} configured${clients.length ? ` (${clients.map(c => c.name).join(", ")})` : " — open http://localhost:3000/setup"}`);
+    const anthropicKey = resolveAnthropicKey();
+    console.log(`[INDEX] Anthropic API   →  ${anthropicKey ? "✓ key present" : "✗ key not found (set ANTHROPIC_API_KEY)"}`);
+    if (!db) console.log(`[INDEX] Reports stored  →  ${REPORTS_DIR} (file mode)`);
+    console.log("");
+  });
+}
+
+start().catch((err) => { console.error("[INDEX] Fatal startup error:", err); process.exit(1); });

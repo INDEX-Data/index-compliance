@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ShieldCheck, LayoutDashboard, Play, Clock, Building2, Plug, Settings } from 'lucide-react'
+import { UserButton } from '@clerk/nextjs'
 
 const nav = [
   { href: '/',              label: 'Dashboard',    icon: LayoutDashboard },
@@ -58,8 +59,15 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-5 py-4 border-t border-[#252521]">
+      {/* Footer — user avatar + sign-out */}
+      <div className="flex items-center gap-3 px-4 py-4 border-t border-[#252521]">
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: 'w-7 h-7',
+            },
+          }}
+        />
         <p className="text-[10px] text-[#3E3E38] font-mono uppercase tracking-wider">v1.0 · DSaaS</p>
       </div>
     </aside>
