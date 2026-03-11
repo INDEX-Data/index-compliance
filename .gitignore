@@ -1,0 +1,61 @@
+# Dependencies
+node_modules/
+web/node_modules/
+
+# Build output
+dist/
+web/.next/
+
+# Environment / secrets — NEVER commit these
+.env
+.env.local
+.env.*.local
+*.local.json
+settings.local.json
+
+# Runtime data (file-based storage — replaced by DB in production)
+web/.config/
+web/.reports/
+web/.objectives/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# TypeScript incremental build
+*.tsbuildinfo
+
+# Test artifacts
+coverage/
+
+# Stray root-level files (old copies, tarballs, temp)
+msgraph-compliance-mcp-*/
+*.tgz
+nist-results*.json
+analyze_dibcac.*
+*.mjs
+nul
+
+# Stray root-level duplicate source files (real source is in src/)
+/cmmc-l2-controls.ts
+/compliance-engine.ts
+/compliance-tools.ts
+/constants.ts
+/control-evidence-mapping.schema.json
+/framework-registry.ts
+/graph-client.ts
+/index.ts
+/types.ts
+
+# Temp files
+C*.json
+*AppDataLocalTemp*

@@ -1,0 +1,451 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import {
+  Building2, Plus, Trash2, RefreshCw, CheckCircle2,
+  AlertCircle, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, X,
+} from 'lucide-react'
+import { getClients, addClient, deleteClient, testClient, testConfig } from '@/lib/api'
+import type { Client } from '@/lib/types'
+
+// ─── Add Client Form ───────────────────────────────────────────────────────
+
+interface AddFormProps {
+  onAdded: (client: Client) => void
+  onCancel: () => void
+}
+
+function AddClientForm({ onAdded, onCancel }: AddFormProps) {
+  const [name,         setName]         = useState('')
+  const [tenantId,     setTenantId]     = useState('')
+  const [clientId,     setClientId]     = useState('')
+  const [clientSecret, setClientSecret] = useState('')
+  const [showSecret,   setShowSecret]   = useState(false)
+  const [testing,      setTesting]      = useState(false)
+  const [testResult,   setTestResult]   = useState<{ ok: boolean; tenantName?: string; error?: string } | null>(null)
+  const [saving,       setSaving]       = useState(false)
+  const [error,        setError]        = useState('')
+
+  async function handleTest() {
+    if (!tenantId || !clientId || !clientSecret) return
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const r = await testConfig({ tenantId, clientId, clientSecret })
+      setTestResult(r)
+      // Auto-fill name from tenant if blank
+      if (r.ok && r.tenantName && !name) setName(r.tenantName)
+    } catch (e) {
+      setTestResult({ ok: false, error: e instanceof Error ? e.message : 'Connection failed' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  async function handleAdd() {
+    if (!name || !tenantId || !clientId || !clientSecret) return
+    setSaving(true)
+    setError('')
+    try {
+      const client = await addClient({ name, tenantId, clientId, clientSecret })
+      onAdded(client)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to add client')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const canTest = tenantId.trim() && clientId.trim() && clientSecret.trim()
+  const canAdd  = canTest && name.trim()
+
+  return (
+    <div className="bg-white rounded-xl border border-[#E9E5DD] shadow-card overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EDE6]">
+        <div className="flex items-center gap-2">
+          <Plus className="w-4 h-4 text-[#C4A96D]" />
+          <span className="text-[13px] font-semibold text-[#18181B]">Add New Client</span>
+        </div>
+        <button onClick={onCancel} className="text-[#9CA3AF] hover:text-[#6B7280] transition">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Client Name */}
+        <div>
+          <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+            Client Name
+          </label>
+          <input
+            type="text"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. Acme Corp"
+            className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm text-[#18181B]
+                       placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                       focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+          />
+        </div>
+
+        {/* Tenant ID + Client ID row */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+              Tenant ID
+            </label>
+            <input
+              type="text"
+              value={tenantId}
+              onChange={e => setTenantId(e.target.value)}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm font-mono text-[#18181B]
+                         placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+              Client ID
+            </label>
+            <input
+              type="text"
+              value={clientId}
+              onChange={e => setClientId(e.target.value)}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm font-mono text-[#18181B]
+                         placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+            />
+          </div>
+        </div>
+
+        {/* Client Secret */}
+        <div>
+          <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+            Client Secret
+          </label>
+          <div className="relative" suppressHydrationWarning>
+            <input
+              type={showSecret ? 'text' : 'password'}
+              value={clientSecret}
+              onChange={e => setClientSecret(e.target.value)}
+              placeholder="App registration secret value"
+              className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#E9E5DD] text-sm font-mono text-[#18181B]
+                         placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+              suppressHydrationWarning
+            />
+            <button
+              type="button"
+              onClick={() => setShowSecret(s => !s)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C4BFB5] hover:text-[#6B7280] transition"
+            >
+              {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Test result banner */}
+        {testResult && (
+          <div className={`flex items-start gap-2 text-xs rounded-lg px-3 py-2.5 ${
+            testResult.ok
+              ? 'bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D]'
+              : 'bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]'
+          }`}>
+            {testResult.ok
+              ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              : <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            }
+            <span>
+              {testResult.ok
+                ? `Connected — ${testResult.tenantName ?? 'Tenant verified'}`
+                : testResult.error ?? 'Connection failed'
+              }
+            </span>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-center gap-2 text-xs bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-lg px-3 py-2.5">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <button
+            onClick={handleTest}
+            disabled={!canTest || testing}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#E9E5DD] bg-white
+                       hover:bg-[#F7F5F1] text-sm font-medium text-[#374151]
+                       disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Test Connection
+          </button>
+          <button
+            onClick={handleAdd}
+            disabled={!canAdd || saving}
+            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
+                       bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold
+                       disabled:bg-[#F3F4F6] disabled:text-[#9CA3AF] disabled:cursor-not-allowed transition"
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+            Add Client
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Client Card ──────────────────────────────────────────────────────────
+
+interface ClientCardProps {
+  client: Client
+  onDelete: (id: string) => void
+}
+
+function ClientCard({ client, onDelete }: ClientCardProps) {
+  const [testing,     setTesting]     = useState(false)
+  const [testResult,  setTestResult]  = useState<{ ok: boolean; error?: string } | null>(null)
+  const [confirming,  setConfirming]  = useState(false)
+  const [deleting,    setDeleting]    = useState(false)
+  const [expanded,    setExpanded]    = useState(false)
+
+  async function handleTest() {
+    setTesting(true)
+    setTestResult(null)
+    try {
+      const r = await testClient(client.id)
+      setTestResult(r)
+    } catch (e) {
+      setTestResult({ ok: false, error: e instanceof Error ? e.message : 'Test failed' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await deleteClient(client.id)
+      onDelete(client.id)
+    } catch {
+      setDeleting(false)
+    }
+  }
+
+  const added = new Date(client.addedAt).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  })
+
+  return (
+    <div className="bg-white rounded-xl border border-[#E9E5DD] shadow-card overflow-hidden">
+      {/* Main row */}
+      <div className="flex items-center gap-4 px-5 py-4">
+        {/* Icon */}
+        <div className="w-10 h-10 rounded-xl bg-[#F7F5F1] border border-[#E9E5DD] flex items-center justify-center shrink-0">
+          <Building2 className="w-5 h-5 text-[#6B7280]" />
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="text-[14px] font-semibold text-[#18181B] truncate">{client.name}</h3>
+          </div>
+          <p className="text-xs text-[#9CA3AF] font-mono truncate mt-0.5">
+            {client.tenantId}
+          </p>
+        </div>
+
+        {/* Test result badge */}
+        {testResult && (
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${
+            testResult.ok
+              ? 'text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0]'
+              : 'text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA]'
+          }`}>
+            {testResult.ok ? '● Connected' : '● Failed'}
+          </span>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={handleTest}
+            disabled={testing}
+            title="Test connection"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white
+                       hover:bg-[#F7F5F1] text-xs font-medium text-[#374151]
+                       disabled:opacity-40 transition"
+          >
+            {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+            Test
+          </button>
+
+          {!confirming ? (
+            <button
+              onClick={() => setConfirming(true)}
+              title="Remove client"
+              className="p-1.5 rounded-lg text-[#C4BFB5] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="px-2.5 py-1 rounded-lg bg-[#B91C1C] hover:bg-[#991B1B] text-white text-xs font-semibold transition"
+              >
+                {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Delete'}
+              </button>
+              <button
+                onClick={() => setConfirming(false)}
+                className="px-2.5 py-1 rounded-lg border border-[#E9E5DD] text-xs font-medium text-[#6B7280] hover:bg-[#F7F5F1] transition"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          <button
+            onClick={() => setExpanded(s => !s)}
+            className="p-1.5 rounded-lg text-[#C4BFB5] hover:text-[#6B7280] hover:bg-[#F7F5F1] transition"
+          >
+            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Expanded metadata */}
+      {expanded && (
+        <div className="border-t border-[#F0EDE6] px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
+          <div>
+            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Tenant ID</p>
+            <p className="text-xs font-mono text-[#374151] break-all">{client.tenantId}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Client ID</p>
+            <p className="text-xs font-mono text-[#374151] break-all">{client.clientId}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Client Secret</p>
+            <p className="text-xs font-mono text-[#374151]">{client.clientSecret}</p>
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Added</p>
+            <p className="text-xs text-[#374151]">{added}</p>
+          </div>
+
+          {testResult && !testResult.ok && testResult.error && (
+            <div className="col-span-2">
+              <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Last Error</p>
+              <p className="text-xs text-[#B91C1C] leading-relaxed">{testResult.error}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────
+
+export default function ClientsPage() {
+  const [clients,     setClients]     = useState<Client[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [showAddForm, setShowAddForm] = useState(false)
+
+  useEffect(() => {
+    getClients()
+      .then(setClients)
+      .finally(() => setLoading(false))
+  }, [])
+
+  function handleAdded(client: Client) {
+    setClients(prev => [...prev, client])
+    setShowAddForm(false)
+  }
+
+  function handleDeleted(id: string) {
+    setClients(prev => prev.filter(c => c.id !== id))
+  }
+
+  return (
+    <div className="p-8 max-w-3xl mx-auto">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-white border border-[#E9E5DD] flex items-center justify-center shadow-card">
+            <Building2 className="w-4 h-4 text-[#6B7280]" />
+          </div>
+          <div>
+            <h1 className="text-[22px] font-bold text-[#18181B] tracking-tight">Clients</h1>
+            <p className="text-sm text-[#6B7280] mt-0.5">
+              Manage Microsoft 365 tenants for multi-client assessments
+            </p>
+          </div>
+        </div>
+
+        {!showAddForm && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white
+                       text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Client
+          </button>
+        )}
+      </div>
+
+      {/* Add form */}
+      {showAddForm && (
+        <div className="mb-5">
+          <AddClientForm onAdded={handleAdded} onCancel={() => setShowAddForm(false)} />
+        </div>
+      )}
+
+      {/* Client list */}
+      {loading ? (
+        <div className="flex items-center justify-center py-24 text-[#9CA3AF]">
+          <Loader2 className="w-5 h-5 animate-spin mr-2" />
+          <span className="text-sm">Loading clients…</span>
+        </div>
+      ) : clients.length === 0 ? (
+        <div className="text-center py-24">
+          <div className="w-14 h-14 rounded-2xl bg-[#F7F5F1] border border-[#E9E5DD] flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-7 h-7 text-[#C4BFB5]" />
+          </div>
+          <h3 className="text-[14px] font-semibold text-[#374151] mb-1">No clients yet</h3>
+          <p className="text-sm text-[#9CA3AF] mb-5 max-w-xs mx-auto">
+            Add your first Microsoft 365 tenant to start running compliance assessments.
+          </p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white
+                       text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add First Client
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">
+            {clients.length} {clients.length === 1 ? 'Client' : 'Clients'}
+          </p>
+          {clients.map(client => (
+            <ClientCard key={client.id} client={client} onDelete={handleDeleted} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

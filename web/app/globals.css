@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --canvas:  #F7F5F1;
+  --surface: #FFFFFF;
+  --border:  #E9E5DD;
+  --ink:     #18181B;
+  --muted:   #6B7280;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar          { width: 5px; height: 5px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: #D4CFC5; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #B5AFA5; }
+
+/* Sidebar scrollbar */
+.sidebar-scroll::-webkit-scrollbar-thumb { background: #2E2E2A; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #3A3A36; }
+
+/* Smooth transitions everywhere */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, opacity;
+  transition-duration: 120ms;
+  transition-timing-function: ease;
+}
+
+/* Override transition for transforms (don't want all transforms animated globally) */
+button, a {
+  transition-property: background-color, border-color, color, opacity, box-shadow, transform;
+}
