@@ -5,4 +5,4 @@ builder = "dockerfile"
 startCommand = "node dist/api-server.js"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 30
-restartPolicyType = "on-failure"
+restartPolicyType = "ON_FAILURE"
