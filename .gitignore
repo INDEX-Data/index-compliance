@@ -42,7 +42,8 @@ msgraph-compliance-mcp-*/
 *.tgz
 nist-results*.json
 analyze_dibcac.*
-*.mjs
+# Exclude .mjs at root only — web/postcss.config.mjs must be tracked
+/*.mjs
 nul
 
 # Stray root-level duplicate source files (real source is in src/)
