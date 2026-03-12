@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Building2, Plus, Trash2, RefreshCw, CheckCircle2,
   AlertCircle, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, X,
+  HelpCircle, ExternalLink,
 } from 'lucide-react'
 import { getClients, addClient, deleteClient, testClient, testConfig } from '@/lib/api'
 import type { Client } from '@/lib/types'
@@ -25,6 +26,7 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
   const [testResult,   setTestResult]   = useState<{ ok: boolean; tenantName?: string; error?: string } | null>(null)
   const [saving,       setSaving]       = useState(false)
   const [error,        setError]        = useState('')
+  const [guideOpen,    setGuideOpen]    = useState(false)
 
   async function handleTest() {
     if (!tenantId || !clientId || !clientSecret) return
@@ -73,6 +75,65 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
       </div>
 
       <div className="p-5 space-y-4">
+
+        {/* ── Azure guide accordion ── */}
+        <div className="rounded-lg border border-[#E9E5DD] overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setGuideOpen(s => !s)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-[#F7F5F1] hover:bg-[#F0EDE6] text-sm font-medium text-[#374151] transition text-left"
+          >
+            <span className="flex items-center gap-2">
+              <HelpCircle className="w-3.5 h-3.5 text-[#C4A96D] shrink-0" />
+              How to find your Azure credentials
+            </span>
+            {guideOpen
+              ? <ChevronUp   className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
+              : <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />}
+          </button>
+
+          {guideOpen && (
+            <div className="px-4 pt-4 pb-3 border-t border-[#E9E5DD] space-y-3.5">
+              {[
+                {
+                  step: '1',
+                  title: 'Open App Registrations',
+                  desc:  'Go to portal.azure.com → Azure Active Directory → App registrations. Create a new registration or select an existing one.',
+                },
+                {
+                  step: '2',
+                  title: 'Copy Tenant ID & Client ID',
+                  desc:  'On the app Overview page, copy the Directory (Tenant) ID and the Application (Client) ID.',
+                },
+                {
+                  step: '3',
+                  title: 'Create a client secret',
+                  desc:  'Go to Certificates & secrets → New client secret. Copy the secret Value — not the ID. It only shows once.',
+                },
+              ].map(s => (
+                <div key={s.step} className="flex items-start gap-3">
+                  <span className="w-5 h-5 rounded-full bg-[#141412] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    {s.step}
+                  </span>
+                  <div>
+                    <div className="text-xs font-semibold text-[#374151]">{s.title}</div>
+                    <div className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{s.desc}</div>
+                  </div>
+                </div>
+              ))}
+              <a
+                href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#374151] transition pt-1"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open Azure Portal →
+              </a>
+            </div>
+          )}
+        </div>
+
         {/* Client Name */}
         <div>
           <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
@@ -92,9 +153,10 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
         {/* Tenant ID + Client ID row */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+            <label className="block text-xs font-semibold text-[#374151] mb-0.5 uppercase tracking-wide">
               Tenant ID
             </label>
+            <p className="text-[10px] text-[#9CA3AF] mb-1.5">Azure AD → Properties</p>
             <input
               type="text"
               value={tenantId}
@@ -106,9 +168,10 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+            <label className="block text-xs font-semibold text-[#374151] mb-0.5 uppercase tracking-wide">
               Client ID
             </label>
+            <p className="text-[10px] text-[#9CA3AF] mb-1.5">App Registration → Overview</p>
             <input
               type="text"
               value={clientId}
@@ -123,9 +186,10 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
 
         {/* Client Secret */}
         <div>
-          <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+          <label className="block text-xs font-semibold text-[#374151] mb-0.5 uppercase tracking-wide">
             Client Secret
           </label>
+          <p className="text-[10px] text-[#9CA3AF] mb-1.5">Certificates &amp; secrets → secret Value (not ID)</p>
           <div className="relative" suppressHydrationWarning>
             <input
               type={showSecret ? 'text' : 'password'}
@@ -419,14 +483,46 @@ export default function ClientsPage() {
           <span className="text-sm">Loading clients…</span>
         </div>
       ) : clients.length === 0 ? (
-        <div className="text-center py-24">
+        <div className="text-center py-16">
           <div className="w-14 h-14 rounded-2xl bg-[#F7F5F1] border border-[#E9E5DD] flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-7 h-7 text-[#C4BFB5]" />
           </div>
           <h3 className="text-[14px] font-semibold text-[#374151] mb-1">No clients yet</h3>
-          <p className="text-sm text-[#9CA3AF] mb-5 max-w-xs mx-auto">
-            Add your first Microsoft 365 tenant to start running compliance assessments.
+          <p className="text-sm text-[#9CA3AF] mb-6 max-w-xs mx-auto">
+            Connect a Microsoft 365 tenant to start running compliance assessments.
           </p>
+
+          {/* What you'll need */}
+          <div className="bg-[#F7F5F1] border border-[#E9E5DD] rounded-xl px-5 py-4 mb-6 max-w-sm mx-auto text-left">
+            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">
+              Before you start, you&apos;ll need:
+            </p>
+            <ul className="space-y-2.5">
+              {[
+                { label: 'Directory (Tenant) ID',   hint: 'Azure AD → Properties' },
+                { label: 'Application (Client) ID', hint: 'App Registration → Overview' },
+                { label: 'Client Secret value',     hint: 'Certificates & Secrets tab' },
+              ].map(item => (
+                <li key={item.label} className="flex items-start gap-2.5">
+                  <div className="w-4 h-4 rounded border-2 border-[#D4CFC5] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-sm text-[#374151] font-medium">{item.label}</span>
+                    <span className="text-xs text-[#9CA3AF] ml-1.5">{item.hint}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <a
+              href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3.5 flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#374151] transition"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Open Azure Portal
+            </a>
+          </div>
+
           <button
             onClick={() => setShowAddForm(true)}
             className="inline-flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white

@@ -7,21 +7,24 @@ import {
   FileText, Building2, ArrowRight,
 } from 'lucide-react'
 import { getReports, getClients } from '@/lib/api'
+import { WelcomeModal } from '@/components/WelcomeModal'
 import { ComplianceDonut } from '@/components/ComplianceDonut'
 import { RiskBadge } from '@/components/RiskBadge'
 import { ScoreTrend } from '@/components/ScoreTrend'
 import type { ReportMeta } from '@/lib/types'
 
 export default function DashboardPage() {
-  const [loading, setLoading]   = useState(true)
-  const [reports, setReports]   = useState<ReportMeta[]>([])
-  const [hasClients, setHasClients] = useState<boolean | null>(null)
+  const [loading, setLoading]           = useState(true)
+  const [reports, setReports]           = useState<ReportMeta[]>([])
+  const [hasClients, setHasClients]     = useState<boolean | null>(null)
+  const [firstClientName, setFirstClientName] = useState<string>('')
 
   useEffect(() => {
     Promise.all([getReports(), getClients()])
       .then(([rpts, clients]) => {
         setReports(rpts)
         setHasClients(clients.length > 0)
+        setFirstClientName(clients[0]?.name ?? '')
       })
       .catch(() => {
         setReports([])
@@ -68,6 +71,8 @@ export default function DashboardPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto">
 
+      <WelcomeModal />
+
       {/* Page header */}
       <div className="flex items-start justify-between mb-8">
         <div>
@@ -97,20 +102,29 @@ export default function DashboardPage() {
             </p>
 
             {/* Onboarding steps */}
-            <div className="flex items-center gap-3 mb-8 text-sm">
-              <div className="flex items-center gap-2 bg-[#18181B] text-white px-3.5 py-2 rounded-lg font-semibold">
-                <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#18181B] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                Add client
+            <div className="flex items-center gap-3 mb-8 text-sm flex-wrap justify-center">
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-[#18181B] text-white px-3.5 py-2 rounded-lg font-semibold">
+                  <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#18181B] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
+                  Add client
+                </div>
+                <span className="text-[10px] text-[#9CA3AF]">~2 min</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
-              <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
-                <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-                Run assessment
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5] mb-4" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
+                  <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                  Run assessment
+                </div>
+                <span className="text-[10px] text-[#C4BFB5]">~5 min</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
-              <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
-                <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
-                View results
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5] mb-4" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
+                  <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                  View results
+                </div>
+                <span className="text-[10px] text-[#C4BFB5]">&nbsp;</span>
               </div>
             </div>
 
@@ -130,23 +144,36 @@ export default function DashboardPage() {
             </div>
             <h3 className="text-base font-semibold text-[#18181B] mb-2">Run your first assessment</h3>
             <p className="text-sm text-[#6B7280] max-w-sm mb-8 leading-relaxed">
-              Your client is connected. Run a compliance assessment to see your security posture.
+              {firstClientName ? (
+                <><strong className="text-[#374151]">{firstClientName}</strong> is connected. Choose a framework and run a compliance assessment.</>
+              ) : (
+                <>Your client is connected. Choose a framework and run your first compliance assessment.</>
+              )}
             </p>
 
-            <div className="flex items-center gap-3 mb-8 text-sm">
-              <div className="flex items-center gap-2 bg-[#F0FDF4] text-[#15803D] px-3.5 py-2 rounded-lg font-medium border border-[#BBF7D0]">
-                <span className="w-4 h-4 rounded-full bg-[#15803D] text-white text-[10px] font-bold flex items-center justify-center shrink-0">✓</span>
-                Client added
+            <div className="flex items-center gap-3 mb-8 text-sm flex-wrap justify-center">
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-[#F0FDF4] text-[#15803D] px-3.5 py-2 rounded-lg font-medium border border-[#BBF7D0]">
+                  <span className="w-4 h-4 rounded-full bg-[#15803D] text-white text-[10px] font-bold flex items-center justify-center shrink-0">✓</span>
+                  {firstClientName || 'Client added'}
+                </div>
+                <span className="text-[10px] text-[#9CA3AF]">&nbsp;</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
-              <div className="flex items-center gap-2 bg-[#18181B] text-white px-3.5 py-2 rounded-lg font-semibold">
-                <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#18181B] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-                Run assessment
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5] mb-4" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-[#18181B] text-white px-3.5 py-2 rounded-lg font-semibold">
+                  <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#18181B] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                  Run assessment
+                </div>
+                <span className="text-[10px] text-[#9CA3AF]">~5 min</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
-              <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
-                <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
-                View results
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5] mb-4" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
+                  <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                  View results
+                </div>
+                <span className="text-[10px] text-[#C4BFB5]">&nbsp;</span>
               </div>
             </div>
 
