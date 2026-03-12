@@ -1,35 +1,34 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Shield, Clock, Play, AlertTriangle, ChevronRight, FileText } from 'lucide-react'
-import { getConfigStatus, getReports } from '@/lib/api'
+import {
+  Shield, Clock, Play, AlertTriangle, ChevronRight,
+  FileText, Building2, ArrowRight,
+} from 'lucide-react'
+import { getReports, getClients } from '@/lib/api'
 import { ComplianceDonut } from '@/components/ComplianceDonut'
 import { RiskBadge } from '@/components/RiskBadge'
 import { ScoreTrend } from '@/components/ScoreTrend'
 import type { ReportMeta } from '@/lib/types'
 
 export default function DashboardPage() {
-  const router = useRouter()
   const [loading, setLoading]   = useState(true)
   const [reports, setReports]   = useState<ReportMeta[]>([])
-  const [tenantName, setTenant] = useState<string | null>(null)
+  const [hasClients, setHasClients] = useState<boolean | null>(null)
 
   useEffect(() => {
-    async function load() {
-      try {
-        const status = await getConfigStatus()
-        if (!status.configured) { router.replace('/setup'); return }
-        setTenant(status.tenantName ?? null)
-        const rpts = await getReports()
+    Promise.all([getReports(), getClients()])
+      .then(([rpts, clients]) => {
         setReports(rpts)
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [router])
+        setHasClients(clients.length > 0)
+      })
+      .catch(() => {
+        setReports([])
+        setHasClients(false)
+      })
+      .finally(() => setLoading(false))
+  }, [])
 
   if (loading) {
     return (
@@ -48,7 +47,6 @@ export default function DashboardPage() {
     if (!historyByFramework[r.frameworkId]) historyByFramework[r.frameworkId] = []
     historyByFramework[r.frameworkId].push(r)
   }
-  // Sort each framework's history oldest→newest
   for (const id of Object.keys(historyByFramework)) {
     historyByFramework[id].sort(
       (a, b) => new Date(a.generatedAt).getTime() - new Date(b.generatedAt).getTime()
@@ -57,7 +55,6 @@ export default function DashboardPage() {
 
   const latestReports = Object.values(historyByFramework).map(arr => arr[arr.length - 1])
 
-  // Total counts across all latest reports
   const totals = latestReports.reduce(
     (acc, r) => ({
       passed:      acc.passed      + r.summary.passed,
@@ -75,12 +72,7 @@ export default function DashboardPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-[22px] font-bold text-[#18181B] tracking-tight">Dashboard</h1>
-          {tenantName && (
-            <p className="text-sm text-[#6B7280] mt-1 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#15803D] inline-block" />
-              {tenantName}
-            </p>
-          )}
+          <p className="text-sm text-[#6B7280] mt-1">Compliance posture across all clients</p>
         </div>
         <Link
           href="/assess"
@@ -92,22 +84,81 @@ export default function DashboardPage() {
       </div>
 
       {latestReports.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-white border border-[#E9E5DD] flex items-center justify-center mb-5 shadow-card">
-            <Shield className="w-7 h-7 text-[#D4CFC5]" />
+        /* ── Empty state ── */
+        !hasClients ? (
+          /* Step 1: no clients yet */
+          <div className="flex flex-col items-center justify-center py-28 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-white border border-[#E9E5DD] flex items-center justify-center mb-5 shadow-card">
+              <Building2 className="w-7 h-7 text-[#D4CFC5]" />
+            </div>
+            <h3 className="text-base font-semibold text-[#18181B] mb-2">Add your first client</h3>
+            <p className="text-sm text-[#6B7280] max-w-sm mb-8 leading-relaxed">
+              Connect a Microsoft 365 tenant to start running compliance assessments.
+            </p>
+
+            {/* Onboarding steps */}
+            <div className="flex items-center gap-3 mb-8 text-sm">
+              <div className="flex items-center gap-2 bg-[#18181B] text-white px-3.5 py-2 rounded-lg font-semibold">
+                <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#18181B] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
+                Add client
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
+              <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
+                <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                Run assessment
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
+              <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
+                <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                View results
+              </div>
+            </div>
+
+            <Link
+              href="/clients"
+              className="inline-flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              Add First Client
+            </Link>
           </div>
-          <h3 className="text-base font-semibold text-[#18181B] mb-2">No assessments yet</h3>
-          <p className="text-sm text-[#6B7280] max-w-sm mb-7 leading-relaxed">
-            Run your first compliance assessment to see a summary of your Microsoft 365 security posture.
-          </p>
-          <Link
-            href="/assess"
-            className="inline-flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
-          >
-            <Play className="w-3.5 h-3.5" />
-            Run First Assessment
-          </Link>
-        </div>
+        ) : (
+          /* Step 2: has clients, no assessments yet */
+          <div className="flex flex-col items-center justify-center py-28 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-white border border-[#E9E5DD] flex items-center justify-center mb-5 shadow-card">
+              <Shield className="w-7 h-7 text-[#D4CFC5]" />
+            </div>
+            <h3 className="text-base font-semibold text-[#18181B] mb-2">Run your first assessment</h3>
+            <p className="text-sm text-[#6B7280] max-w-sm mb-8 leading-relaxed">
+              Your client is connected. Run a compliance assessment to see your security posture.
+            </p>
+
+            <div className="flex items-center gap-3 mb-8 text-sm">
+              <div className="flex items-center gap-2 bg-[#F0FDF4] text-[#15803D] px-3.5 py-2 rounded-lg font-medium border border-[#BBF7D0]">
+                <span className="w-4 h-4 rounded-full bg-[#15803D] text-white text-[10px] font-bold flex items-center justify-center shrink-0">✓</span>
+                Client added
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
+              <div className="flex items-center gap-2 bg-[#18181B] text-white px-3.5 py-2 rounded-lg font-semibold">
+                <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#18181B] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+                Run assessment
+              </div>
+              <ArrowRight className="w-4 h-4 text-[#D4CFC5]" />
+              <div className="flex items-center gap-2 bg-[#F7F5F1] text-[#9CA3AF] px-3.5 py-2 rounded-lg font-medium border border-[#E9E5DD]">
+                <span className="w-4 h-4 rounded-full bg-[#E9E5DD] text-[#9CA3AF] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+                View results
+              </div>
+            </div>
+
+            <Link
+              href="/assess"
+              className="inline-flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            >
+              <Play className="w-3.5 h-3.5" />
+              Run First Assessment
+            </Link>
+          </div>
+        )
       ) : (
         <>
           {/* Cross-framework summary row */}
@@ -146,17 +197,14 @@ export default function DashboardPage() {
 
 interface FrameworkCardProps {
   report:  ReportMeta
-  history: ReportMeta[]   // oldest→newest, includes the latest report
+  history: ReportMeta[]
 }
 
 function FrameworkCard({ report, history }: FrameworkCardProps) {
   const ago = timeAgo(report.generatedAt)
   const pct = report.summary.compliancePercentage
   const scoreColor = pct >= 90 ? '#15803D' : pct >= 70 ? '#B45309' : '#B91C1C'
-
-  // Chronological score series for sparkline
   const scores = history.map(r => r.summary.compliancePercentage)
-
   const runCount = history.length
 
   return (
@@ -171,9 +219,7 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
               <Clock className="w-3 h-3" /> {ago}
             </span>
             {runCount > 1 && (
-              <span className="text-[11px] text-[#C4BFB5]">
-                {runCount} runs
-              </span>
+              <span className="text-[11px] text-[#C4BFB5]">{runCount} runs</span>
             )}
             <span className="flex items-center gap-1 text-[11px] text-[#D4CFC5] font-mono">
               <FileText className="w-3 h-3" /> {report.reportId}
@@ -204,7 +250,6 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
           <div className="mt-2 w-full max-w-[140px] bg-[#E9E5DD] rounded-full h-1.5">
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: scoreColor }} />
           </div>
-          {/* Trend row — only shown when 2+ runs */}
           {scores.length >= 2 && (
             <div className="mt-3 pt-3 border-t border-[#E9E5DD] w-full flex flex-col items-center gap-2">
               <ScoreTrend scores={scores} width={110} height={32} />
