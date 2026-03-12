@@ -6,7 +6,7 @@ import { ShieldCheck, LayoutDashboard, Play, Clock, Building2, Plug, Settings } 
 import { UserButton } from '@clerk/nextjs'
 
 const nav = [
-  { href: '/',              label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/dashboard',     label: 'Dashboard',    icon: LayoutDashboard },
   { href: '/assess',        label: 'Assess',       icon: Play },
   { href: '/history',       label: 'History',      icon: Clock },
   { href: '/clients',       label: 'Clients',      icon: Building2 },
@@ -34,7 +34,7 @@ export function Sidebar() {
       {/* Nav */}
       <nav className="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto sidebar-scroll">
         {nav.map(({ href, label, icon: Icon }) => {
-          const active = href === '/' ? path === '/' : path.startsWith(href)
+          const active = href === '/dashboard' ? path === '/dashboard' : path.startsWith(href)
           return (
             <Link
               key={href}
