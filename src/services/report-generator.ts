@@ -174,7 +174,7 @@ For recommendations: provide 5-8 items across Critical/High/Medium/Low prioritie
   const client = new Anthropic({ apiKey });
   const message = await client.messages.create({
     model:      "claude-sonnet-4-5-20250929",
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages:   [{ role: "user", content: prompt }],
   });
 
