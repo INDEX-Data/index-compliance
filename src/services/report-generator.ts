@@ -182,10 +182,11 @@ For recommendations: provide 5-8 items across Critical/High/Medium/Low prioritie
   const content = message.content.find(b => b.type === "text");
   if (!content || content.type !== "text") throw new Error("No text block in Claude response");
 
-  // Extract JSON — handle optional markdown fences
+  // Extract JSON — strip markdown code fences if the model wrapped the response
   const raw = content.text.trim();
-  const fenceMatch = raw.match(/```(?:json)?\n?([\s\S]*?)\n?```/);
-  const jsonText   = fenceMatch ? fenceMatch[1] : raw;
+  const jsonText = raw.startsWith("```")
+    ? raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim()
+    : raw;
 
   return JSON.parse(jsonText) as ReportNarrative;
 }
