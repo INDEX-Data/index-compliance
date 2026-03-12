@@ -4,6 +4,10 @@
 // Runs on :3001 independently from the MCP server (src/index.ts)
 // =============================================================================
 
+// Load .env before anything else so process.env vars are available
+import { config as loadDotenv } from "dotenv";
+loadDotenv();
+
 import express, { type Request, type Response, type NextFunction } from "express";
 import {
   readFileSync, writeFileSync, existsSync,
@@ -263,7 +267,7 @@ function makeGraphClient(client: Client): GraphClient {
 // ─── Resolve client for a request ─────────────────────────────────────────
 // Uses ?clientId query param if provided, otherwise the first configured client.
 
-function resolveClient(clientIdParam?: string): Client | null {
+async function resolveClient(clientIdParam?: string): Promise<Client | null> {
   if (clientIdParam) return getClient(clientIdParam);
   return getDefaultClient();
 }
@@ -296,16 +300,16 @@ app.use((req, res, next) => {
 
 // ── Health ─────────────────────────────────────────────────────────────────
 
-app.get("/api/health", (_req, res) => {
-  const clients = listClients();
+app.get("/api/health", async (_req, res) => {
+  const clients = await listClients();
   const primary = clients[0];
   res.json({ ok: true, configured: clients.length > 0, tenantName: primary?.name ?? null });
 });
 
 // ── Config: status (backward compat — derives from clients list) ───────────
 
-app.get("/api/config/status", (_req, res) => {
-  const clients = listClients();
+app.get("/api/config/status", async (_req, res) => {
+  const clients = await listClients();
   if (clients.length === 0) return void res.json({ configured: false });
   const primary = clients[0];
   res.json({
@@ -320,19 +324,19 @@ app.get("/api/config/status", (_req, res) => {
 
 // ── Config: save (setup wizard — upserts by tenantId) ─────────────────────
 
-app.post("/api/config", (req, res) => {
+app.post("/api/config", async (req: AuthedRequest, res) => {
   const { tenantId, clientId, clientSecret, tenantName } = req.body as {
     tenantId?: string; clientId?: string; clientSecret?: string; tenantName?: string;
   };
   if (!tenantId || !clientId || !clientSecret)
     return void res.status(400).json({ error: "tenantId, clientId, and clientSecret are required" });
 
-  const client = upsertByTenantId({
+  const client = await upsertByTenantId({
     tenantId,
     clientId,
     clientSecret,
     name: tenantName ?? `Tenant ${tenantId.slice(0, 8)}`,
-  });
+  }, req.userId ?? "default");
   res.json({ ok: true, clientId: client.id });
 });
 
@@ -351,7 +355,7 @@ app.post("/api/config/test", async (req, res) => {
       addedAt: new Date().toISOString(),
     };
   } else {
-    testClient = getDefaultClient();
+    testClient = await getDefaultClient();
   }
   if (!testClient) return void res.status(400).json({ error: "No credentials to test" });
 
@@ -397,24 +401,25 @@ app.post("/api/config/test", async (req, res) => {
 
 // ── Clients: list ──────────────────────────────────────────────────────────
 
-app.get("/api/clients", (_req, res) => {
-  res.json(listClients().map(maskSecret));
+app.get("/api/clients", async (req: AuthedRequest, res) => {
+  const all = await listClients(req.userId);
+  res.json(all.map(maskSecret));
 });
 
 // ── Clients: add ──────────────────────────────────────────────────────────
 
-app.post("/api/clients", (req, res) => {
+app.post("/api/clients", async (req: AuthedRequest, res) => {
   const { name, tenantId, clientId, clientSecret } = req.body as Partial<Client>;
   if (!name || !tenantId || !clientId || !clientSecret)
     return void res.status(400).json({ error: "name, tenantId, clientId, and clientSecret are required" });
 
-  const client = addClient({ name, tenantId, clientId, clientSecret });
+  const client = await addClient({ name, tenantId, clientId, clientSecret }, req.userId ?? "default");
   res.status(201).json(maskSecret(client));
 });
 
 // ── Clients: update ───────────────────────────────────────────────────────
 
-app.put("/api/clients/:id", (req, res) => {
+app.put("/api/clients/:id", async (req: AuthedRequest, res) => {
   const { name, tenantId, clientId, clientSecret } = req.body as Partial<Client>;
   // Only update secret if a non-empty value was supplied
   const patch: Partial<Omit<Client, "id" | "addedAt">> = {};
@@ -423,23 +428,23 @@ app.put("/api/clients/:id", (req, res) => {
   if (clientId)     patch.clientId     = clientId;
   if (clientSecret) patch.clientSecret = clientSecret;
 
-  const updated = updateClient(req.params.id, patch);
+  const updated = await updateClient(req.params.id, patch, req.userId);
   if (!updated) return void res.status(404).json({ error: "Client not found" });
   res.json(maskSecret(updated));
 });
 
 // ── Clients: delete ───────────────────────────────────────────────────────
 
-app.delete("/api/clients/:id", (req, res) => {
-  const ok = deleteClient(req.params.id);
+app.delete("/api/clients/:id", async (req: AuthedRequest, res) => {
+  const ok = await deleteClient(req.params.id, req.userId);
   if (!ok) return void res.status(404).json({ error: "Client not found" });
   res.json({ ok: true });
 });
 
 // ── Clients: test connection ───────────────────────────────────────────────
 
-app.post("/api/clients/:id/test", async (req, res) => {
-  const client = getClient(req.params.id);
+app.post("/api/clients/:id/test", async (req: AuthedRequest, res) => {
+  const client = await getClient(req.params.id, req.userId);
   if (!client) return void res.status(404).json({ error: "Client not found" });
 
   const graphClient = makeGraphClient(client);
@@ -639,12 +644,12 @@ app.post("/api/onboard/:token/complete", async (req, res) => {
   }
 
   // Create client record using the existing client manager
-  const client = addClient({
+  const client = await addClient({
     name:         companyName.trim(),
     tenantId:     tenantId.trim(),
     clientId:     azureClientId.trim(),
     clientSecret: clientSecret.trim(),
-  });
+  }, inv.userId);
 
   // Update invitation to accepted
   const { clientInvitations: invTable } = dbSchema as any;
@@ -874,7 +879,7 @@ app.get("/api/frameworks/:id/controls", (req, res) => {
 // clientId is optional — defaults to first configured client
 
 app.get("/api/assess/stream/:frameworkId", async (req: AuthedRequest, res) => {
-  const client = resolveClient(req.query.clientId as string | undefined);
+  const client = await resolveClient(req.query.clientId as string | undefined);
   if (!client) {
     res.status(401).json({ error: "No clients configured. Add a client first." });
     return;
@@ -956,7 +961,7 @@ app.get("/api/assess/stream/:frameworkId", async (req: AuthedRequest, res) => {
 // ── Assess: single control ─────────────────────────────────────────────────
 
 app.post("/api/assess/:frameworkId/control/:controlId", async (req, res) => {
-  const client = resolveClient(req.query.clientId as string | undefined);
+  const client = await resolveClient(req.query.clientId as string | undefined);
   if (!client) return void res.status(401).json({ error: "No clients configured" });
 
   const controls = getFrameworkControls(req.params.frameworkId as any);
@@ -1360,13 +1365,15 @@ async function start() {
   app.use(requireAuth as any);
 
   app.listen(PORT, () => {
-    const clients = listClients();
-    console.log(`\n[INDEX] Compliance API  →  http://localhost:${PORT}`);
-    console.log(`[INDEX] Clients         →  ${clients.length} configured${clients.length ? ` (${clients.map(c => c.name).join(", ")})` : " — open http://localhost:3000/setup"}`);
-    const anthropicKey = resolveAnthropicKey();
-    console.log(`[INDEX] Anthropic API   →  ${anthropicKey ? "✓ key present" : "✗ key not found (set ANTHROPIC_API_KEY)"}`);
-    if (!db) console.log(`[INDEX] Reports stored  →  ${REPORTS_DIR} (file mode)`);
-    console.log("");
+    void (async () => {
+      const clients = await listClients();
+      console.log(`\n[INDEX] Compliance API  →  http://localhost:${PORT}`);
+      console.log(`[INDEX] Clients         →  ${clients.length} configured${clients.length ? ` (${clients.map(c => c.name).join(", ")})` : " — open http://localhost:3000/setup"}`);
+      const anthropicKey = resolveAnthropicKey();
+      console.log(`[INDEX] Anthropic API   →  ${anthropicKey ? "✓ key present" : "✗ key not found (set ANTHROPIC_API_KEY)"}`);
+      if (!db) console.log(`[INDEX] Reports stored  →  ${REPORTS_DIR} (file mode)`);
+      console.log("");
+    })();
   });
 }
 

@@ -11,8 +11,9 @@
     {
       "name": "api-server",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["C:\\INDEX MCP APP\\dist\\api-server.js"],
-      "port": 3001
+      "runtimeArgs": ["--env-file=.env", "C:\\INDEX MCP APP\\dist\\api-server.js"],
+      "port": 3001,
+      "cwd": "C:\\INDEX MCP APP"
     }
   ]
 }

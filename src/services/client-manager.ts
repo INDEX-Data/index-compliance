@@ -1,136 +1,119 @@
 // =============================================================================
-// INDEX DSaaS — Multi-Tenant Client Manager
+// INDEX DSaaS — Multi-Tenant Client Manager (DB-backed)
 // Manages per-client Azure credentials for MSP mode.
-// Stores clients in web/.config/clients.json
-// Auto-migrates legacy credentials.json on first access.
+// Uses Neon PostgreSQL via Drizzle ORM — persists across deployments.
 // =============================================================================
 
-import {
-  readFileSync, writeFileSync, existsSync, mkdirSync,
-} from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { db } from "../db/client.js";
+import { clients as clientsTable } from "../db/schema.js";
+import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import type { Client } from "../types.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+// ─── Type conversion ───────────────────────────────────────────────────────
 
-// dist/services/  →  ../../web/
-const WEB_DIR     = join(__dirname, "..", "..", "web");
-const CONFIG_DIR  = join(WEB_DIR, ".config");
-const CLIENTS_FILE  = join(CONFIG_DIR, "clients.json");
-const LEGACY_FILE   = join(CONFIG_DIR, "credentials.json");
+type DbRow = typeof clientsTable.$inferSelect;
 
-function ensureDir(dir: string) {
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-}
-
-// ─── Legacy migration ─────────────────────────────────────────────────────
-
-function migrateFromLegacy(): void {
-  if (!existsSync(LEGACY_FILE)) return;
-  try {
-    const legacy = JSON.parse(readFileSync(LEGACY_FILE, "utf8")) as {
-      tenantId: string;
-      clientId: string;
-      clientSecret: string;
-      tenantName?: string;
-    };
-    if (!legacy.tenantId || !legacy.clientId || !legacy.clientSecret) return;
-
-    const client: Client = {
-      id:           randomUUID(),
-      name:         legacy.tenantName ?? `Tenant ${legacy.tenantId.slice(0, 8)}`,
-      tenantId:     legacy.tenantId,
-      clientId:     legacy.clientId,
-      clientSecret: legacy.clientSecret,
-      addedAt:      new Date().toISOString(),
-    };
-    ensureDir(CONFIG_DIR);
-    writeFileSync(CLIENTS_FILE, JSON.stringify([client], null, 2), "utf8");
-    console.log(`[Clients] Migrated legacy credentials → "${client.name}" (${client.id})`);
-  } catch (err) {
-    console.warn("[Clients] Legacy migration failed:", err);
-  }
-}
-
-// ─── Core I/O ──────────────────────────────────────────────────────────────
-
-function readAll(): Client[] {
-  // Auto-migrate on first access when clients.json doesn't exist yet
-  if (!existsSync(CLIENTS_FILE) && existsSync(LEGACY_FILE)) {
-    migrateFromLegacy();
-  }
-  try {
-    if (!existsSync(CLIENTS_FILE)) return [];
-    return JSON.parse(readFileSync(CLIENTS_FILE, "utf8")) as Client[];
-  } catch { return []; }
-}
-
-function writeAll(clients: Client[]): void {
-  ensureDir(CONFIG_DIR);
-  writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2), "utf8");
+function toClient(row: DbRow): Client {
+  return {
+    id:           row.id,
+    name:         row.name,
+    tenantId:     row.tenantId,
+    clientId:     row.clientId,
+    clientSecret: row.clientSecret,
+    addedAt:      row.addedAt?.toISOString() ?? new Date().toISOString(),
+  };
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
-export function listClients(): Client[] {
-  return readAll();
+/** List all clients. If userId is provided, filters to that user's clients only. */
+export async function listClients(userId?: string): Promise<Client[]> {
+  const rows = userId
+    ? await db.select().from(clientsTable).where(eq(clientsTable.userId, userId))
+    : await db.select().from(clientsTable);
+  return rows.map(toClient);
 }
 
-export function getClient(id: string): Client | null {
-  return readAll().find(c => c.id === id) ?? null;
+/** Get a single client by ID. */
+export async function getClient(id: string, userId?: string): Promise<Client | null> {
+  const conditions = userId
+    ? and(eq(clientsTable.id, id), eq(clientsTable.userId, userId))
+    : eq(clientsTable.id, id);
+  const rows = await db.select().from(clientsTable).where(conditions).limit(1);
+  return rows.length > 0 ? toClient(rows[0]) : null;
 }
 
 /** Returns the first client (used as default in single-tenant setups). */
-export function getDefaultClient(): Client | null {
-  const all = readAll();
-  return all.length > 0 ? all[0] : null;
+export async function getDefaultClient(userId?: string): Promise<Client | null> {
+  const rows = userId
+    ? await db.select().from(clientsTable).where(eq(clientsTable.userId, userId)).limit(1)
+    : await db.select().from(clientsTable).limit(1);
+  return rows.length > 0 ? toClient(rows[0]) : null;
 }
 
-export function addClient(data: Omit<Client, "id" | "addedAt">): Client {
-  const clients = readAll();
-  const client: Client = {
-    ...data,
-    id:      randomUUID(),
-    addedAt: new Date().toISOString(),
-  };
-  clients.push(client);
-  writeAll(clients);
-  return client;
+/** Add a new client. userId scopes the client to the creating user. */
+export async function addClient(
+  data: Omit<Client, "id" | "addedAt">,
+  userId: string = "default",
+): Promise<Client> {
+  const id = randomUUID();
+  const rows = await db.insert(clientsTable).values({
+    id,
+    userId,
+    externalId: id,
+    name:         data.name,
+    tenantId:     data.tenantId,
+    clientId:     data.clientId,
+    clientSecret: data.clientSecret,
+  }).returning();
+  return toClient(rows[0]);
 }
 
-export function upsertByTenantId(data: Omit<Client, "id" | "addedAt"> & { name: string }): Client {
-  const clients = readAll();
-  const existing = clients.find(c => c.tenantId === data.tenantId);
-  if (existing) {
-    // Update in-place
-    Object.assign(existing, { ...data });
-    writeAll(clients);
-    return existing;
+/** Upsert by tenantId — used by the setup wizard. */
+export async function upsertByTenantId(
+  data: Omit<Client, "id" | "addedAt"> & { name: string },
+  userId: string = "default",
+): Promise<Client> {
+  const existing = await db.select()
+    .from(clientsTable)
+    .where(and(eq(clientsTable.tenantId, data.tenantId), eq(clientsTable.userId, userId)))
+    .limit(1);
+
+  if (existing.length > 0) {
+    const rows = await db.update(clientsTable)
+      .set({
+        name:         data.name,
+        clientId:     data.clientId,
+        clientSecret: data.clientSecret,
+      })
+      .where(eq(clientsTable.id, existing[0].id))
+      .returning();
+    return toClient(rows[0]);
   }
-  return addClient(data);
+  return addClient(data, userId);
 }
 
-export function updateClient(
+/** Update an existing client. */
+export async function updateClient(
   id: string,
-  data: Partial<Omit<Client, "id" | "addedAt">>
-): Client | null {
-  const clients = readAll();
-  const idx = clients.findIndex(c => c.id === id);
-  if (idx === -1) return null;
-  clients[idx] = { ...clients[idx], ...data };
-  writeAll(clients);
-  return clients[idx];
+  data: Partial<Omit<Client, "id" | "addedAt">>,
+  userId?: string,
+): Promise<Client | null> {
+  const conditions = userId
+    ? and(eq(clientsTable.id, id), eq(clientsTable.userId, userId))
+    : eq(clientsTable.id, id);
+  const rows = await db.update(clientsTable).set(data).where(conditions).returning();
+  return rows.length > 0 ? toClient(rows[0]) : null;
 }
 
-export function deleteClient(id: string): boolean {
-  const clients = readAll();
-  const filtered = clients.filter(c => c.id !== id);
-  if (filtered.length === clients.length) return false;
-  writeAll(filtered);
-  return true;
+/** Delete a client. Returns true if a row was deleted. */
+export async function deleteClient(id: string, userId?: string): Promise<boolean> {
+  const conditions = userId
+    ? and(eq(clientsTable.id, id), eq(clientsTable.userId, userId))
+    : eq(clientsTable.id, id);
+  const rows = await db.delete(clientsTable).where(conditions).returning();
+  return rows.length > 0;
 }
 
 /** Returns a client with its secret masked for safe API responses. */
