@@ -2,9 +2,11 @@
  * INDEX — Drizzle ORM schema for Neon PostgreSQL
  *
  * Tables:
- *  - clients         : Azure tenant configurations per user (replaces web/.config/clients.json)
- *  - reports         : Compliance assessment reports (replaces web/.reports/*.json)
- *  - objective_statuses : DIBCAC 320 objective tracking (replaces web/.objectives/*.json)
+ *  - clients              : Azure tenant configurations per user
+ *  - reports              : Compliance assessment reports
+ *  - objective_statuses   : DIBCAC 320 objective tracking
+ *  - client_invitations   : Tokenized invite links MSPs send to clients
+ *  - client_integrations  : Per-client third-party platform credentials
  */
 
 import {
@@ -119,3 +121,78 @@ export const objectiveStatuses = pgTable(
 
 export type ObjectiveStatus = typeof objectiveStatuses.$inferSelect;
 export type NewObjectiveStatus = typeof objectiveStatuses.$inferInsert;
+
+// ─── Client Invitations ────────────────────────────────────────────────────
+
+export const clientInvitations = pgTable("client_invitations", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  /** Clerk user ID of the MSP who created the invite */
+  userId: text("user_id").notNull(),
+
+  /** FK to clients table — set once the client completes onboarding */
+  clientId: uuid("client_id").references(() => clients.id, {
+    onDelete: "set null",
+  }),
+
+  /** UUID token embedded in the public /onboard/:token URL */
+  token: text("token").notNull().unique(),
+
+  /** Pre-filled company name shown to the client */
+  clientName: text("client_name").notNull(),
+
+  /** Optional: who the invite was addressed to */
+  email: text("email"),
+
+  /** pending | accepted | revoked */
+  status: text("status").notNull().default("pending"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+
+  /** Link expires 3 days after creation */
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export type ClientInvitation = typeof clientInvitations.$inferSelect;
+export type NewClientInvitation = typeof clientInvitations.$inferInsert;
+
+// ─── Client Integrations ───────────────────────────────────────────────────
+
+export const clientIntegrations = pgTable(
+  "client_integrations",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+
+    /** FK to clients table */
+    clientId: uuid("client_id")
+      .references(() => clients.id, { onDelete: "cascade" })
+      .notNull(),
+
+    /** Clerk user ID of the owning MSP */
+    userId: text("user_id").notNull(),
+
+    /**
+     * Platform identifier — one of:
+     * entra_id | servicenow | splunk | jira | slack | teams |
+     * workday | monday | box | dropbox
+     */
+    platform: text("platform").notNull(),
+
+    /** Platform-specific credentials (API keys, URLs, tokens, etc.) */
+    config: jsonb("config").notNull(),
+
+    /** connected | error | pending */
+    status: text("status").notNull().default("pending"),
+
+    connectedAt: timestamp("connected_at"),
+    lastTestedAt: timestamp("last_tested_at"),
+    errorMessage: text("error_message"),
+  },
+  (t) => ({
+    /** Each platform can only appear once per client */
+    uniqPerClient: unique().on(t.clientId, t.platform),
+  })
+);
+
+export type ClientIntegration = typeof clientIntegrations.$inferSelect;
+export type NewClientIntegration = typeof clientIntegrations.$inferInsert;

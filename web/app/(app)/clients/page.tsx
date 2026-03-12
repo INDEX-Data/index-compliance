@@ -1,13 +1,257 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import {
   Building2, Plus, Trash2, RefreshCw, CheckCircle2,
   AlertCircle, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, X,
-  HelpCircle, ExternalLink,
+  HelpCircle, ExternalLink, Link, Copy, Check, Mail, Clock,
 } from 'lucide-react'
-import { getClients, addClient, deleteClient, testClient, testConfig } from '@/lib/api'
-import type { Client } from '@/lib/types'
+import {
+  getClients, addClient, deleteClient, testClient, testConfig,
+  createInvitation, getInvitations, revokeInvitation,
+} from '@/lib/api'
+import type { Client, Invitation } from '@/lib/types'
+
+// ─── Helpers ───────────────────────────────────────────────────────────────
+
+function formatExpiry(expiresAt: string): string {
+  const ms   = new Date(expiresAt).getTime() - Date.now()
+  if (ms <= 0) return 'Expired'
+  const h    = Math.floor(ms / 3_600_000)
+  const d    = Math.floor(h / 24)
+  const rh   = h % 24
+  if (d > 0) return `${d}d ${rh}h left`
+  return `${h}h left`
+}
+
+// ─── Invite Modal ──────────────────────────────────────────────────────────
+
+function InviteModal({ onClose }: { onClose: () => void }) {
+  const [clientName,   setClientName]   = useState('')
+  const [email,        setEmail]        = useState('')
+  const [generating,   setGenerating]   = useState(false)
+  const [newLink,      setNewLink]      = useState<string | null>(null)
+  const [copied,       setCopied]       = useState(false)
+  const [invitations,  setInvitations]  = useState<Invitation[]>([])
+  const [loadingList,  setLoadingList]  = useState(true)
+  const [revoking,     setRevoking]     = useState<string | null>(null)
+  const [genError,     setGenError]     = useState('')
+  const overlayRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    getInvitations()
+      .then(setInvitations)
+      .catch(() => {})
+      .finally(() => setLoadingList(false))
+  }, [])
+
+  async function handleGenerate() {
+    if (!clientName.trim()) return
+    setGenerating(true)
+    setGenError('')
+    try {
+      const result = await createInvitation({ clientName: clientName.trim(), email: email.trim() || undefined })
+      setNewLink(result.link)
+      setClientName('')
+      setEmail('')
+      // Refresh list
+      getInvitations().then(setInvitations).catch(() => {})
+    } catch (e) {
+      setGenError(e instanceof Error ? e.message : 'Failed to generate link')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function handleRevoke(id: string) {
+    setRevoking(id)
+    try {
+      await revokeInvitation(id)
+      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'revoked' } : inv))
+    } catch {} finally {
+      setRevoking(null)
+    }
+  }
+
+  async function handleCopy(link: string) {
+    await navigator.clipboard.writeText(link).catch(() => {})
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  function statusBadge(inv: Invitation) {
+    if (inv.status === 'accepted') {
+      return (
+        <span className="text-[10px] font-semibold text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0] px-2 py-0.5 rounded-full">
+          ✓ Accepted
+        </span>
+      )
+    }
+    if (inv.status === 'revoked') {
+      return (
+        <span className="text-[10px] font-semibold text-[#6B7280] bg-[#F7F5F1] border border-[#E9E5DD] px-2 py-0.5 rounded-full">
+          Revoked
+        </span>
+      )
+    }
+    // pending
+    return (
+      <span className="text-[10px] font-semibold text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] px-2 py-0.5 rounded-full">
+        {formatExpiry(inv.expiresAt)}
+      </span>
+    )
+  }
+
+  return (
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === overlayRef.current) onClose() }}
+    >
+      <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EDE6]">
+          <div className="flex items-center gap-2">
+            <Link className="w-4 h-4 text-[#C4A96D]" />
+            <span className="text-[14px] font-bold text-[#18181B]">Invite a Client</span>
+          </div>
+          <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#6B7280] transition">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+
+          {/* Generate form */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+                Client Name
+              </label>
+              <input
+                type="text"
+                value={clientName}
+                onChange={e => setClientName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                placeholder="e.g. Contoso Ltd"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm text-[#18181B]
+                           placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                           focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+                Email <span className="font-normal normal-case text-[#9CA3AF]">(optional)</span>
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#C4BFB5]" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="contact@company.com"
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm text-[#18181B]
+                             placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                             focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+                />
+              </div>
+            </div>
+
+            {genError && (
+              <div className="flex items-center gap-2 text-xs bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-lg px-3 py-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                {genError}
+              </div>
+            )}
+
+            <button
+              onClick={handleGenerate}
+              disabled={!clientName.trim() || generating}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
+                         bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold
+                         disabled:bg-[#F3F4F6] disabled:text-[#9CA3AF] disabled:cursor-not-allowed transition"
+            >
+              {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link className="w-3.5 h-3.5" />}
+              Generate Link
+            </button>
+          </div>
+
+          {/* Generated link */}
+          {newLink && (
+            <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
+              <p className="text-xs font-semibold text-[#15803D] mb-2">Link generated — share with your client:</p>
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={newLink}
+                  className="flex-1 bg-white border border-[#E9E5DD] rounded-lg px-3 py-2 text-xs font-mono text-[#374151] focus:outline-none"
+                />
+                <button
+                  onClick={() => handleCopy(newLink)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-[#E9E5DD]
+                             hover:bg-[#F7F5F1] text-xs font-medium text-[#374151] transition shrink-0"
+                >
+                  {copied ? <Check className="w-3.5 h-3.5 text-[#15803D]" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-[10px] text-[#6B7280] mt-2 flex items-center gap-1">
+                <Clock className="w-3 h-3" />
+                Expires in 3 days
+              </p>
+            </div>
+          )}
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-[#F0EDE6]" />
+            <span className="text-[10px] font-semibold text-[#C4BFB5] uppercase tracking-widest">Previous invites</span>
+            <div className="flex-1 h-px bg-[#F0EDE6]" />
+          </div>
+
+          {/* Invitations list */}
+          {loadingList ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-4 h-4 animate-spin text-[#C4BFB5]" />
+            </div>
+          ) : invitations.length === 0 ? (
+            <p className="text-xs text-[#9CA3AF] text-center py-3">No invitations yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {invitations.map(inv => (
+                <div
+                  key={inv.id}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
+                    inv.status === 'revoked' ? 'opacity-50 border-[#E9E5DD] bg-[#F9F9F7]' : 'border-[#E9E5DD] bg-white'
+                  }`}
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-[#18181B] truncate">{inv.clientName}</p>
+                    {inv.email && (
+                      <p className="text-[10px] text-[#9CA3AF] truncate">{inv.email}</p>
+                    )}
+                  </div>
+                  {statusBadge(inv)}
+                  {inv.status === 'pending' && (
+                    <button
+                      onClick={() => handleRevoke(inv.id)}
+                      disabled={revoking === inv.id}
+                      className="text-[10px] font-medium text-[#9CA3AF] hover:text-[#B91C1C] transition shrink-0"
+                    >
+                      {revoking === inv.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── Add Client Form ───────────────────────────────────────────────────────
 
@@ -421,9 +665,10 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────
 
 export default function ClientsPage() {
-  const [clients,     setClients]     = useState<Client[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [clients,      setClients]      = useState<Client[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [showAddForm,  setShowAddForm]  = useState(false)
+  const [showInvite,   setShowInvite]   = useState(false)
 
   useEffect(() => {
     getClients()
@@ -443,6 +688,8 @@ export default function ClientsPage() {
   return (
     <div className="p-8 max-w-3xl mx-auto">
 
+      {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
@@ -457,16 +704,26 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        {!showAddForm && (
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white
+            onClick={() => setShowInvite(true)}
+            className="flex items-center gap-2 bg-white hover:bg-[#F7F5F1] text-[#374151] border border-[#E9E5DD]
                        text-sm font-semibold px-4 py-2.5 rounded-lg transition"
           >
-            <Plus className="w-4 h-4" />
-            Add Client
+            <Link className="w-4 h-4 text-[#C4A96D]" />
+            Invite Client
           </button>
-        )}
+          {!showAddForm && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white
+                         text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+            >
+              <Plus className="w-4 h-4" />
+              Add Client
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Add form */}

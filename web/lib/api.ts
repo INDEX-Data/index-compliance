@@ -6,6 +6,7 @@ import type {
   ComplianceReport, ControlAssessment, Client,
   ObjectivesResponse, ObjectiveStatus, ObjectiveStatusValue,
   DIBCACObjectiveSummary,
+  Invitation, ClientIntegration,
 } from './types'
 
 const BASE = '/api'
@@ -199,6 +200,77 @@ export const attestObjective = (
 /** Reset all objectives back to auto-initialized state */
 export const resetObjectives = (reportId: string) =>
   post<{ ok: boolean; summary: DIBCACObjectiveSummary }>(`/reports/${reportId}/objectives/reset`)
+
+// ── Invitations (MSP-side, auth required) ────────────────────────────────────
+
+export const createInvitation = (data: { clientName: string; email?: string }) =>
+  post<{ id: string; token: string; link: string; expiresAt: string }>('/invitations', data)
+
+export const getInvitations = () => get<Invitation[]>('/invitations')
+
+export const revokeInvitation = (id: string) => del<{ ok: boolean }>(`/invitations/${id}`)
+
+export const getClientIntegrations = (clientId: string) =>
+  get<ClientIntegration[]>(`/clients/${clientId}/integrations`)
+
+// ── Public onboard endpoints (no Clerk auth header) ───────────────────────────
+
+export async function getOnboardInfo(token: string) {
+  const res = await fetch(`/api/onboard/${token}`, { cache: 'no-store' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{ clientName: string; email?: string; status: string; expiresAt: string }>
+}
+
+export async function completeOnboard(token: string, data: object) {
+  const res = await fetch(`/api/onboard/${token}/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{ ok: boolean; clientId: string }>
+}
+
+export async function saveOnboardIntegration(token: string, platform: string, config: object) {
+  const res = await fetch(`/api/onboard/${token}/integrations/${platform}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{ ok: boolean }>
+}
+
+export async function testOnboardIntegration(token: string, platform: string, config: object) {
+  const res = await fetch(`/api/onboard/${token}/integrations/${platform}/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ config }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{ ok: boolean; message?: string; tenantName?: string }>
+}
+
+export async function getOnboardIntegrations(token: string) {
+  const res = await fetch(`/api/onboard/${token}/integrations`, { cache: 'no-store' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<ClientIntegration[]>
+}
 
 /** Download DIBCAC worksheet CSV */
 export function exportDIBCACWorksheet(reportId: string): void {

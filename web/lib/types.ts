@@ -166,3 +166,32 @@ export interface ObjectivesResponse {
   summary: DIBCACObjectiveSummary
   objectives: EnrichedObjective[]
 }
+
+// ---------------------------------------------------------------------------
+// Client Invitations
+// ---------------------------------------------------------------------------
+
+export interface Invitation {
+  id: string
+  clientName: string
+  email?: string
+  token: string
+  status: 'pending' | 'accepted' | 'revoked'
+  createdAt: string
+  expiresAt: string
+  clientId?: string
+}
+
+// ---------------------------------------------------------------------------
+// Client Integrations (per-platform credentials stored in DB)
+// ---------------------------------------------------------------------------
+
+export interface ClientIntegration {
+  id: string
+  platform: string
+  status: 'connected' | 'error' | 'pending'
+  connectedAt?: string
+  lastTestedAt?: string
+  errorMessage?: string
+  config?: Record<string, string>
+}

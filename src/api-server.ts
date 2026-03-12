@@ -453,6 +453,391 @@ app.post("/api/clients/:id/test", async (req, res) => {
   }
 });
 
+// ── Clients: list integrations for a client ────────────────────────────────
+
+app.get("/api/clients/:id/integrations", async (req, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { clientIntegrations: intTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+
+  const rows = await (db as any).select().from(intTable)
+    .where(eq(intTable.clientId, req.params.id));
+
+  res.json(rows.map((r: any) => ({
+    id:           r.id,
+    platform:     r.platform,
+    status:       r.status,
+    connectedAt:  r.connectedAt,
+    lastTestedAt: r.lastTestedAt,
+    errorMessage: r.errorMessage,
+  })));
+});
+
+// ── Invitations: list ──────────────────────────────────────────────────────
+
+app.get("/api/invitations", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { clientInvitations: invTable } = dbSchema as any;
+  const { eq, desc } = drizzleOps as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  const rows = await (db as any).select().from(invTable)
+    .where(eq(invTable.userId, userId))
+    .orderBy(desc(invTable.createdAt));
+
+  res.json(rows.map((r: any) => ({
+    id:         r.id,
+    clientName: r.clientName,
+    email:      r.email,
+    token:      r.token,
+    status:     r.status,
+    createdAt:  r.createdAt,
+    expiresAt:  r.expiresAt,
+    clientId:   r.clientId,
+  })));
+});
+
+// ── Invitations: create ────────────────────────────────────────────────────
+
+app.post("/api/invitations", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { clientName, email } = req.body as { clientName?: string; email?: string };
+  if (!clientName?.trim()) {
+    return void res.status(400).json({ error: "clientName is required" });
+  }
+
+  const { clientInvitations: invTable } = dbSchema as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  // Generate a UUID token — hard to guess, used in the /onboard/:token URL
+  const { randomUUID } = await import("crypto");
+  const token     = randomUUID();
+  const now       = new Date();
+  const expiresAt = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // +3 days
+
+  const [inv] = await (db as any).insert(invTable).values({
+    userId,
+    token,
+    clientName: clientName.trim(),
+    email:      email?.trim() ?? null,
+    status:     "pending",
+    expiresAt,
+  }).returning();
+
+  // Build the public link using the request origin or HOST header
+  const host = req.headers.origin
+    ?? `${req.protocol}://${req.headers.host}`;
+  const link = `${host}/onboard/${token}`;
+
+  res.status(201).json({
+    id:         inv.id,
+    token:      inv.token,
+    link,
+    expiresAt:  inv.expiresAt,
+    clientName: inv.clientName,
+  });
+});
+
+// ── Invitations: revoke ────────────────────────────────────────────────────
+
+app.delete("/api/invitations/:id", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { clientInvitations: invTable } = dbSchema as any;
+  const { eq, and } = drizzleOps as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  await (db as any).update(invTable)
+    .set({ status: "revoked" })
+    .where(and(eq(invTable.id, req.params.id), eq(invTable.userId, userId)));
+
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC ONBOARD ROUTES — no Clerk auth required
+// These must be registered before app.use(requireAuth) to stay public.
+// The requireAuth middleware also explicitly skips /api/onboard/* paths.
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Helper: validate a token from DB — returns the invitation row or sends error
+async function resolveInvitation(
+  token: string,
+  res: Response,
+  allowAccepted = false
+): Promise<any | null> {
+  if (!db || !dbSchema || !drizzleOps) {
+    res.status(503).json({ error: "Database not configured" });
+    return null;
+  }
+  const { clientInvitations: invTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+
+  const rows = await (db as any).select().from(invTable).where(eq(invTable.token, token));
+  const inv  = rows[0];
+
+  if (!inv) {
+    res.status(404).json({ error: "Invitation not found" });
+    return null;
+  }
+  if (inv.status === "revoked") {
+    res.status(410).json({ error: "This invitation link has been revoked" });
+    return null;
+  }
+  if (!allowAccepted && inv.status === "accepted") {
+    // Accepted invitations can still be used to add more integrations
+  }
+  if (new Date(inv.expiresAt) < new Date()) {
+    res.status(410).json({ error: "This invitation link has expired" });
+    return null;
+  }
+  return inv;
+}
+
+// ── Onboard: get invitation info ───────────────────────────────────────────
+
+app.get("/api/onboard/:token", async (req, res) => {
+  const inv = await resolveInvitation(req.params.token, res, true);
+  if (!inv) return;
+
+  res.json({
+    clientName: inv.clientName,
+    email:      inv.email,
+    status:     inv.status,
+    expiresAt:  inv.expiresAt,
+  });
+});
+
+// ── Onboard: complete (submit company details + M365 creds → create client) ─
+
+app.post("/api/onboard/:token/complete", async (req, res) => {
+  const inv = await resolveInvitation(req.params.token, res);
+  if (!inv) return;
+
+  // If already accepted, return the existing clientId
+  if (inv.status === "accepted" && inv.clientId) {
+    return void res.json({ ok: true, clientId: inv.clientId });
+  }
+
+  const { companyName, contactName, contactEmail, tenantId, clientId: azureClientId, clientSecret } =
+    req.body as {
+      companyName?: string; contactName?: string; contactEmail?: string;
+      tenantId?: string; clientId?: string; clientSecret?: string;
+    };
+
+  if (!companyName || !tenantId || !azureClientId || !clientSecret) {
+    return void res.status(400).json({
+      error: "companyName, tenantId, clientId, and clientSecret are required",
+    });
+  }
+
+  // Create client record using the existing client manager
+  const client = addClient({
+    name:         companyName.trim(),
+    tenantId:     tenantId.trim(),
+    clientId:     azureClientId.trim(),
+    clientSecret: clientSecret.trim(),
+  });
+
+  // Update invitation to accepted
+  const { clientInvitations: invTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+  await (db as any).update(invTable)
+    .set({ status: "accepted", clientId: client.id })
+    .where(eq(invTable.token, req.params.token));
+
+  // Store contact info as a passive integration record
+  if (contactName || contactEmail) {
+    const { clientIntegrations: intTable } = dbSchema as any;
+    await (db as any).insert(intTable)
+      .values({
+        clientId: client.id,
+        userId:   inv.userId,
+        platform: "_contact",
+        config:   { contactName, contactEmail },
+        status:   "connected",
+        connectedAt: new Date(),
+      })
+      .onConflictDoNothing();
+  }
+
+  res.json({ ok: true, clientId: client.id });
+});
+
+// ── Onboard: save integration credentials ─────────────────────────────────
+
+app.put("/api/onboard/:token/integrations/:platform", async (req, res) => {
+  const inv = await resolveInvitation(req.params.token, res, true);
+  if (!inv) return;
+
+  if (!inv.clientId) {
+    return void res.status(400).json({ error: "Complete Microsoft 365 setup first" });
+  }
+
+  const { config } = req.body as { config?: object };
+  if (!config) return void res.status(400).json({ error: "config is required" });
+
+  const { clientIntegrations: intTable } = dbSchema as any;
+
+  await (db as any).insert(intTable)
+    .values({
+      clientId: inv.clientId,
+      userId:   inv.userId,
+      platform: req.params.platform,
+      config,
+      status:   "pending",
+    })
+    .onConflictDoUpdate({
+      target: [intTable.clientId, intTable.platform],
+      set:    { config, status: "pending", errorMessage: null },
+    });
+
+  res.json({ ok: true });
+});
+
+// ── Onboard: test integration credentials ────────────────────────────────
+
+app.post("/api/onboard/:token/integrations/:platform/test", async (req, res) => {
+  const inv = await resolveInvitation(req.params.token, res, true);
+  if (!inv) return;
+
+  const { config } = req.body as { config?: Record<string, string> };
+  if (!config) return void res.status(400).json({ error: "config is required" });
+
+  const platform = req.params.platform;
+
+  // For Entra ID / M365: use the existing testConfig logic
+  if (platform === "entra_id") {
+    const { tenantId, clientId: azureClientId, clientSecret } = config;
+    if (!tenantId || !azureClientId || !clientSecret) {
+      return void res.status(400).json({ error: "tenantId, clientId, and clientSecret are required" });
+    }
+
+    const testCl: Client = {
+      id: "test", name: "test",
+      tenantId, clientId: azureClientId, clientSecret,
+      addedAt: new Date().toISOString(),
+    };
+    const graphClient = makeGraphClient(testCl);
+
+    const probes = [
+      {
+        path: "/organization",
+        extract: (d: any) => {
+          const o = d.value?.[0];
+          return { name: o?.displayName, domain: o?.verifiedDomains?.find((v: any) => v.isDefault)?.name };
+        },
+      },
+    ];
+
+    let tenantName: string | undefined;
+    let domain: string | undefined;
+
+    for (const probe of probes) {
+      try {
+        const data = await graphClient.rawQuery(probe.path);
+        const extracted = probe.extract(data);
+        tenantName = tenantName ?? extracted.name;
+        domain     = domain     ?? extracted.domain;
+        break;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("401") || msg.includes("AADSTS") || msg.includes("invalid_client")) {
+          return void res.status(200).json({ ok: false, error: `Authentication failed: ${msg}` });
+        }
+      }
+    }
+
+    const displayName = tenantName ?? (domain ? `Tenant (${domain})` : `Tenant ${tenantId}`);
+
+    // Update integration record if client exists
+    if (inv.clientId && db && dbSchema && drizzleOps) {
+      const { clientIntegrations: intTable } = dbSchema as any;
+      const { eq, and } = drizzleOps as any;
+      await (db as any).update(intTable)
+        .set({ status: "connected", connectedAt: new Date(), lastTestedAt: new Date() })
+        .where(and(eq(intTable.clientId, inv.clientId), eq(intTable.platform, "entra_id")));
+    }
+
+    return void res.json({ ok: true, tenantName: displayName, domain: domain ?? "" });
+  }
+
+  // For other platforms: validate that required fields are present and non-empty,
+  // then attempt a basic HTTP connectivity probe where applicable.
+  const platformsWithUrl: Record<string, string | null> = {
+    servicenow: config.instanceUrl ?? null,
+    splunk:     config.baseUrl     ?? null,
+    jira:       config.domain      ? `https://${config.domain}` : null,
+    workday:    config.baseUrl     ?? null,
+  };
+
+  const urlToProbe = platformsWithUrl[platform];
+
+  if (urlToProbe) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const r = await fetch(urlToProbe, {
+        method: "HEAD",
+        signal: controller.signal as any,
+        redirect: "follow",
+      }).finally(() => clearTimeout(timeout));
+      // Any HTTP response (even 401/403) means the host is reachable
+      void r;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("abort") || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND")) {
+        return void res.json({
+          ok: false,
+          error: `Could not reach ${urlToProbe} — check the URL and try again`,
+        });
+      }
+      // Other errors (SSL, redirect loop) still mean host is reachable
+    }
+  }
+
+  // Save as connected
+  if (inv.clientId && db && dbSchema && drizzleOps) {
+    const { clientIntegrations: intTable } = dbSchema as any;
+    const { eq, and } = drizzleOps as any;
+    await (db as any).update(intTable)
+      .set({ status: "connected", connectedAt: new Date(), lastTestedAt: new Date() })
+      .where(and(eq(intTable.clientId, inv.clientId), eq(intTable.platform, platform)));
+  }
+
+  res.json({ ok: true });
+});
+
+// ── Onboard: get saved integrations for this token's client ───────────────
+
+app.get("/api/onboard/:token/integrations", async (req, res) => {
+  const inv = await resolveInvitation(req.params.token, res, true);
+  if (!inv) return;
+
+  if (!inv.clientId) return void res.json([]);
+
+  const { clientIntegrations: intTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+
+  const rows = await (db as any).select().from(intTable)
+    .where(eq(intTable.clientId, inv.clientId));
+
+  res.json(rows.map((r: any) => ({
+    platform:     r.platform,
+    status:       r.status,
+    connectedAt:  r.connectedAt,
+    lastTestedAt: r.lastTestedAt,
+    errorMessage: r.errorMessage,
+  })));
+});
+
 // ── Frameworks: list ───────────────────────────────────────────────────────
 
 app.get("/api/frameworks", (_req, res) => {
