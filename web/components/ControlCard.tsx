@@ -116,46 +116,48 @@ export function ControlCard({ assessment, defaultOpen = false, onViewEvidence }:
     <div className="bg-white rounded-lg border border-[#E9E5DD] overflow-hidden hover:border-[#D4CFC5] transition-colors">
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#FAFAF8] transition-colors"
-      >
-        <span className="shrink-0 text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
-          {controlId}
-        </span>
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[#18181B] truncate">{controlTitle}</p>
-          {family && <p className="text-[11px] text-[#A1A1AA] mt-0.5">{family}</p>}
-        </div>
-
-        {showRemediation && !open && (
-          <span className="shrink-0 text-[10px] text-[#6D28D9] bg-[#F5F3FF] border border-[#DDD6FE] px-2 py-0.5 rounded font-medium hidden sm:inline">
-            Fix in Azure
+      {/* Pill must live OUTSIDE the <button> — browsers strip interactive  */}
+      {/* descendants from <button>, making the span invisible.            */}
+      <div className="flex items-center">
+        <button
+          onClick={() => setOpen(o => !o)}
+          className="flex-1 flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#FAFAF8] transition-colors min-w-0"
+        >
+          <span className="shrink-0 text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
+            {controlId}
           </span>
-        )}
 
-        <StatusBadge status={status} size="sm" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[#18181B] truncate">{controlTitle}</p>
+            {family && <p className="text-[11px] text-[#A1A1AA] mt-0.5">{family}</p>}
+          </div>
 
-        {/* Evidence flyout trigger */}
+          {showRemediation && !open && (
+            <span className="shrink-0 text-[10px] text-[#6D28D9] bg-[#F5F3FF] border border-[#DDD6FE] px-2 py-0.5 rounded font-medium hidden sm:inline">
+              Fix in Azure
+            </span>
+          )}
+
+          <StatusBadge status={status} size="sm" />
+
+          <span className="text-[#D1D5DB] ml-1 shrink-0">
+            {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </span>
+        </button>
+
+        {/* Evidence flyout pill — sibling of <button>, not nested inside it */}
         {evidenceQueries.length > 0 && onViewEvidence && (
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             title={`View ${evidenceQueries.length} evidence ${evidenceQueries.length === 1 ? 'query' : 'queries'}`}
-            onClick={e => { e.stopPropagation(); onViewEvidence(assessment) }}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onViewEvidence(assessment) } }}
-            className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-[#6366F1] bg-[#EEF2FF] hover:bg-[#E0E7FF] border border-[#C7D2FE] px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+            onClick={() => onViewEvidence(assessment)}
+            className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-[#6366F1] bg-[#EEF2FF] hover:bg-[#E0E7FF] border border-[#C7D2FE] px-2 py-0.5 rounded-full transition-colors cursor-pointer mr-3"
           >
             <Database className="w-2.5 h-2.5" />
             {evidenceQueries.length}
-          </span>
+          </button>
         )}
-
-        <span className="text-[#D1D5DB] ml-1 shrink-0">
-          {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </span>
-      </button>
+      </div>
 
       {/* ── Expanded detail ─────────────────────────────────────────────── */}
       {open && (
