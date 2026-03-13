@@ -96,8 +96,7 @@ export default function JoinPage() {
             <div className="p-4">
               <SignIn
                 routing="hash"
-                afterSignInUrl={`/join/${token}`}
-                afterSignUpUrl={`/join/${token}`}
+                forceRedirectUrl={`/join/${token}`}
                 appearance={{
                   elements: {
                     rootBox: 'w-full',
