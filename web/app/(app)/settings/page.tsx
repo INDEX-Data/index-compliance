@@ -1,12 +1,30 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { Settings, CheckCircle2, Building2, Users, UserPlus, Mail, Clock, Check, X, Trash2, Copy, ChevronDown } from 'lucide-react'
-import { getConfigStatus, getTeamInvites, createTeamInvite, revokeTeamInvite, getTeamMembers, removeTeamMember } from '@/lib/api'
+import { useRouter, useSearchParams } from 'next/navigation'
+import {
+  Building2, Users, UserPlus, Mail, Clock, Check,
+  X, Trash2, Copy, CheckCircle2, Plug, Bell,
+  Shield, ChevronRight, AlertTriangle, ExternalLink,
+} from 'lucide-react'
+import {
+  getConfigStatus, getTeamInvites, createTeamInvite,
+  revokeTeamInvite, getTeamMembers, removeTeamMember,
+} from '@/lib/api'
 import type { TeamInvite, TeamMember } from '@/lib/types'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Tab = 'general' | 'team' | 'integrations' | 'notifications'
+
+const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
+  { id: 'general',       label: 'General',       icon: Building2 },
+  { id: 'team',          label: 'Team',          icon: Users },
+  { id: 'integrations',  label: 'Integrations',  icon: Plug },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
+]
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function timeLeft(expiresAt: string): string {
   const ms = new Date(expiresAt).getTime() - Date.now()
@@ -21,25 +39,109 @@ function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// ── Team Section Component ────────────────────────────────────────────────────
+// ─── Section wrapper ──────────────────────────────────────────────────────────
 
-function TeamSection() {
-  const [invites,     setInvites]     = useState<TeamInvite[]>([])
-  const [members,     setMembers]     = useState<TeamMember[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [email,       setEmail]       = useState('')
-  const [creating,    setCreating]    = useState(false)
-  const [newLink,     setNewLink]     = useState<string | null>(null)
-  const [copied,      setCopied]      = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
-  const [expanded,    setExpanded]    = useState(false)
+function Section({ title, description, children, last }: {
+  title: string; description?: string; children: React.ReactNode; last?: boolean
+}) {
+  return (
+    <div className={`py-7 ${!last ? 'border-b border-[#F0EDE6]' : ''}`}>
+      <div className="mb-5">
+        <h3 className="text-[14px] font-semibold text-[#18181B]">{title}</h3>
+        {description && <p className="text-[13px] text-[#9CA3AF] mt-1 leading-relaxed">{description}</p>}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+// ─── General Tab ─────────────────────────────────────────────────────────────
+
+function GeneralTab({ tenantName, clientCount, loading }: {
+  tenantName: string; clientCount: number; loading: boolean
+}) {
+  const router = useRouter()
+
+  return (
+    <div>
+      <Section title="Primary Azure Tenant" description="The Microsoft Entra ID tenant used for compliance assessments.">
+        <div className="bg-[#F7F5F1] rounded-xl border border-[#E9E5DD] p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center">
+                <svg viewBox="0 0 96 96" className="w-5 h-5" fill="none">
+                  <path d="M48 4L4 20v56l44 16 44-16V20L48 4z" fill="#0078D4"/>
+                  <path d="M48 4v88l44-16V20L48 4z" fill="#0050B3" opacity=".6"/>
+                  <path d="M27 34h14l20 28H47L27 34zm28 0h14L49 62H35L55 34z" fill="#fff"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold text-[#18181B]">
+                  {loading ? 'Loading…' : tenantName || 'Not configured'}
+                </p>
+                <p className="text-[11px] text-[#9CA3AF] mt-0.5">Microsoft Entra ID</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-1 rounded-full">
+              <CheckCircle2 className="w-3 h-3" /> Connected
+            </span>
+          </div>
+        </div>
+        <button
+          onClick={() => router.push('/setup')}
+          className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[#9CA3AF] hover:text-[#374151] transition"
+        >
+          Reconfigure Azure credentials <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </Section>
+
+      <Section
+        title="MSP / Multi-Client Mode"
+        description="Manage multiple Microsoft 365 tenants and run compliance assessments across all client environments."
+        last
+      >
+        <div className="flex items-center justify-between p-4 bg-[#F7F5F1] rounded-xl border border-[#E9E5DD]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white border border-[#E9E5DD] flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-[#9CA3AF]" />
+            </div>
+            <div>
+              <p className="text-[13px] font-semibold text-[#18181B]">
+                {loading ? '—' : `${clientCount} ${clientCount === 1 ? 'client' : 'clients'}`}
+              </p>
+              <p className="text-[11px] text-[#9CA3AF] mt-0.5">Active tenants</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/clients')}
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#374151] hover:text-[#18181B] bg-white border border-[#E9E5DD] hover:bg-[#F7F5F1] px-3 py-1.5 rounded-lg transition"
+          >
+            Manage clients <ChevronRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </Section>
+    </div>
+  )
+}
+
+// ─── Team Tab ─────────────────────────────────────────────────────────────────
+
+function TeamTab() {
+  const [invites,  setInvites]  = useState<TeamInvite[]>([])
+  const [members,  setMembers]  = useState<TeamMember[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [email,    setEmail]    = useState('')
+  const [creating, setCreating] = useState(false)
+  const [newLink,  setNewLink]  = useState<string | null>(null)
+  const [copied,   setCopied]   = useState<string | null>(null)
+  const [error,    setError]    = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
       const [inv, mem] = await Promise.all([getTeamInvites(), getTeamMembers()])
       setInvites(inv)
       setMembers(mem)
-    } catch { /* silently ignore */ }
+    } catch { /* ignore */ }
     finally { setLoading(false) }
   }, [])
 
@@ -47,9 +149,7 @@ function TeamSection() {
 
   async function handleCreate() {
     if (!email.trim()) return
-    setCreating(true)
-    setError(null)
-    setNewLink(null)
+    setCreating(true); setError(null); setNewLink(null)
     try {
       const result = await createTeamInvite({ email: email.trim() })
       setNewLink(result.link)
@@ -57,179 +157,230 @@ function TeamSection() {
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create invite')
-    } finally {
-      setCreating(false)
-    }
+    } finally { setCreating(false) }
   }
 
-  async function handleRevoke(id: string) {
-    await revokeTeamInvite(id)
-    await refresh()
+  async function copyText(text: string, key: string) {
+    await navigator.clipboard.writeText(text)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 2000)
   }
 
-  async function handleRemoveMember(id: string) {
-    await removeTeamMember(id)
-    await refresh()
-  }
-
-  async function copyLink(link: string) {
-    await navigator.clipboard.writeText(link)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const pendingInvites  = invites.filter(i => i.status === 'pending')
-  const acceptedInvites = invites.filter(i => i.status === 'accepted')
+  const pendingInvites = invites.filter(i => i.status === 'pending')
 
   return (
-    <div className="bg-white rounded-xl border border-[#E9E5DD] p-5 shadow-card">
-      <button
-        type="button"
-        onClick={() => setExpanded(e => !e)}
-        className="w-full flex items-center gap-3 text-left"
+    <div>
+      <Section
+        title="Invite Team Members"
+        description="Generate an invite link to share with colleagues. Links expire after 7 days."
       >
-        <UserPlus className="w-4 h-4 text-[#9CA3AF]" />
-        <h2 className="text-[14px] font-semibold text-[#18181B]">Team Access</h2>
-        {!loading && (members.length > 0 || pendingInvites.length > 0) && (
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#374151] bg-[#F7F5F1] border border-[#E9E5DD] px-2.5 py-1 rounded-full">
-            {members.length} {members.length === 1 ? 'member' : 'members'}
-          </span>
-        )}
-        <ChevronDown className={`w-4 h-4 text-[#9CA3AF] ml-auto transition-transform ${expanded ? 'rotate-180' : ''} ${members.length > 0 || pendingInvites.length > 0 ? '' : 'ml-auto'}`} />
-      </button>
-
-      <p className="text-sm text-[#6B7280] mt-1 ml-7">
-        Invite colleagues to access your clients and run assessments together.
-      </p>
-
-      {expanded && (
-        <div className="mt-4 space-y-4">
-
-          {/* Invite form */}
-          <div className="border border-[#E9E5DD] rounded-lg p-4 bg-[#FAFAF8]">
-            <p className="text-[12px] font-semibold text-[#374151] mb-2">Send an invite</p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="colleague@company.com"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleCreate()}
-                className="flex-1 text-sm border border-[#E9E5DD] rounded-lg px-3 py-2 outline-none focus:border-[#D4A843] bg-white placeholder-[#C4BFB5]"
-              />
-              <button
-                type="button"
-                onClick={handleCreate}
-                disabled={creating || !email.trim()}
-                className="px-4 py-2 text-sm font-semibold text-white bg-[#18181B] rounded-lg hover:bg-[#27272A] active:bg-[#3F3F46] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {creating ? 'Creating…' : 'Generate Link'}
-              </button>
-            </div>
-            {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
-          </div>
-
-          {/* New link result */}
-          {newLink && (
-            <div className="border border-[#BBF7D0] bg-[#F0FDF4] rounded-lg p-3 flex items-center gap-2">
-              <Check className="w-4 h-4 text-[#15803D] shrink-0" />
-              <span className="flex-1 text-xs font-mono text-[#15803D] truncate">{newLink}</span>
-              <button
-                type="button"
-                onClick={() => copyLink(newLink)}
-                className="shrink-0 text-[11px] font-semibold text-[#15803D] hover:text-[#166534] flex items-center gap-1"
-              >
-                <Copy className="w-3 h-3" />
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          )}
-
-          {/* Pending invites */}
-          {pendingInvites.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">Pending Invites</p>
-              <div className="space-y-1.5">
-                {pendingInvites.map(inv => (
-                  <div key={inv.id} className="flex items-center gap-2 px-3 py-2 bg-[#FFFBEB] border border-[#FDE68A] rounded-lg">
-                    <Mail className="w-3.5 h-3.5 text-[#D97706] shrink-0" />
-                    <span className="flex-1 text-sm text-[#18181B] truncate">{inv.email}</span>
-                    <span className="text-[10px] text-[#D97706] flex items-center gap-0.5 shrink-0">
-                      <Clock className="w-2.5 h-2.5" /> {timeLeft(inv.expiresAt)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const host = window.location.origin
-                        await copyLink(`${host}/join/${inv.token}`)
-                      }}
-                      className="shrink-0 p-1 text-[#9CA3AF] hover:text-[#374151] rounded transition-colors"
-                      title="Copy link"
-                    >
-                      <Copy className="w-3 h-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleRevoke(inv.id)}
-                      className="shrink-0 p-1 text-[#9CA3AF] hover:text-red-500 rounded transition-colors"
-                      title="Revoke"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Active members */}
-          {members.length > 0 && (
-            <div>
-              <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-wide mb-2">Team Members</p>
-              <div className="space-y-1.5">
-                {members.map(m => (
-                  <div key={m.id} className="flex items-center gap-2 px-3 py-2 bg-[#F0FDF4] border border-[#BBF7D0] rounded-lg">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
-                    <span className="flex-1 text-[11px] font-mono text-[#374151] truncate">{m.memberId}</span>
-                    <span className="text-[10px] text-[#6B7280] shrink-0">Joined {fmtDate(m.joinedAt)}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMember(m.id)}
-                      className="shrink-0 p-1 text-[#9CA3AF] hover:text-red-500 rounded transition-colors"
-                      title="Remove member"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Accepted (no longer active) history */}
-          {acceptedInvites.length > 0 && members.length === 0 && (
-            <p className="text-xs text-[#9CA3AF]">
-              {acceptedInvites.length} invite{acceptedInvites.length > 1 ? 's' : ''} previously accepted.
-            </p>
-          )}
-
-          {/* Empty state */}
-          {!loading && invites.length === 0 && members.length === 0 && (
-            <p className="text-xs text-[#9CA3AF] text-center py-2">
-              No team members yet. Generate a link to invite a colleague.
-            </p>
-          )}
+        {/* Invite form */}
+        <div className="flex gap-2 mb-4">
+          <input
+            type="email"
+            placeholder="colleague@company.com"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleCreate()}
+            className="flex-1 text-[13px] border border-[#E9E5DD] rounded-lg px-3.5 py-2.5 outline-none focus:border-[#C4A96D] focus:ring-2 focus:ring-[#C4A96D]/10 bg-white placeholder-[#C4BFB5] transition"
+          />
+          <button
+            onClick={handleCreate}
+            disabled={creating || !email.trim()}
+            className="px-4 py-2.5 text-[13px] font-semibold text-white bg-[#18181B] rounded-lg hover:bg-[#27272A] active:bg-[#3F3F46] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+          >
+            {creating ? 'Creating…' : 'Generate Link'}
+          </button>
         </div>
+
+        {error && (
+          <div className="flex items-center gap-2 text-[12px] text-[#DC2626] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2 mb-4">
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {/* Generated link */}
+        {newLink && (
+          <div className="flex items-center gap-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-lg px-4 py-3">
+            <Check className="w-4 h-4 text-[#16A34A] shrink-0" />
+            <span className="flex-1 text-[12px] font-mono text-[#16A34A] truncate">{newLink}</span>
+            <button
+              onClick={() => copyText(newLink, 'new')}
+              className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-[#16A34A] hover:text-[#166534]"
+            >
+              <Copy className="w-3 h-3" />
+              {copied === 'new' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+        )}
+      </Section>
+
+      {/* Pending invites */}
+      {(loading || pendingInvites.length > 0) && (
+        <Section title="Pending Invites" description="Awaiting acceptance. Copy the link to resend.">
+          {loading ? (
+            <div className="text-[13px] text-[#C4BFB5]">Loading…</div>
+          ) : pendingInvites.length === 0 ? (
+            <p className="text-[13px] text-[#9CA3AF]">No pending invites.</p>
+          ) : (
+            <div className="space-y-2">
+              {pendingInvites.map(inv => (
+                <div
+                  key={inv.id}
+                  className="flex items-center gap-3 px-4 py-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-lg"
+                >
+                  <Mail className="w-3.5 h-3.5 text-[#D97706] shrink-0" />
+                  <span className="flex-1 text-[13px] text-[#18181B] truncate font-medium">{inv.email}</span>
+                  <span className="flex items-center gap-1 text-[11px] text-[#D97706] shrink-0">
+                    <Clock className="w-3 h-3" />
+                    {timeLeft(inv.expiresAt)}
+                  </span>
+                  <button
+                    onClick={() => copyText(`${window.location.origin}/join/${inv.token}`, inv.id)}
+                    className="p-1.5 text-[#9CA3AF] hover:text-[#374151] rounded-lg hover:bg-white/60 transition"
+                    title="Copy invite link"
+                  >
+                    {copied === inv.id ? <Check className="w-3.5 h-3.5 text-[#16A34A]" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                  <button
+                    onClick={async () => { await revokeTeamInvite(inv.id); refresh() }}
+                    className="p-1.5 text-[#9CA3AF] hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
+                    title="Revoke invite"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
       )}
+
+      {/* Active members */}
+      <Section title="Team Members" description="People with access to your clients and assessments." last>
+        {loading ? (
+          <div className="text-[13px] text-[#C4BFB5]">Loading…</div>
+        ) : members.length === 0 ? (
+          <div className="flex flex-col items-center py-8 text-center">
+            <Users className="w-8 h-8 text-[#D4CFC5] mb-3" />
+            <p className="text-[13px] font-medium text-[#9CA3AF]">No team members yet</p>
+            <p className="text-[12px] text-[#C4BFB5] mt-1">Generate an invite link above to get started.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {members.map(m => (
+              <div key={m.id} className="flex items-center gap-3 px-4 py-3 bg-[#F0FDF4] border border-[#BBF7D0] rounded-lg">
+                <div className="w-7 h-7 rounded-full bg-[#BBF7D0] flex items-center justify-center shrink-0">
+                  <span className="text-[11px] font-bold text-[#16A34A]">
+                    {m.memberId.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <span className="flex-1 text-[12px] font-mono text-[#374151] truncate">{m.memberId}</span>
+                <span className="text-[11px] text-[#6B7280] shrink-0">Joined {fmtDate(m.joinedAt)}</span>
+                <button
+                  onClick={async () => { await removeTeamMember(m.id); refresh() }}
+                  className="p-1.5 text-[#9CA3AF] hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
+                  title="Remove member"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
     </div>
   )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Integrations Tab ─────────────────────────────────────────────────────────
 
-export default function SettingsPage() {
+function IntegrationsTab() {
   const router = useRouter()
 
+  const tools = [
+    { name: 'ServiceNow', desc: 'GRC ticketing and change management',  color: '#81B5A1' },
+    { name: 'Splunk',     desc: 'SIEM log forwarding and correlation',   color: '#FF6A00' },
+    { name: 'Jira',       desc: 'Auto-create issues for failed controls',color: '#0052CC' },
+    { name: 'Slack',      desc: 'Post assessment summaries to channels', color: '#4A154B' },
+  ]
+
+  return (
+    <div>
+      <Section title="Connected Tools" description="Manage your third-party integration connections.">
+        <button
+          onClick={() => router.push('/integrations')}
+          className="w-full flex items-center justify-between p-4 bg-[#F7F5F1] rounded-xl border border-[#E9E5DD] hover:bg-white hover:border-[#D4CFC5] transition group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white border border-[#E9E5DD] flex items-center justify-center">
+              <Plug className="w-4 h-4 text-[#9CA3AF]" />
+            </div>
+            <div className="text-left">
+              <p className="text-[13px] font-semibold text-[#18181B]">Manage Integrations</p>
+              <p className="text-[11px] text-[#9CA3AF] mt-0.5">ServiceNow, Splunk, Jira, Slack and more</p>
+            </div>
+          </div>
+          <ExternalLink className="w-4 h-4 text-[#9CA3AF] group-hover:text-[#374151] transition" />
+        </button>
+      </Section>
+
+      <Section title="Available Integrations" description="Tools you can connect to automate workflows." last>
+        <div className="grid grid-cols-2 gap-2.5">
+          {tools.map(t => (
+            <div key={t.name} className="flex items-center gap-3 p-3.5 bg-white border border-[#E9E5DD] rounded-xl">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[12px] font-bold"
+                style={{ background: t.color + '18', color: t.color }}
+              >
+                {t.name.charAt(0)}
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-[#374151]">{t.name}</p>
+                <p className="text-[10px] text-[#9CA3AF] mt-0.5 truncate">{t.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={() => router.push('/integrations')}
+          className="mt-3 text-[12px] text-[#9CA3AF] hover:text-[#374151] font-medium transition flex items-center gap-1"
+        >
+          View all integrations <ChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </Section>
+    </div>
+  )
+}
+
+// ─── Notifications Tab ────────────────────────────────────────────────────────
+
+function NotificationsTab() {
+  return (
+    <div>
+      <Section title="Email Notifications" description="Configure when INDEX sends you compliance alerts." last>
+        <div className="flex flex-col items-center py-12 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-white border border-[#E9E5DD] flex items-center justify-center mb-4 shadow-card">
+            <Bell className="w-5 h-5 text-[#D4CFC5]" />
+          </div>
+          <p className="text-[14px] font-semibold text-[#18181B] mb-1">Coming soon</p>
+          <p className="text-[13px] text-[#9CA3AF] max-w-xs leading-relaxed">
+            Email alerts when controls change status, assessments complete, or team members join.
+          </p>
+          <span className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-3 py-1 rounded-full">
+            <Shield className="w-3 h-3" /> On the roadmap
+          </span>
+        </div>
+      </Section>
+    </div>
+  )
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
+
+export default function SettingsPage() {
+  const [activeTab,     setActiveTab]     = useState<Tab>('general')
   const [tenantName,    setTenantName]    = useState('')
   const [clientCount,   setClientCount]   = useState(0)
   const [loadingStatus, setLoadingStatus] = useState(true)
@@ -245,87 +396,60 @@ export default function SettingsPage() {
   }, [])
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="flex h-full min-h-screen">
 
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-9 h-9 rounded-lg bg-white border border-[#E9E5DD] flex items-center justify-center shadow-card">
-          <Settings className="w-4 h-4 text-[#6B7280]" />
-        </div>
-        <div>
-          <h1 className="text-[22px] font-bold text-[#18181B] tracking-tight">Settings</h1>
-          <p className="text-sm text-[#6B7280] mt-0.5">Platform configuration and tenant management</p>
-        </div>
+      {/* ── Left sub-nav ── */}
+      <div className="w-[200px] shrink-0 border-r border-[#F0EDE6] bg-[#FAFAF8] px-3 py-6">
+        <p className="px-3 mb-3 text-[10px] font-semibold text-[#C4BFB5] uppercase tracking-[0.07em]">Settings</p>
+        <nav className="space-y-0.5">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={[
+                'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-left transition-colors',
+                activeTab === id
+                  ? 'bg-white text-[#18181B] shadow-sm border border-[#E9E5DD]'
+                  : 'text-[#9CA3AF] hover:text-[#374151] hover:bg-white/50',
+              ].join(' ')}
+            >
+              <Icon className={`w-3.5 h-3.5 shrink-0 ${activeTab === id ? 'text-[#C4A96D]' : ''}`} />
+              {label}
+            </button>
+          ))}
+        </nav>
       </div>
 
-      {/* Azure Tenant */}
-      <div className="bg-white rounded-xl border border-[#E9E5DD] p-5 mb-4 shadow-card">
-        <div className="flex items-center gap-3 mb-1">
-          <Building2 className="w-4 h-4 text-[#9CA3AF]" />
-          <h2 className="text-[14px] font-semibold text-[#18181B]">Primary Azure Tenant</h2>
-          <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-1 rounded-full">
-            <CheckCircle2 className="w-3 h-3" /> Connected
-          </span>
-        </div>
-        {loadingStatus ? (
-          <p className="text-sm text-[#C4BFB5] mt-1">Loading…</p>
-        ) : (
-          <p className="text-sm text-[#6B7280] mt-1">
-            Tenant: <strong className="text-[#18181B]">{tenantName || 'Unknown'}</strong>
-          </p>
-        )}
-        <button
-          onClick={() => router.push('/setup')}
-          className="mt-3 text-xs text-[#6B7280] hover:text-[#18181B] font-medium transition underline decoration-[#D4CFC5] underline-offset-2"
-        >
-          Reconfigure Azure credentials →
-        </button>
-      </div>
+      {/* ── Content area ── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-2xl mx-auto px-8 pb-16">
 
-      {/* Multi-tenant clients */}
-      <div className="bg-white rounded-xl border border-[#E9E5DD] p-5 mb-4 shadow-card">
-        <div className="flex items-center gap-3 mb-1">
-          <Users className="w-4 h-4 text-[#9CA3AF]" />
-          <h2 className="text-[14px] font-semibold text-[#18181B]">Multi-Client (MSP Mode)</h2>
-          {!loadingStatus && (
-            <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#374151] bg-[#F7F5F1] border border-[#E9E5DD] px-2.5 py-1 rounded-full">
-              {clientCount} {clientCount === 1 ? 'client' : 'clients'}
-            </span>
+          {/* Page title */}
+          <div className="pt-8 pb-2">
+            <h1 className="text-[22px] font-bold text-[#18181B] tracking-tight">
+              {TABS.find(t => t.id === activeTab)?.label}
+            </h1>
+            <p className="text-[13px] text-[#9CA3AF] mt-1">
+              {activeTab === 'general'       && 'Manage your tenant connection and client accounts.'}
+              {activeTab === 'team'          && 'Invite colleagues to share access and collaborate on assessments.'}
+              {activeTab === 'integrations'  && 'Connect INDEX to your existing security and productivity tools.'}
+              {activeTab === 'notifications' && 'Control how and when you receive compliance alerts.'}
+            </p>
+          </div>
+
+          {/* Tab content */}
+          {activeTab === 'general' && (
+            <GeneralTab
+              tenantName={tenantName}
+              clientCount={clientCount}
+              loading={loadingStatus}
+            />
           )}
+          {activeTab === 'team'          && <TeamTab />}
+          {activeTab === 'integrations'  && <IntegrationsTab />}
+          {activeTab === 'notifications' && <NotificationsTab />}
         </div>
-        <p className="text-sm text-[#6B7280] mt-1">
-          Manage multiple Microsoft 365 tenants for running assessments across client environments.
-        </p>
-        <button
-          onClick={() => router.push('/clients')}
-          className="mt-3 text-xs text-[#6B7280] hover:text-[#18181B] font-medium transition underline decoration-[#D4CFC5] underline-offset-2"
-        >
-          Manage clients →
-        </button>
       </div>
-
-      {/* Team Access */}
-      <div className="mb-4">
-        <TeamSection />
-      </div>
-
-      {/* Integrations */}
-      <div className="bg-white rounded-xl border border-[#E9E5DD] p-5 shadow-card">
-        <div className="flex items-center gap-3 mb-1">
-          <Settings className="w-4 h-4 text-[#9CA3AF]" />
-          <h2 className="text-[14px] font-semibold text-[#18181B]">Integrations</h2>
-        </div>
-        <p className="text-sm text-[#6B7280] mt-1">
-          Connect INDEX to external tools — ServiceNow, Splunk, Jira, Slack, and more.
-        </p>
-        <button
-          onClick={() => router.push('/integrations')}
-          className="mt-3 text-xs text-[#6B7280] hover:text-[#18181B] font-medium transition underline decoration-[#D4CFC5] underline-offset-2"
-        >
-          View integrations →
-        </button>
-      </div>
-
     </div>
   )
 }
