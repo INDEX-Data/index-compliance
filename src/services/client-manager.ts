@@ -5,7 +5,7 @@
 // =============================================================================
 
 import { db } from "../db/client.js";
-import { clients as clientsTable } from "../db/schema.js";
+import { clients as clientsTable, teamMemberships as teamMembershipsTable } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import type { Client } from "../types.js";
@@ -27,21 +27,60 @@ function toClient(row: DbRow): Client {
 
 // ─── Public API ────────────────────────────────────────────────────────────
 
-/** List all clients. If userId is provided, filters to that user's clients only. */
+/** List all clients owned by or shared with userId via team memberships. */
 export async function listClients(userId?: string): Promise<Client[]> {
-  const rows = userId
-    ? await db.select().from(clientsTable).where(eq(clientsTable.userId, userId))
-    : await db.select().from(clientsTable);
-  return rows.map(toClient);
+  if (!userId) {
+    const rows = await db.select().from(clientsTable);
+    return rows.map(toClient);
+  }
+
+  // Clients the user owns
+  const ownedRows = await db.select().from(clientsTable)
+    .where(eq(clientsTable.userId, userId));
+
+  // Find all owners who have shared their clients with this user
+  const memberships = await db.select().from(teamMembershipsTable)
+    .where(eq(teamMembershipsTable.memberId, userId));
+
+  let sharedRows: (typeof clientsTable.$inferSelect)[] = [];
+  if (memberships.length > 0) {
+    const ownerIds = [...new Set(memberships.map(m => m.ownerId))];
+    for (const ownerId of ownerIds) {
+      const rows = await db.select().from(clientsTable)
+        .where(eq(clientsTable.userId, ownerId));
+      sharedRows.push(...rows);
+    }
+  }
+
+  // Merge and deduplicate by id
+  const seen = new Set<string>();
+  return [...ownedRows, ...sharedRows].filter(r => {
+    if (seen.has(r.id)) return false;
+    seen.add(r.id);
+    return true;
+  }).map(toClient);
 }
 
-/** Get a single client by ID. */
+/** Get a single client by ID — allows access to owned OR team-shared clients. */
 export async function getClient(id: string, userId?: string): Promise<Client | null> {
-  const conditions = userId
-    ? and(eq(clientsTable.id, id), eq(clientsTable.userId, userId))
-    : eq(clientsTable.id, id);
-  const rows = await db.select().from(clientsTable).where(conditions).limit(1);
-  return rows.length > 0 ? toClient(rows[0]) : null;
+  const rows = await db.select().from(clientsTable)
+    .where(eq(clientsTable.id, id)).limit(1);
+  if (rows.length === 0) return null;
+  const client = rows[0];
+
+  if (!userId) return toClient(client);
+
+  // Direct owner — always allowed
+  if (client.userId === userId) return toClient(client);
+
+  // Check if the user is a team member of the client's owner
+  const memberships = await db.select().from(teamMembershipsTable)
+    .where(and(
+      eq(teamMembershipsTable.ownerId, client.userId),
+      eq(teamMembershipsTable.memberId, userId),
+    )).limit(1);
+
+  return memberships.length > 0 ? toClient(client) : null;
 }
 
 /** Returns the first client (used as default in single-tenant setups). */

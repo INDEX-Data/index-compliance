@@ -196,3 +196,58 @@ export const clientIntegrations = pgTable(
 
 export type ClientIntegration = typeof clientIntegrations.$inferSelect;
 export type NewClientIntegration = typeof clientIntegrations.$inferInsert;
+
+// ─── Team Invitations ──────────────────────────────────────────────────────
+
+export const teamInvitations = pgTable("team_invitations", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+
+  /** Clerk user ID of the user who created the invite (whose clients are shared) */
+  ownerId:   text("owner_id").notNull(),
+
+  /** Email address the invite was sent to */
+  email:     text("email").notNull(),
+
+  /** UUID token embedded in the public /join/:token URL */
+  token:     text("token").notNull().unique(),
+
+  /** pending | accepted | revoked */
+  status:    text("status").notNull().default("pending"),
+
+  createdAt: timestamp("created_at").defaultNow(),
+
+  /** Link expires 7 days after creation */
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
+export type TeamInvitation = typeof teamInvitations.$inferSelect;
+export type NewTeamInvitation = typeof teamInvitations.$inferInsert;
+
+// ─── Team Memberships ─────────────────────────────────────────────────────
+
+export const teamMemberships = pgTable(
+  "team_memberships",
+  {
+    id:           uuid("id").defaultRandom().primaryKey(),
+
+    /** The user whose clients are being shared (the inviter) */
+    ownerId:      text("owner_id").notNull(),
+
+    /** The colleague who was granted access (the invitee) */
+    memberId:     text("member_id").notNull(),
+
+    /** FK to the invitation that created this membership */
+    invitationId: uuid("invitation_id").references(() => teamInvitations.id, {
+      onDelete: "set null",
+    }),
+
+    joinedAt: timestamp("joined_at").defaultNow(),
+  },
+  (t) => ({
+    /** Each (owner, member) pair can only appear once */
+    uniq: unique().on(t.ownerId, t.memberId),
+  })
+);
+
+export type TeamMembership = typeof teamMemberships.$inferSelect;
+export type NewTeamMembership = typeof teamMemberships.$inferInsert;

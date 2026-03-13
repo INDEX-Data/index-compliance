@@ -7,6 +7,7 @@ import type {
   ObjectivesResponse, ObjectiveStatus, ObjectiveStatusValue,
   DIBCACObjectiveSummary,
   Invitation, ClientIntegration,
+  TeamInvite, TeamMember,
 } from './types'
 
 const BASE = '/api'
@@ -270,6 +271,46 @@ export async function getOnboardIntegrations(token: string) {
     throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
   }
   return res.json() as Promise<ClientIntegration[]>
+}
+
+// ── Team Management (auth required) ──────────────────────────────────────────
+
+export const getTeamInvites   = () => get<TeamInvite[]>('/team/invites')
+export const createTeamInvite = (data: { email: string }) =>
+  post<{ id: string; token: string; link: string; expiresAt: string; email: string }>('/team/invites', data)
+export const revokeTeamInvite = (id: string) => del<{ ok: boolean }>(`/team/invites/${id}`)
+export const getTeamMembers   = () => get<TeamMember[]>('/team/members')
+export const removeTeamMember = (id: string) => del<{ ok: boolean }>(`/team/members/${id}`)
+
+// ── Public team join endpoints (no Clerk auth header) ─────────────────────────
+
+export async function getTeamJoinInfo(token: string) {
+  const res = await fetch(`/api/team/join/${token}`, { cache: 'no-store' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{
+    email: string
+    status: string
+    expiresAt?: string
+    alreadyAccepted?: boolean
+  }>
+}
+
+export async function acceptTeamInvite(token: string) {
+  const headers: HeadersInit = { 'Content-Type': 'application/json' }
+  if (_clerkToken) headers['Authorization'] = `Bearer ${_clerkToken}`
+  const res = await fetch(`/api/team/join/${token}/accept`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({}),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  return res.json() as Promise<{ ok: boolean; alreadyAccepted?: boolean }>
 }
 
 /** Download DIBCAC worksheet CSV */

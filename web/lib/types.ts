@@ -195,3 +195,22 @@ export interface ClientIntegration {
   errorMessage?: string
   config?: Record<string, string>
 }
+
+// ---------------------------------------------------------------------------
+// Team Invites & Memberships
+// ---------------------------------------------------------------------------
+
+export interface TeamInvite {
+  id: string
+  email: string
+  token: string
+  status: 'pending' | 'accepted' | 'revoked'
+  createdAt: string
+  expiresAt: string
+}
+
+export interface TeamMember {
+  id: string
+  memberId: string
+  joinedAt: string
+}

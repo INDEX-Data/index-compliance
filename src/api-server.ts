@@ -567,6 +567,207 @@ app.delete("/api/invitations/:id", async (req: AuthedRequest, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// TEAM INVITE ROUTES (auth-scoped)
+// ═══════════════════════════════════════════════════════════════════════════
+
+// ── Team: list sent invites ────────────────────────────────────────────────
+
+app.get("/api/team/invites", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { teamInvitations: invTable } = dbSchema as any;
+  const { eq, desc } = drizzleOps as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  const rows = await (db as any).select().from(invTable)
+    .where(eq(invTable.ownerId, userId))
+    .orderBy(desc(invTable.createdAt));
+
+  res.json(rows.map((r: any) => ({
+    id:        r.id,
+    email:     r.email,
+    token:     r.token,
+    status:    r.status,
+    createdAt: r.createdAt,
+    expiresAt: r.expiresAt,
+  })));
+});
+
+// ── Team: create invite ────────────────────────────────────────────────────
+
+app.post("/api/team/invites", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { email } = req.body as { email?: string };
+  if (!email?.trim()) {
+    return void res.status(400).json({ error: "email is required" });
+  }
+
+  const { teamInvitations: invTable } = dbSchema as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  const { randomUUID } = await import("crypto");
+  const token     = randomUUID();
+  const now       = new Date();
+  const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // +7 days
+
+  const [inv] = await (db as any).insert(invTable).values({
+    ownerId:  userId,
+    email:    email.trim(),
+    token,
+    status:   "pending",
+    expiresAt,
+  }).returning();
+
+  const host = req.headers.origin ?? `${req.protocol}://${req.headers.host}`;
+  const link = `${host}/join/${token}`;
+
+  res.status(201).json({
+    id:        inv.id,
+    token:     inv.token,
+    link,
+    expiresAt: inv.expiresAt,
+    email:     inv.email,
+  });
+});
+
+// ── Team: revoke invite ────────────────────────────────────────────────────
+
+app.delete("/api/team/invites/:id", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { teamInvitations: invTable } = dbSchema as any;
+  const { eq, and } = drizzleOps as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  await (db as any).update(invTable)
+    .set({ status: "revoked" })
+    .where(and(eq(invTable.id, req.params.id), eq(invTable.ownerId, userId)));
+
+  res.json({ ok: true });
+});
+
+// ── Team: list members ─────────────────────────────────────────────────────
+
+app.get("/api/team/members", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { teamMemberships: membTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  const rows = await (db as any).select().from(membTable)
+    .where(eq(membTable.ownerId, userId));
+
+  res.json(rows.map((r: any) => ({
+    id:       r.id,
+    memberId: r.memberId,
+    joinedAt: r.joinedAt,
+  })));
+});
+
+// ── Team: remove member ────────────────────────────────────────────────────
+
+app.delete("/api/team/members/:id", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { teamMemberships: membTable } = dbSchema as any;
+  const { eq, and } = drizzleOps as any;
+  const userId = req.userId ?? DEV_USER_ID;
+
+  await (db as any).delete(membTable)
+    .where(and(eq(membTable.id, req.params.id), eq(membTable.ownerId, userId)));
+
+  res.json({ ok: true });
+});
+
+// ── Team: get join info (PUBLIC — no auth needed to view invite page) ──────
+
+app.get("/api/team/join/:token", async (req, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+  const { teamInvitations: invTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+
+  const rows = await (db as any).select().from(invTable)
+    .where(eq(invTable.token, req.params.token)).limit(1);
+
+  if (rows.length === 0) return void res.status(404).json({ error: "Invite not found" });
+  const inv = rows[0];
+
+  if (inv.status === "revoked") {
+    return void res.status(410).json({ error: "This invite has been revoked" });
+  }
+  if (new Date(inv.expiresAt) < new Date()) {
+    return void res.status(410).json({ error: "This invite has expired" });
+  }
+  if (inv.status === "accepted") {
+    return void res.json({ email: inv.email, status: "accepted", alreadyAccepted: true });
+  }
+
+  res.json({ email: inv.email, status: inv.status, expiresAt: inv.expiresAt });
+});
+
+// ── Team: accept invite (PUBLIC endpoint — manually verifies Clerk JWT) ────
+// Registered before app.use(requireAuth) so the route is reachable unauthenticated.
+// Auth is enforced manually here so we can return a clear 401 for the join page.
+
+app.post("/api/team/join/:token/accept", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+
+  // Manual Clerk JWT verification (route registered before requireAuth middleware)
+  const bearerToken = req.headers.authorization?.replace("Bearer ", "")
+    ?? (req.query.token as string | undefined);
+
+  let memberId = DEV_USER_ID;
+  if (clerkClient) {
+    if (!bearerToken) return void res.status(401).json({ error: "Sign in to accept this invite" });
+    try {
+      const payload = await clerkClient.verifyToken(bearerToken);
+      memberId = payload.sub;
+    } catch {
+      return void res.status(401).json({ error: "Unauthorized — invalid token" });
+    }
+  }
+
+  const { teamInvitations: invTable, teamMemberships: membTable } = dbSchema as any;
+  const { eq } = drizzleOps as any;
+
+  const rows = await (db as any).select().from(invTable)
+    .where(eq(invTable.token, req.params.token)).limit(1);
+
+  if (rows.length === 0) return void res.status(404).json({ error: "Invite not found" });
+  const inv = rows[0];
+
+  if (inv.status === "revoked")                      return void res.status(410).json({ error: "This invite has been revoked" });
+  if (new Date(inv.expiresAt) < new Date())           return void res.status(410).json({ error: "This invite has expired" });
+  if (inv.ownerId === memberId)                       return void res.status(400).json({ error: "You cannot accept your own invite" });
+  if (inv.status === "accepted")                      return void res.json({ ok: true, alreadyAccepted: true });
+
+  // Create membership (ignore duplicate)
+  await (db as any).insert(membTable).values({
+    ownerId:      inv.ownerId,
+    memberId,
+    invitationId: inv.id,
+  }).onConflictDoNothing();
+
+  // Mark invite as accepted
+  await (db as any).update(invTable)
+    .set({ status: "accepted" })
+    .where(eq(invTable.id, inv.id));
+
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // PUBLIC ONBOARD ROUTES — no Clerk auth required
 // These must be registered before app.use(requireAuth) to stay public.
 // The requireAuth middleware also explicitly skips /api/onboard/* paths.
