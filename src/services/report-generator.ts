@@ -666,7 +666,7 @@ function buildEvidenceAppendix(report: ComplianceReport): (Paragraph | Table)[] 
   ];
 
   const controlsWithEvidence = report.controlAssessments.filter(
-    a => a.evidenceCollected.some(e => e.success && e.rawData.length > 0)
+    a => a.evidenceCollected.some(e => e.success && (e.rawData?.length ?? 0) > 0)
   );
 
   if (controlsWithEvidence.length === 0) {
@@ -678,7 +678,7 @@ function buildEvidenceAppendix(report: ComplianceReport): (Paragraph | Table)[] 
     children.push(heading2(`${assessment.controlId} — ${assessment.controlTitle}`));
 
     for (const ev of assessment.evidenceCollected) {
-      if (!ev.success || ev.rawData.length === 0) continue;
+      if (!ev.success || !ev.rawData || ev.rawData.length === 0) continue;
 
       // Query description + record count
       children.push(new Paragraph({
