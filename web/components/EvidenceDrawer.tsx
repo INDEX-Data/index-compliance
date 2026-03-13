@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect } from 'react'
-import { X, Database, CheckCircle2, AlertCircle, Clock } from 'lucide-react'
+import { X, Database, CheckCircle2, AlertCircle, Clock, Lightbulb, FileSearch, ExternalLink } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
+import { getPortalLinks } from '@/lib/portal-links'
 import type { ControlAssessment, EvidenceResult } from '@/lib/types'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -112,6 +113,20 @@ function EvidenceBlock({ ev }: { ev: EvidenceResult }) {
   )
 }
 
+// ── Section wrapper ───────────────────────────────────────────────────────────
+
+function Section({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <span className="text-[#9CA3AF]">{icon}</span>
+        <h3 className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{label}</h3>
+      </div>
+      {children}
+    </div>
+  )
+}
+
 // ── EvidenceDrawer ───────────────────────────────────────────────────────────
 
 interface Props {
@@ -136,11 +151,16 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
 
   if (!assessment) return null
 
-  const queries   = assessment.evidenceCollected ?? []
-  const hasData   = queries.some(e => e.success && e.rawData?.length > 0)
-  const collected = assessment.assessedAt
+  const queries         = assessment.evidenceCollected ?? []
+  const totalRecords    = queries.reduce((sum, e) => sum + (e.recordCount ?? 0), 0)
+  const collected       = assessment.assessedAt
     ? new Date(assessment.assessedAt).toLocaleString()
     : null
+
+  const portalLinks     = getPortalLinks(assessment.controlId)
+  const showRemediation = portalLinks.length > 0 && (assessment.status === 'fail' || assessment.status === 'partial')
+
+  const hasData = queries.some(e => e.success && (e.rawData?.length ?? 0) > 0)
 
   return (
     <>
@@ -151,14 +171,13 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
       />
 
       {/* Drawer panel */}
-      <div className="fixed right-0 top-0 h-full w-full max-w-[540px] z-50 bg-white border-l border-[#E9E5DD] flex flex-col animate-slide-in-right"
-           style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}>
+      <div
+        className="fixed right-0 top-0 h-full w-full max-w-[560px] z-50 bg-white border-l border-[#E9E5DD] flex flex-col animate-slide-in-right"
+        style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}
+      >
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-start gap-3 px-5 py-4 border-b border-[#E9E5DD] bg-[#FAFAF8] shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-[#EEF2FF] border border-[#C7D2FE] flex items-center justify-center shrink-0 mt-0.5">
-            <Database className="w-4 h-4 text-[#6366F1]" />
-          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
@@ -185,38 +204,93 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
           </button>
         </div>
 
-        {/* ── Stats bar ───────────────────────────────────────────────────── */}
-        <div className="flex items-center gap-4 px-5 py-2.5 border-b border-[#F0EDE6] bg-white shrink-0">
-          <span className="text-[11px] text-[#6B7280]">
-            <span className="font-semibold text-[#18181B]">{queries.length}</span> {queries.length === 1 ? 'query' : 'queries'} run
-          </span>
-          <span className="text-[11px] text-[#6B7280]">
-            <span className="font-semibold text-[#18181B]">
-              {queries.reduce((sum, e) => sum + (e.recordCount ?? 0), 0)}
-            </span> total records
-          </span>
-          {!hasData && (
-            <span className="text-[11px] text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] px-2 py-0.5 rounded-full">
-              No data returned
-            </span>
-          )}
-        </div>
-
         {/* ── Body ────────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-          {queries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
-              <Database className="w-8 h-8 text-[#E9E5DD]" />
-              <p className="text-sm text-[#C4BFB5]">No evidence collected for this control.</p>
-              <p className="text-xs text-[#D4CFC5]">Run a fresh assessment to capture evidence.</p>
-            </div>
-          ) : (
-            queries.map(ev => (
-              <div key={ev.queryId} className="border-b border-[#F0EDE6] pb-6 last:border-0 last:pb-0">
-                <EvidenceBlock ev={ev} />
+
+          {/* 1. Remediate in Azure */}
+          {showRemediation && (
+            <Section icon={<ExternalLink className="w-3.5 h-3.5" />} label="Remediate in Azure">
+              <div className="flex flex-wrap gap-2">
+                {portalLinks.map(link => (
+                  <a
+                    key={link.url}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6D28D9] bg-[#F5F3FF] border border-[#DDD6FE] hover:bg-[#EDE9FE] hover:border-[#C4B5FD] px-3 py-1.5 rounded-lg transition-colors"
+                    title={link.hint}
+                  >
+                    {link.label}
+                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                  </a>
+                ))}
               </div>
-            ))
+            </Section>
           )}
+
+          {/* 2. Findings */}
+          {assessment.findings.length > 0 && (
+            <Section icon={<AlertCircle className="w-3.5 h-3.5" />} label="Findings">
+              <ul className="space-y-2">
+                {assessment.findings.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="mt-0.5 shrink-0">
+                      {assessment.status === 'pass'
+                        ? <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D]" />
+                        : <AlertCircle  className="w-3.5 h-3.5 text-[#D97706]" />}
+                    </span>
+                    <p className="text-[12px] text-[#374151] leading-relaxed">{f}</p>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* 3. Recommendations */}
+          {assessment.recommendations.length > 0 && (
+            <Section icon={<Lightbulb className="w-3.5 h-3.5" />} label="Recommendations">
+              <ul className="space-y-2">
+                {assessment.recommendations.map((r, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="shrink-0 text-[#9CA3AF] text-[12px] leading-relaxed">→</span>
+                    <p className="text-[12px] text-[#374151] leading-relaxed">{r}</p>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+
+          {/* 4. Evidence */}
+          <Section
+            icon={<FileSearch className="w-3.5 h-3.5" />}
+            label={`Evidence — ${queries.length} ${queries.length === 1 ? 'query' : 'queries'}, ${totalRecords} ${totalRecords === 1 ? 'record' : 'records'}`}
+          >
+            {queries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-32 gap-3 text-center">
+                <Database className="w-7 h-7 text-[#E9E5DD]" />
+                <p className="text-sm text-[#C4BFB5]">No evidence collected for this control.</p>
+                <p className="text-xs text-[#D4CFC5]">Run a fresh assessment to capture evidence.</p>
+              </div>
+            ) : !hasData ? (
+              <div className="space-y-4">
+                <p className="text-[11px] text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] px-3 py-2 rounded-lg">
+                  Queries ran but no data was returned. This may indicate insufficient permissions or no matching records.
+                </p>
+                {queries.map(ev => (
+                  <div key={ev.queryId} className="border-b border-[#F0EDE6] pb-4 last:border-0 last:pb-0">
+                    <EvidenceBlock ev={ev} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              queries.map(ev => (
+                <div key={ev.queryId} className="border-b border-[#F0EDE6] pb-6 last:border-0 last:pb-0">
+                  <EvidenceBlock ev={ev} />
+                </div>
+              ))
+            )}
+          </Section>
+
         </div>
       </div>
     </>
