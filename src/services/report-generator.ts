@@ -611,6 +611,98 @@ function buildConclusion(narrative: ReportNarrative): Paragraph[] {
   ];
 }
 
+// ── Evidence table helpers ─────────────────────────────────────────────────
+
+function evidenceCellValue(val: unknown): string {
+  if (val == null) return "—";
+  if (typeof val === "object") {
+    const s = JSON.stringify(val);
+    return s.length > 80 ? s.slice(0, 80) + "…" : s;
+  }
+  const s = String(val);
+  return s.length > 80 ? s.slice(0, 80) + "…" : s;
+}
+
+function renderEvidenceTable(rawData: unknown[]): Paragraph | Table {
+  if (rawData.length === 0) return bodyPara("No records returned.", 4);
+
+  const first = rawData[0];
+  if (typeof first !== "object" || first === null) {
+    return bodyPara(String(first).slice(0, 200), 4);
+  }
+
+  const allKeys = (Object.keys(first as object) as string[]).filter(k => !k.startsWith("@"));
+  const cols = allKeys.slice(0, 5);
+  if (cols.length === 0) return bodyPara("Metadata-only response — no displayable fields.", 4);
+
+  const displayRows = rawData.slice(0, 10);
+  const colW = Math.floor(100 / cols.length);
+
+  return makeTable([
+    new TableRow({
+      tableHeader: true,
+      children: cols.map(c => thCell(c, colW)),
+    }),
+    ...displayRows.map((row, i) => {
+      const fill = i % 2 === 0 ? C.white : C.slateLight;
+      return new TableRow({
+        children: cols.map(col =>
+          tdCell(evidenceCellValue((row as Record<string, unknown>)[col]), { fill })
+        ),
+      });
+    }),
+  ]);
+}
+
+function buildEvidenceAppendix(report: ComplianceReport): (Paragraph | Table)[] {
+  const children: (Paragraph | Table)[] = [
+    heading1("Appendix B — Evidence Collection Detail"),
+    bodyPara(
+      "Raw evidence collected from Microsoft Graph API during this assessment. " +
+      "Data reflects tenant configuration at the time of assessment and may be used to support audit inquiries. " +
+      "Tables show up to 10 records and 5 columns per query; complex values are truncated.",
+      10
+    ),
+  ];
+
+  const controlsWithEvidence = report.controlAssessments.filter(
+    a => a.evidenceCollected.some(e => e.success && e.rawData.length > 0)
+  );
+
+  if (controlsWithEvidence.length === 0) {
+    children.push(bodyPara("No automated evidence was collected for this assessment.", 8));
+    return children;
+  }
+
+  for (const assessment of controlsWithEvidence) {
+    children.push(heading2(`${assessment.controlId} — ${assessment.controlTitle}`));
+
+    for (const ev of assessment.evidenceCollected) {
+      if (!ev.success || ev.rawData.length === 0) continue;
+
+      // Query description + record count
+      children.push(new Paragraph({
+        children: [
+          new TextRun({ text: ev.queryDescription, bold: true, color: C.body, size: 20, font: "Calibri" }),
+          new TextRun({ text: `  ·  ${ev.recordCount} record(s)`, color: C.slate, size: 18, font: "Calibri" }),
+        ],
+        spacing: pt(6, 2),
+      }));
+
+      // Endpoint
+      children.push(new Paragraph({
+        children: [new TextRun({ text: ev.endpoint, color: C.slate, size: 16, font: "Courier New" })],
+        spacing: pt(0, 4),
+      }));
+
+      children.push(renderEvidenceTable(ev.rawData));
+      children.push(emptyLine(8));
+    }
+  }
+
+  return children;
+}
+
 function buildAppendix(report: ComplianceReport): (Paragraph | Table)[] {
   return [
     heading1("Appendix A — Complete Control Assessment"),
@@ -690,6 +782,7 @@ export async function generateWordReport(
     ...buildRecommendations(narrative),
     ...buildConclusion(narrative),
     ...buildAppendix(report),
+    ...buildEvidenceAppendix(report),
   ];
 
   const pageMargin = {

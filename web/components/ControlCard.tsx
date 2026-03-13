@@ -1,10 +1,98 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Lightbulb, FileSearch, ExternalLink } from 'lucide-react'
+import { ChevronDown, ChevronUp, AlertCircle, CheckCircle2, Lightbulb, FileSearch, ExternalLink, Database } from 'lucide-react'
 import { StatusBadge } from './StatusBadge'
 import { getPortalLinks } from '@/lib/portal-links'
-import type { ControlAssessment } from '@/lib/types'
+import type { ControlAssessment, EvidenceResult } from '@/lib/types'
+
+// ── Evidence table ─────────────────────────────────────────────────────────
+
+function cellVal(val: unknown): string {
+  if (val == null) return '—'
+  if (typeof val === 'boolean') return val ? 'true' : 'false'
+  if (typeof val === 'object') {
+    const s = JSON.stringify(val)
+    return s.length > 60 ? s.slice(0, 60) + '…' : s
+  }
+  const s = String(val)
+  return s.length > 80 ? s.slice(0, 80) + '…' : s
+}
+
+function EvidenceTable({ data }: { data: unknown[] }) {
+  if (data.length === 0) {
+    return <span className="text-[10px] text-[#A1A1AA] italic">No records returned</span>
+  }
+
+  const first = data[0]
+  if (typeof first !== 'object' || first === null) {
+    return <pre className="text-[10px] font-mono text-[#4B5563] bg-[#F8F8F6] p-2 rounded overflow-auto max-h-20">{String(first)}</pre>
+  }
+
+  const allKeys = Object.keys(first as object).filter(k => !k.startsWith('@'))
+  const cols = allKeys.slice(0, 6)
+  const rows = data.slice(0, 10)
+
+  if (cols.length === 0) {
+    return <span className="text-[10px] text-[#A1A1AA] italic">Metadata-only response</span>
+  }
+
+  return (
+    <div className="overflow-x-auto rounded border border-[#E9E5DD]">
+      <table className="w-full text-[10px] font-mono min-w-max">
+        <thead>
+          <tr className="bg-[#F0EDE6]">
+            {cols.map(c => (
+              <th key={c} className="px-2 py-1.5 text-left text-[#6B7280] font-semibold whitespace-nowrap border-r border-[#E9E5DD] last:border-r-0">
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]'}>
+              {cols.map(col => (
+                <td
+                  key={col}
+                  className="px-2 py-1 text-[#374151] border-r border-[#E9E5DD] last:border-r-0 max-w-[180px] truncate"
+                  title={String((row as Record<string, unknown>)[col] ?? '')}
+                >
+                  {cellVal((row as Record<string, unknown>)[col])}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {data.length > 10 && (
+        <div className="px-2 py-1 bg-[#F8F8F6] border-t border-[#E9E5DD] text-[10px] text-[#A1A1AA]">
+          Showing 10 of {data.length} records
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EvidenceItem({ ev }: { ev: EvidenceResult }) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-semibold text-[#374151]">{ev.queryDescription}</span>
+        <span className="text-[10px] text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-1.5 py-0.5 rounded font-mono">
+          {ev.recordCount} records
+        </span>
+        <span className="text-[9px] font-mono text-[#A1A1AA] break-all">{ev.endpoint}</span>
+      </div>
+      {ev.success
+        ? <EvidenceTable data={ev.rawData ?? []} />
+        : <span className="text-[10px] text-[#DC2626] italic">{ev.errorMessage ?? 'Query failed'}</span>
+      }
+    </div>
+  )
+}
+
+// ── ControlCard ────────────────────────────────────────────────────────────
 
 interface Props {
   assessment:   ControlAssessment
@@ -12,51 +100,50 @@ interface Props {
 }
 
 export function ControlCard({ assessment, defaultOpen = false }: Props) {
-  const [open, setOpen] = useState(defaultOpen)
-  const { controlId, controlTitle, family, status, findings, recommendations } = assessment
+  const [open, setOpen]             = useState(defaultOpen)
+  const [evidenceOpen, setEvidenceOpen] = useState(false)
 
-  const portalLinks = getPortalLinks(controlId)
+  const { controlId, controlTitle, family, status, findings, recommendations, evidenceCollected } = assessment
+
+  const portalLinks     = getPortalLinks(controlId)
   const showRemediation = portalLinks.length > 0 && (status === 'fail' || status === 'partial')
+  const evidenceQueries = evidenceCollected?.filter(e => e.success && (e.rawData?.length ?? 0) > 0) ?? []
 
   return (
     <div className="bg-white rounded-lg border border-[#E9E5DD] overflow-hidden hover:border-[#D4CFC5] transition-colors">
-      {/* Header */}
+
+      {/* ── Header ──────────────────────────────────────────────────────── */}
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#FAFAF8] transition-colors"
       >
-        {/* Control ID */}
         <span className="shrink-0 text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
           {controlId}
         </span>
 
-        {/* Title + Family */}
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-[#18181B] truncate">{controlTitle}</p>
           {family && <p className="text-[11px] text-[#A1A1AA] mt-0.5">{family}</p>}
         </div>
 
-        {/* Portal links pill (shown in header when collapsed and remediation available) */}
         {showRemediation && !open && (
           <span className="shrink-0 text-[10px] text-[#6D28D9] bg-[#F5F3FF] border border-[#DDD6FE] px-2 py-0.5 rounded font-medium hidden sm:inline">
             Fix in Azure
           </span>
         )}
 
-        {/* Status badge */}
         <StatusBadge status={status} size="sm" />
 
-        {/* Chevron */}
         <span className="text-[#D1D5DB] ml-1 shrink-0">
           {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
         </span>
       </button>
 
-      {/* Expanded detail */}
+      {/* ── Expanded detail ─────────────────────────────────────────────── */}
       {open && (
         <div className="border-t border-[#F0EDE6] px-4 py-4 space-y-4 bg-[#FAFAF8]">
 
-          {/* Azure portal remediation links */}
+          {/* Remediation links */}
           {showRemediation && (
             <div>
               <div className="flex items-center gap-1.5 mb-2.5">
@@ -121,10 +208,38 @@ export function ControlCard({ assessment, defaultOpen = false }: Props) {
             </div>
           )}
 
+          {/* Raw Evidence */}
+          {evidenceQueries.length > 0 && (
+            <div>
+              <button
+                onClick={() => setEvidenceOpen(o => !o)}
+                className="flex items-center gap-1.5 w-full text-left"
+              >
+                <Database className="w-3 h-3 text-[#6366F1]" />
+                <span className="text-[10px] font-bold text-[#6366F1] uppercase tracking-widest">Raw Evidence</span>
+                <span className="text-[10px] text-[#A1A1AA] ml-1">
+                  ({evidenceQueries.length} {evidenceQueries.length === 1 ? 'query' : 'queries'})
+                </span>
+                <span className="text-[#D1D5DB] ml-auto">
+                  {evidenceOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </span>
+              </button>
+
+              {evidenceOpen && (
+                <div className="mt-2.5 space-y-4">
+                  {evidenceQueries.map(ev => (
+                    <EvidenceItem key={ev.queryId} ev={ev} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Empty state */}
           {findings.length === 0 && recommendations.length === 0 && (
             <p className="text-xs text-[#A1A1AA] italic">No detailed findings available.</p>
           )}
+
         </div>
       )}
     </div>
