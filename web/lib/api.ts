@@ -298,9 +298,10 @@ export async function getTeamJoinInfo(token: string) {
   }>
 }
 
-export async function acceptTeamInvite(token: string) {
+export async function acceptTeamInvite(token: string, authToken?: string | null) {
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
-  if (_clerkToken) headers['Authorization'] = `Bearer ${_clerkToken}`
+  const tok = authToken ?? _clerkToken
+  if (tok) headers['Authorization'] = `Bearer ${tok}`
   const res = await fetch(`/api/team/join/${token}/accept`, {
     method: 'POST',
     headers,

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useUser, SignIn } from '@clerk/nextjs'
+import { useUser, useAuth, SignIn } from '@clerk/nextjs'
 import { CheckCircle2, AlertCircle, Users, Loader2, ArrowRight } from 'lucide-react'
 import { getTeamJoinInfo, acceptTeamInvite } from '@/lib/api'
 
@@ -20,6 +20,7 @@ export default function JoinPage() {
   const router    = useRouter()
   const token     = typeof params.token === 'string' ? params.token : ''
   const { isLoaded, isSignedIn } = useUser()
+  const { getToken } = useAuth()
 
   const [phase,    setPhase]    = useState<Phase>('loading')
   const [inviteEmail, setInviteEmail] = useState('')
@@ -48,7 +49,11 @@ export default function JoinPage() {
   async function handleAccept() {
     setPhase('accepting')
     try {
-      const result = await acceptTeamInvite(token)
+      // Fetch a fresh Clerk token directly — the module-level token in api.ts
+      // may not be set yet on the join page (ClerkTokenSync runs only in the
+      // (app) layout). Passing it explicitly avoids a "Sign in" 401.
+      const authToken = await getToken()
+      const result = await acceptTeamInvite(token, authToken)
       setPhase(result.alreadyAccepted ? 'already' : 'done')
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Failed to accept invite.')

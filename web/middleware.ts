@@ -1,8 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-// Public routes — no auth required
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)', '/onboard(.*)', '/join(.*)'])
+// Public routes — no auth required (pages + public API endpoints)
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/sign-in(.*)',
+  '/sign-up(.*)',
+  '/onboard(.*)',
+  '/join(.*)',
+  '/api/team/join(.*)',   // public team-invite accept flow
+  '/api/onboard(.*)',    // public client onboarding flow
+  '/api/health',
+])
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth()
