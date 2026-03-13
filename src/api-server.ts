@@ -265,11 +265,12 @@ function makeGraphClient(client: Client): GraphClient {
 }
 
 // ─── Resolve client for a request ─────────────────────────────────────────
-// Uses ?clientId query param if provided, otherwise the first configured client.
+// Uses ?clientId query param if provided, otherwise the user's first client.
+// userId scopes the lookup so users can only access their own clients.
 
-async function resolveClient(clientIdParam?: string): Promise<Client | null> {
-  if (clientIdParam) return getClient(clientIdParam);
-  return getDefaultClient();
+async function resolveClient(clientIdParam?: string, userId?: string): Promise<Client | null> {
+  if (clientIdParam) return getClient(clientIdParam, userId);
+  return getDefaultClient(userId);
 }
 
 // ─── Express app ──────────────────────────────────────────────────────────
@@ -302,14 +303,13 @@ app.use((req, res, next) => {
 
 app.get("/api/health", async (_req, res) => {
   const clients = await listClients();
-  const primary = clients[0];
-  res.json({ ok: true, configured: clients.length > 0, tenantName: primary?.name ?? null });
+  res.json({ ok: true, configured: clients.length > 0 });
 });
 
 // ── Config: status (backward compat — derives from clients list) ───────────
 
-app.get("/api/config/status", async (_req, res) => {
-  const clients = await listClients();
+app.get("/api/config/status", async (req: AuthedRequest, res) => {
+  const clients = await listClients(req.userId);
   if (clients.length === 0) return void res.json({ configured: false });
   const primary = clients[0];
   res.json({
@@ -879,7 +879,7 @@ app.get("/api/frameworks/:id/controls", (req, res) => {
 // clientId is optional — defaults to first configured client
 
 app.get("/api/assess/stream/:frameworkId", async (req: AuthedRequest, res) => {
-  const client = await resolveClient(req.query.clientId as string | undefined);
+  const client = await resolveClient(req.query.clientId as string | undefined, req.userId);
   if (!client) {
     res.status(401).json({ error: "No clients configured. Add a client first." });
     return;
@@ -960,8 +960,8 @@ app.get("/api/assess/stream/:frameworkId", async (req: AuthedRequest, res) => {
 
 // ── Assess: single control ─────────────────────────────────────────────────
 
-app.post("/api/assess/:frameworkId/control/:controlId", async (req, res) => {
-  const client = await resolveClient(req.query.clientId as string | undefined);
+app.post("/api/assess/:frameworkId/control/:controlId", async (req: AuthedRequest, res) => {
+  const client = await resolveClient(req.query.clientId as string | undefined, req.userId);
   if (!client) return void res.status(401).json({ error: "No clients configured" });
 
   const controls = getFrameworkControls(req.params.frameworkId as any);
