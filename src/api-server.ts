@@ -481,6 +481,115 @@ app.get("/api/clients/:id/integrations", async (req, res) => {
   })));
 });
 
+// ── Clients: save integration credentials (MSP-authenticated) ─────────────
+
+app.put("/api/clients/:id/integrations/:platform", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+
+  const { id: clientId, platform } = req.params;
+  const { config } = req.body as { config?: Record<string, string> };
+  if (!config) return void res.status(400).json({ error: "config is required" });
+
+  // Verify client belongs to this user
+  const { clients: clientTable, clientIntegrations: intTable } = dbSchema as any;
+  const { eq, and } = drizzleOps as any;
+  const clientRows = await (db as any).select().from(clientTable)
+    .where(and(eq(clientTable.id, clientId), eq(clientTable.userId, (req as any).userId)));
+  if (!clientRows[0]) return void res.status(404).json({ error: "Client not found" });
+
+  // Upsert the integration record
+  const existing = await (db as any).select().from(intTable)
+    .where(and(eq(intTable.clientId, clientId), eq(intTable.platform, platform)));
+
+  if (existing[0]) {
+    await (db as any).update(intTable)
+      .set({ config, status: "pending" })
+      .where(and(eq(intTable.clientId, clientId), eq(intTable.platform, platform)));
+  } else {
+    await (db as any).insert(intTable).values({
+      clientId,
+      userId: (req as any).userId,
+      platform,
+      config,
+      status: "pending",
+    });
+  }
+
+  res.json({ ok: true });
+});
+
+// ── Clients: test integration (MSP-authenticated) ──────────────────────────
+
+app.post("/api/clients/:id/integrations/:platform/test", async (req: AuthedRequest, res) => {
+  if (!db || !dbSchema || !drizzleOps) {
+    return void res.status(503).json({ error: "Database not configured" });
+  }
+
+  const { id: clientId, platform } = req.params;
+  const { config } = req.body as { config?: Record<string, string> };
+  if (!config) return void res.status(400).json({ error: "config is required" });
+
+  // Verify client belongs to this user
+  const { clients: clientTable, clientIntegrations: intTable } = dbSchema as any;
+  const { eq, and } = drizzleOps as any;
+  const clientRows = await (db as any).select().from(clientTable)
+    .where(and(eq(clientTable.id, clientId), eq(clientTable.userId, (req as any).userId)));
+  if (!clientRows[0]) return void res.status(404).json({ error: "Client not found" });
+
+  // For other platforms: validate required fields and optionally HTTP probe
+  const platformsWithUrl: Record<string, string | null> = {
+    servicenow: config.instanceUrl ?? null,
+    splunk:     config.baseUrl     ?? null,
+    jira:       config.domain      ? `https://${config.domain}` : null,
+    workday:    config.baseUrl     ?? null,
+  };
+
+  const urlToProbe = platformsWithUrl[platform];
+  if (urlToProbe) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      await fetch(urlToProbe, {
+        method: "HEAD",
+        signal: controller.signal as any,
+        redirect: "follow",
+      }).finally(() => clearTimeout(timeout));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("abort") || msg.includes("ECONNREFUSED") || msg.includes("ENOTFOUND")) {
+        return void res.json({
+          ok: false,
+          error: `Could not reach ${urlToProbe} — check the URL and try again`,
+        });
+      }
+    }
+  }
+
+  // Mark as connected
+  const existing = await (db as any).select().from(intTable)
+    .where(and(eq(intTable.clientId, clientId), eq(intTable.platform, platform)));
+
+  if (existing[0]) {
+    await (db as any).update(intTable)
+      .set({ status: "connected", connectedAt: new Date(), lastTestedAt: new Date(), errorMessage: null })
+      .where(and(eq(intTable.clientId, clientId), eq(intTable.platform, platform)));
+  } else {
+    await (db as any).insert(intTable).values({
+      clientId,
+      userId: (req as any).userId,
+      platform,
+      config,
+      status: "connected",
+      connectedAt: new Date(),
+      lastTestedAt: new Date(),
+    });
+  }
+
+  res.json({ ok: true });
+});
+
 // ── Invitations: list ──────────────────────────────────────────────────────
 
 app.get("/api/invitations", async (req: AuthedRequest, res) => {

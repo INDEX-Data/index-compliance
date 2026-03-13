@@ -273,6 +273,14 @@ export async function getOnboardIntegrations(token: string) {
   return res.json() as Promise<ClientIntegration[]>
 }
 
+// ── Client Integrations: MSP-authenticated write endpoints ───────────────────
+
+export const saveClientIntegration = (clientId: string, platform: string, config: Record<string, string>) =>
+  put<{ ok: boolean }>(`/clients/${clientId}/integrations/${platform}`, { config })
+
+export const testClientIntegration = (clientId: string, platform: string, config: Record<string, string>) =>
+  post<{ ok: boolean; error?: string }>(`/clients/${clientId}/integrations/${platform}/test`, { config })
+
 // ── Team Management (auth required) ──────────────────────────────────────────
 
 export const getTeamInvites   = () => get<TeamInvite[]>('/team/invites')

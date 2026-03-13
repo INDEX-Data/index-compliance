@@ -1,14 +1,17 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  CheckCircle2, AlertCircle, ExternalLink,
+  CheckCircle2, AlertCircle, ExternalLink, X,
   Activity, Loader2, Building2, Settings,
   Globe, Lock, Zap, Bell, Database, FolderOpen,
-  ChevronDown,
+  ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
-import { getConfigStatus, testConfig, getClients, getClientIntegrations } from '@/lib/api'
+import {
+  getConfigStatus, testConfig, getClients, getClientIntegrations,
+  saveClientIntegration, testClientIntegration,
+} from '@/lib/api'
 import type { Client, ClientIntegration } from '@/lib/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -16,24 +19,284 @@ import type { Client, ClientIntegration } from '@/lib/types'
 type ConnStatus = 'connected' | 'error' | 'pending' | 'not_connected'
 type FilterTab  = 'all' | 'connected' | 'available'
 
+interface PlatformField {
+  key: string
+  label: string
+  placeholder?: string
+  type?: 'password' | 'text'
+}
+
 // ─── Platform meta ────────────────────────────────────────────────────────────
 
-const PLATFORMS: Record<string, {
+const PLATFORM_META: Record<string, {
   name: string; color: string; description: string
   category: string; categoryIcon: React.ElementType; soon?: boolean
+  fields: PlatformField[]
 }> = {
-  servicenow: { name: 'ServiceNow',      color: '#81B5A1', description: 'GRC ticketing and change management',      category: 'GRC',           categoryIcon: Zap },
-  splunk:     { name: 'Splunk',          color: '#FF6A00', description: 'SIEM log forwarding and event correlation', category: 'SIEM',          categoryIcon: Activity },
-  jira:       { name: 'Jira',            color: '#0052CC', description: 'Auto-create issues for failed controls',    category: 'Ticketing',     categoryIcon: Zap },
-  slack:      { name: 'Slack',           color: '#4A154B', description: 'Post assessment summaries to channels',     category: 'Notifications', categoryIcon: Bell },
-  teams:      { name: 'Microsoft Teams', color: '#464EB8', description: 'Send compliance updates to Teams',          category: 'Notifications', categoryIcon: Bell },
-  workday:    { name: 'Workday',         color: '#F5820E', description: 'HR and workforce identity integration',      category: 'HR',            categoryIcon: Building2 },
-  monday:     { name: 'Monday.com',      color: '#F2484B', description: 'Track compliance tasks and milestones',     category: 'Project Mgmt',  categoryIcon: Zap },
-  box:        { name: 'Box',             color: '#0061D5', description: 'Evidence collection from Box storage',      category: 'Storage',       categoryIcon: FolderOpen },
-  dropbox:    { name: 'Dropbox',         color: '#0061FE', description: 'Evidence documents from Dropbox Business',  category: 'Storage',       categoryIcon: FolderOpen },
-  sentinel:   { name: 'Azure Sentinel',  color: '#0078D4', description: 'Security event ingestion from Sentinel',    category: 'SIEM',          categoryIcon: Activity, soon: true },
-  defender:   { name: 'MS Defender',     color: '#00BCF2', description: 'Endpoint compliance and threat signals',    category: 'Security',      categoryIcon: Database, soon: true },
-  aws:        { name: 'AWS Security Hub',color: '#FF9900', description: 'Multi-cloud compliance posture data',       category: 'Cloud',         categoryIcon: Database, soon: true },
+  servicenow: {
+    name: 'ServiceNow', color: '#81B5A1',
+    description: 'GRC ticketing and change management',
+    category: 'GRC', categoryIcon: Zap,
+    fields: [
+      { key: 'instanceUrl', label: 'Instance URL',  placeholder: 'https://company.service-now.com' },
+      { key: 'username',    label: 'Username',       placeholder: 'admin' },
+      { key: 'password',    label: 'Password',       type: 'password' },
+    ],
+  },
+  splunk: {
+    name: 'Splunk', color: '#FF6A00',
+    description: 'SIEM log forwarding and event correlation',
+    category: 'SIEM', categoryIcon: Activity,
+    fields: [
+      { key: 'baseUrl',  label: 'Splunk URL', placeholder: 'https://splunk.company.com:8089' },
+      { key: 'apiToken', label: 'API Token',  type: 'password' },
+    ],
+  },
+  jira: {
+    name: 'Jira', color: '#0052CC',
+    description: 'Auto-create issues for failed controls',
+    category: 'Ticketing', categoryIcon: Zap,
+    fields: [
+      { key: 'domain',   label: 'Jira Domain', placeholder: 'company.atlassian.net' },
+      { key: 'email',    label: 'Email',        placeholder: 'admin@company.com' },
+      { key: 'apiToken', label: 'API Token',    type: 'password' },
+    ],
+  },
+  slack: {
+    name: 'Slack', color: '#4A154B',
+    description: 'Post assessment summaries to channels',
+    category: 'Notifications', categoryIcon: Bell,
+    fields: [
+      { key: 'webhookUrl', label: 'Webhook URL', placeholder: 'https://hooks.slack.com/services/...' },
+    ],
+  },
+  teams: {
+    name: 'Microsoft Teams', color: '#464EB8',
+    description: 'Send compliance updates to Teams channels',
+    category: 'Notifications', categoryIcon: Bell,
+    fields: [
+      { key: 'webhookUrl', label: 'Incoming Webhook URL', placeholder: 'https://outlook.office.com/webhook/...' },
+    ],
+  },
+  workday: {
+    name: 'Workday', color: '#F5820E',
+    description: 'HR and workforce identity integration',
+    category: 'HR', categoryIcon: Building2,
+    fields: [
+      { key: 'baseUrl',    label: 'Base URL',    placeholder: 'https://wd2.myworkday.com/...' },
+      { key: 'tenantName', label: 'Tenant Name', placeholder: 'company' },
+      { key: 'username',   label: 'Username' },
+      { key: 'password',   label: 'Password', type: 'password' },
+    ],
+  },
+  monday: {
+    name: 'Monday.com', color: '#F2484B',
+    description: 'Track compliance tasks and milestones',
+    category: 'Project Mgmt', categoryIcon: Zap,
+    fields: [
+      { key: 'apiToken', label: 'API Token', type: 'password' },
+    ],
+  },
+  box: {
+    name: 'Box', color: '#0061D5',
+    description: 'Evidence collection from Box storage',
+    category: 'Storage', categoryIcon: FolderOpen,
+    fields: [
+      { key: 'clientId',     label: 'Client ID' },
+      { key: 'clientSecret', label: 'Client Secret', type: 'password' },
+      { key: 'enterpriseId', label: 'Enterprise ID' },
+    ],
+  },
+  dropbox: {
+    name: 'Dropbox', color: '#0061FE',
+    description: 'Evidence documents from Dropbox Business',
+    category: 'Storage', categoryIcon: FolderOpen,
+    fields: [
+      { key: 'accessToken', label: 'Access Token', type: 'password' },
+    ],
+  },
+  sentinel: {
+    name: 'Azure Sentinel', color: '#0078D4',
+    description: 'Security event ingestion from Sentinel',
+    category: 'SIEM', categoryIcon: Activity, soon: true, fields: [],
+  },
+  defender: {
+    name: 'MS Defender', color: '#00BCF2',
+    description: 'Endpoint compliance and threat signals',
+    category: 'Security', categoryIcon: Database, soon: true, fields: [],
+  },
+  aws: {
+    name: 'AWS Security Hub', color: '#FF9900',
+    description: 'Multi-cloud compliance posture data',
+    category: 'Cloud', categoryIcon: Database, soon: true, fields: [],
+  },
+}
+
+// ─── Configure Integration Modal ─────────────────────────────────────────────
+
+function ConfigureModal({
+  clientId,
+  platformId,
+  existing,
+  onClose,
+  onSaved,
+}: {
+  clientId: string
+  platformId: string
+  existing?: ClientIntegration
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const meta = PLATFORM_META[platformId]
+  const [values, setValues]     = useState<Record<string, string>>({})
+  const [showPwd, setShowPwd]   = useState<Record<string, boolean>>({})
+  const [testing, setTesting]   = useState(false)
+  const [saving,  setSaving]    = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  if (!meta) return null
+
+  function setVal(key: string, val: string) {
+    setValues(v => ({ ...v, [key]: val }))
+    setTestResult(null)
+  }
+
+  function allFilled() {
+    return meta.fields.every(f => (values[f.key] ?? '').trim() !== '')
+  }
+
+  async function handleTest() {
+    setTesting(true); setTestResult(null)
+    try {
+      const result = await testClientIntegration(clientId, platformId, values)
+      setTestResult({
+        ok: result.ok,
+        msg: result.ok ? 'Connection successful — credentials verified' : (result.error ?? 'Connection failed'),
+      })
+      if (result.ok) onSaved() // refresh status in parent
+    } catch (e) {
+      setTestResult({ ok: false, msg: e instanceof Error ? e.message : 'Connection failed' })
+    } finally {
+      setTesting(false)
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    try {
+      await saveClientIntegration(clientId, platformId, values)
+      onSaved()
+      onClose()
+    } catch (e) {
+      setTestResult({ ok: false, msg: e instanceof Error ? e.message : 'Save failed' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl w-full max-w-md overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-[#F1F5F9]">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[13px] font-bold"
+            style={{ background: meta.color + '18', color: meta.color }}
+          >
+            {meta.name.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[14px] font-semibold text-[#0F172A]">
+              {existing?.status === 'connected' ? 'Reconfigure' : 'Connect'} {meta.name}
+            </h2>
+            <p className="text-[11px] text-[#94A3B8] truncate">{meta.description}</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[#94A3B8] hover:text-[#0F172A] hover:bg-[#F8FAFC] transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div className="px-6 py-5 space-y-4">
+          {meta.fields.map(field => {
+            const isPwd  = field.type === 'password'
+            const isShow = showPwd[field.key]
+            return (
+              <div key={field.key}>
+                <label className="block text-[11px] font-semibold text-[#475569] uppercase tracking-widest mb-1.5">
+                  {field.label}
+                </label>
+                <div className="relative">
+                  <input
+                    type={isPwd && !isShow ? 'password' : 'text'}
+                    value={values[field.key] ?? ''}
+                    onChange={e => setVal(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    className="w-full px-3 py-2.5 text-[13px] rounded-lg border border-[#E2E8F0] bg-white text-[#0F172A] placeholder-[#CBD5E1] focus:outline-none focus:ring-2 focus:ring-[#0F172A]/10 focus:border-[#94A3B8] transition pr-9"
+                  />
+                  {isPwd && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd(s => ({ ...s, [field.key]: !s[field.key] }))}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-[#64748B]"
+                    >
+                      {isShow ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+
+          {/* Test result */}
+          {testResult && (
+            <div className={`flex items-start gap-2.5 rounded-lg px-3.5 py-3 text-[12px] border ${
+              testResult.ok
+                ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#16A34A]'
+                : 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'
+            }`}>
+              {testResult.ok
+                ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-px" />
+                : <AlertCircle  className="w-4 h-4 shrink-0 mt-px" />}
+              <span className="leading-snug">{testResult.msg}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-[#F1F5F9] bg-[#F8FAFC]">
+          <button
+            onClick={handleTest}
+            disabled={!allFilled() || testing || saving}
+            className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg border border-[#E2E8F0] bg-white text-[#334155] hover:bg-[#F1F5F9] disabled:opacity-40 disabled:cursor-not-allowed transition"
+          >
+            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+            Test Connection
+          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-[12px] font-semibold rounded-lg border border-[#E2E8F0] bg-white text-[#64748B] hover:bg-[#F1F5F9] transition"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!allFilled() || saving || testing}
+              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg bg-[#0F172A] text-white hover:bg-[#1E293B] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+              Save Credentials
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -72,7 +335,7 @@ interface IntegrationTileProps {
 }
 
 function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
-  const meta   = PLATFORMS[id]
+  const meta   = PLATFORM_META[id]
   const status = (intg?.status ?? 'not_connected') as ConnStatus
 
   if (!meta) return null
@@ -113,7 +376,7 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
           </p>
         )}
         {intg?.errorMessage && status === 'error' && (
-          <p className="text-[10px] text-[#DC2626] mt-1 truncate">{intg.errorMessage}</p>
+          <p className="text-[10px] text-[#DC2626] mt-1 truncate" title={intg.errorMessage}>{intg.errorMessage}</p>
         )}
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F1F5F9]">
@@ -123,7 +386,7 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
               onClick={() => onConnect(id)}
               className="text-[11px] font-semibold text-[#334155] hover:text-[#0F172A] transition px-2.5 py-1 rounded-lg hover:bg-[#F8FAFC] border border-transparent hover:border-[#E2E8F0]"
             >
-              {status === 'connected' ? 'Configure' : 'Connect'}
+              {status === 'connected' ? 'Reconfigure' : 'Connect →'}
             </button>
           )}
         </div>
@@ -132,7 +395,7 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
   )
 }
 
-// ─── Microsoft card ───────────────────────────────────────────────────────────
+// ─── Microsoft Entra card ─────────────────────────────────────────────────────
 
 function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, onTest, testing }: {
   connected: boolean; tenantName: string; tenantId: string
@@ -216,7 +479,8 @@ export default function IntegrationsPage() {
   const [loadingIntgs,   setLoadingIntgs]   = useState(false)
   const [dropdownOpen,   setDropdownOpen]   = useState(false)
 
-  const [filter, setFilter] = useState<FilterTab>('all')
+  const [filter,           setFilter]           = useState<FilterTab>('all')
+  const [configuringPlatform, setConfiguringPlatform] = useState<string | null>(null)
 
   useEffect(() => {
     getConfigStatus()
@@ -230,14 +494,19 @@ export default function IntegrationsPage() {
       .finally(() => setLoadingClients(false))
   }, [])
 
-  useEffect(() => {
-    if (!selectedClient) { setIntegrations([]); return }
+  const refreshIntegrations = useCallback(() => {
+    if (!selectedClient) return
     setLoadingIntgs(true)
     getClientIntegrations(selectedClient.id)
       .then(setIntegrations)
       .catch(() => setIntegrations([]))
       .finally(() => setLoadingIntgs(false))
   }, [selectedClient])
+
+  useEffect(() => {
+    if (!selectedClient) { setIntegrations([]); return }
+    refreshIntegrations()
+  }, [selectedClient, refreshIntegrations])
 
   async function handleTest() {
     setTesting(true); setTestResult(null)
@@ -259,7 +528,7 @@ export default function IntegrationsPage() {
   const tenantName     = configStatus?.tenantName ?? '—'
   const tenantId       = configStatus?.tenantId   ?? '—'
 
-  const platformIds = Object.keys(PLATFORMS)
+  const platformIds  = Object.keys(PLATFORM_META)
   const connectedIds = platformIds.filter(id => getIntegration(id)?.status === 'connected')
   const availableIds = platformIds.filter(id => getIntegration(id)?.status !== 'connected')
 
@@ -280,7 +549,7 @@ export default function IntegrationsPage() {
       <div className="flex items-start justify-between mb-8">
         <div>
           <h1 className="text-[22px] font-bold text-[#0F172A] tracking-tight">Integrations</h1>
-          <p className="text-[13px] text-[#94A3B8] mt-1">Connect INDEX to your security and productivity tools</p>
+          <p className="text-[13px] text-[#94A3B8] mt-1">Connect INDEX to your clients' security and productivity tools</p>
         </div>
       </div>
 
@@ -319,7 +588,6 @@ export default function IntegrationsPage() {
               onTest={handleTest}
               testing={testing}
             />
-            {/* Graph API tile */}
             <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden shadow-card">
               <div className="flex items-start gap-4 p-5 border-b border-[#F1F5F9]">
                 <div className="w-11 h-11 rounded-xl bg-[#F0F9FF] border border-[#BAE6FD] flex items-center justify-center shrink-0">
@@ -365,11 +633,11 @@ export default function IntegrationsPage() {
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
             <h2 className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-widest">Client Integrations</h2>
-            <div className="flex-1 h-px bg-[#F1F5F9] w-8" />
+            <div className="h-px bg-[#F1F5F9] w-8" />
           </div>
 
           {/* Client selector */}
-          {!loadingClients && clients.length > 1 && (
+          {!loadingClients && clients.length > 0 && (
             <div className="relative ml-auto">
               <button
                 onClick={() => setDropdownOpen(o => !o)}
@@ -446,7 +714,7 @@ export default function IntegrationsPage() {
                     key={id}
                     id={id}
                     intg={getIntegration(id)}
-                    onConnect={() => router.push(`/integrations/${id}`)}
+                    onConnect={setConfiguringPlatform}
                   />
                 ))}
               </div>
@@ -462,6 +730,20 @@ export default function IntegrationsPage() {
           </>
         )}
       </div>
+
+      {/* Configure Modal */}
+      {configuringPlatform && selectedClient && (
+        <ConfigureModal
+          clientId={selectedClient.id}
+          platformId={configuringPlatform}
+          existing={getIntegration(configuringPlatform)}
+          onClose={() => setConfiguringPlatform(null)}
+          onSaved={() => {
+            refreshIntegrations()
+            // Don't auto-close — let user see the success test result first
+          }}
+        />
+      )}
     </div>
   )
 }
