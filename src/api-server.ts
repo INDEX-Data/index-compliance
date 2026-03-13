@@ -43,6 +43,7 @@ import type {
   ObjectiveEvidenceSource,
   DIBCACObjectiveSummary,
 } from "./types.js";
+import { initEmail, sendTeamInviteEmail } from "./services/email.js";
 
 // ── Optional DB (Neon + Drizzle) — only loaded when DATABASE_URL is set ────
 // When DATABASE_URL is absent the server falls back to file-based storage.
@@ -623,6 +624,28 @@ app.post("/api/team/invites", async (req: AuthedRequest, res) => {
 
   const host = req.headers.origin ?? `${req.protocol}://${req.headers.host}`;
   const link = `${host}/join/${token}`;
+
+  // Send invite email — fire-and-forget, don't block the response
+  // Optionally look up the inviter's name from Clerk for a personalised message
+  void (async () => {
+    try {
+      let senderName: string | undefined;
+      if (clerkClient && userId !== DEV_USER_ID) {
+        try {
+          const user = await (clerkClient as any).users.getUser(userId);
+          senderName = user.firstName ?? user.username ?? undefined;
+        } catch { /* name lookup is best-effort */ }
+      }
+      await sendTeamInviteEmail({
+        to:         inv.email,
+        inviteLink: link,
+        expiresAt:  new Date(inv.expiresAt),
+        senderName,
+      });
+    } catch (err) {
+      console.error("[EMAIL] Failed to send team invite email:", (err as Error).message);
+    }
+  })();
 
   res.status(201).json({
     id:        inv.id,
@@ -1561,6 +1584,7 @@ const PORT = parseInt(process.env.PORT ?? process.env.API_PORT ?? "3001");
 async function start() {
   // Initialize optional services before accepting requests
   await Promise.all([initDB(), initClerk()]);
+  initEmail();
 
   // Apply Clerk JWT middleware globally (after DB/Clerk are ready)
   app.use(requireAuth as any);
