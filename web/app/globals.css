@@ -39,3 +39,12 @@ html, body {
 button, a {
   transition-property: background-color, border-color, color, opacity, box-shadow, transform;
 }
+
+/* Evidence drawer slide-in */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0.6; }
+  to   { transform: translateX(0);    opacity: 1;   }
+}
+.animate-slide-in-right {
+  animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}

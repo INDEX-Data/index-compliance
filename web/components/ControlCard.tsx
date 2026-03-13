@@ -6,6 +6,8 @@ import { StatusBadge } from './StatusBadge'
 import { getPortalLinks } from '@/lib/portal-links'
 import type { ControlAssessment, EvidenceResult } from '@/lib/types'
 
+export type { ControlAssessment }
+
 // ── Evidence table ─────────────────────────────────────────────────────────
 
 function cellVal(val: unknown): string {
@@ -95,11 +97,12 @@ function EvidenceItem({ ev }: { ev: EvidenceResult }) {
 // ── ControlCard ────────────────────────────────────────────────────────────
 
 interface Props {
-  assessment:   ControlAssessment
-  defaultOpen?: boolean
+  assessment:      ControlAssessment
+  defaultOpen?:    boolean
+  onViewEvidence?: (assessment: ControlAssessment) => void
 }
 
-export function ControlCard({ assessment, defaultOpen = false }: Props) {
+export function ControlCard({ assessment, defaultOpen = false, onViewEvidence }: Props) {
   const [open, setOpen]             = useState(defaultOpen)
   const [evidenceOpen, setEvidenceOpen] = useState(false)
 
@@ -133,6 +136,21 @@ export function ControlCard({ assessment, defaultOpen = false }: Props) {
         )}
 
         <StatusBadge status={status} size="sm" />
+
+        {/* Evidence flyout trigger */}
+        {evidenceQueries.length > 0 && onViewEvidence && (
+          <span
+            role="button"
+            tabIndex={0}
+            title={`View ${evidenceQueries.length} evidence ${evidenceQueries.length === 1 ? 'query' : 'queries'}`}
+            onClick={e => { e.stopPropagation(); onViewEvidence(assessment) }}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); onViewEvidence(assessment) } }}
+            className="shrink-0 inline-flex items-center gap-1 text-[10px] font-medium text-[#6366F1] bg-[#EEF2FF] hover:bg-[#E0E7FF] border border-[#C7D2FE] px-2 py-0.5 rounded-full transition-colors cursor-pointer"
+          >
+            <Database className="w-2.5 h-2.5" />
+            {evidenceQueries.length}
+          </span>
+        )}
 
         <span className="text-[#D1D5DB] ml-1 shrink-0">
           {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}

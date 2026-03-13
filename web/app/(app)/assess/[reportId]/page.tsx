@@ -8,6 +8,7 @@ import { getReport, exportWordReport, getConfigStatus } from '@/lib/api'
 import { ComplianceSummaryCards } from '@/components/ComplianceSummaryCards'
 import { ComplianceDonut } from '@/components/ComplianceDonut'
 import { ControlCard } from '@/components/ControlCard'
+import { EvidenceDrawer } from '@/components/EvidenceDrawer'
 import { RiskBadge } from '@/components/RiskBadge'
 import { DIBCACObjectives } from '@/components/DIBCACObjectives'
 import type { ComplianceReport, ControlAssessment } from '@/lib/types'
@@ -24,8 +25,9 @@ export default function ReportPage() {
   const [wordExporting, setWordExporting] = useState(false)
   const [wordError, setWordError]         = useState<string | null>(null)
   const [wordElapsed, setWordElapsed]     = useState(0)
-  const [anthropicReady, setAnthropicReady] = useState<boolean | null>(null)
-  const [showKeyModal, setShowKeyModal]   = useState(false)
+  const [anthropicReady, setAnthropicReady]     = useState<boolean | null>(null)
+  const [showKeyModal, setShowKeyModal]         = useState(false)
+  const [evidenceControl, setEvidenceControl]   = useState<ControlAssessment | null>(null)
   const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -94,6 +96,12 @@ export default function ReportPage() {
 
   return (
     <div className="p-8 max-w-5xl mx-auto">
+
+      {/* Evidence drawer — rendered outside the content flow so it overlays everything */}
+      <EvidenceDrawer
+        assessment={evidenceControl}
+        onClose={() => setEvidenceControl(null)}
+      />
 
       {/* Back + actions */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
@@ -341,7 +349,11 @@ export default function ReportPage() {
                   </h3>
                   <div className="space-y-2">
                     {grouped[family].map(a => (
-                      <ControlCard key={a.controlId} assessment={a} />
+                      <ControlCard
+                        key={a.controlId}
+                        assessment={a}
+                        onViewEvidence={setEvidenceControl}
+                      />
                     ))}
                   </div>
                 </div>
