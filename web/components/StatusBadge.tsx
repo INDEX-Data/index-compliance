@@ -4,8 +4,8 @@ const cfg: Record<ComplianceStatus, { label: string; dot: string; cls: string }>
   pass:           { label: 'Pass',         dot: '#15803D', cls: 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]' },
   partial:        { label: 'Partial',      dot: '#B45309', cls: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]' },
   fail:           { label: 'Fail',         dot: '#B91C1C', cls: 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]' },
-  not_assessed:   { label: 'Not Assessed', dot: '#9CA3AF', cls: 'bg-[#F9FAFB] text-[#6B7280] border-[#E5E7EB]' },
-  not_applicable: { label: 'N/A',          dot: '#D1D5DB', cls: 'bg-[#F9FAFB] text-[#9CA3AF] border-[#F3F4F6]' },
+  not_assessed:   { label: 'Not Assessed', dot: '#94A3B8', cls: 'bg-[#F9FAFB] text-[#64748B] border-[#E5E7EB]' },
+  not_applicable: { label: 'N/A',          dot: '#CBD5E1', cls: 'bg-[#F9FAFB] text-[#94A3B8] border-[#F3F4F6]' },
 }
 
 interface Props {

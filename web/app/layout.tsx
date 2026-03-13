@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <ClerkProvider afterSignOutUrl="/sign-in">
       <html lang="en" className={inter.variable}>
-        <body className="font-sans bg-[#F7F5F1] text-[#18181B] antialiased">
+        <body className="font-sans bg-[#F8FAFC] text-[#0F172A] antialiased">
           {children}
         </body>
       </html>

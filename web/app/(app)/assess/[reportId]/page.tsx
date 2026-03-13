@@ -53,7 +53,7 @@ export default function ReportPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-5 h-5 animate-spin text-[#C4BFB5]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[#B0BEC5]" />
       </div>
     )
   }
@@ -107,7 +107,7 @@ export default function ReportPage() {
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <Link
           href="/history"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#9CA3AF] hover:text-[#18181B] transition"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#94A3B8] hover:text-[#0F172A] transition"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           All reports
@@ -115,7 +115,7 @@ export default function ReportPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={exportJSON}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#6B7280] bg-white hover:bg-[#F7F5F1] border border-[#E9E5DD] px-3 py-2 rounded-lg transition shadow-card"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B] bg-white hover:bg-[#F8FAFC] border border-[#E2E8F0] px-3 py-2 rounded-lg transition shadow-card"
           >
             <Download className="w-3.5 h-3.5" />
             Export JSON
@@ -135,7 +135,7 @@ export default function ReportPage() {
             <button
               onClick={handleWordExport}
               disabled={wordExporting}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] disabled:bg-[#F3F4F6] disabled:text-[#9CA3AF] disabled:cursor-wait px-3 py-2 rounded-lg transition"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] disabled:bg-[#F3F4F6] disabled:text-[#94A3B8] disabled:cursor-wait px-3 py-2 rounded-lg transition"
             >
               {wordExporting
                 ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
@@ -146,7 +146,7 @@ export default function ReportPage() {
 
           <button
             onClick={() => router.push(`/assess/running?framework=${report.frameworkId}`)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#18181B] hover:bg-[#27272A] px-3 py-2 rounded-lg transition"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#0F172A] hover:bg-[#1E293B] px-3 py-2 rounded-lg transition"
           >
             <Play className="w-3.5 h-3.5" />
             Re-run
@@ -191,24 +191,24 @@ export default function ReportPage() {
               <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-center justify-center">
                 <Key className="w-5 h-5 text-[#B45309]" />
               </div>
-              <h2 className="text-base font-bold text-[#18181B]">Anthropic API Key Required</h2>
+              <h2 className="text-base font-bold text-[#0F172A]">Anthropic API Key Required</h2>
             </div>
-            <p className="text-sm text-[#6B7280] mb-4 leading-relaxed">
+            <p className="text-sm text-[#64748B] mb-4 leading-relaxed">
               Word report generation uses Claude AI to write an executive narrative. Add your Anthropic API key in Settings to enable this feature.
             </p>
-            <div className="bg-[#F7F5F1] border border-[#E9E5DD] rounded-lg p-3 mb-4 text-xs text-[#9CA3AF] font-mono">
-              Get your API key at: <strong className="text-[#18181B]">console.anthropic.com</strong>
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-3 mb-4 text-xs text-[#94A3B8] font-mono">
+              Get your API key at: <strong className="text-[#0F172A]">console.anthropic.com</strong>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-[#6B7280] bg-[#F7F5F1] hover:bg-[#F0EDE6] rounded-lg transition border border-[#E9E5DD]"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-[#64748B] bg-[#F8FAFC] hover:bg-[#F1F5F9] rounded-lg transition border border-[#E2E8F0]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => { setShowKeyModal(false); router.push('/settings') }}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#18181B] hover:bg-[#27272A] rounded-lg transition"
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#0F172A] hover:bg-[#1E293B] rounded-lg transition"
               >
                 Open Settings
               </button>
@@ -218,17 +218,17 @@ export default function ReportPage() {
       )}
 
       {/* Report header card */}
-      <div className="bg-white rounded-xl border border-[#E9E5DD] p-6 mb-5 shadow-card">
+      <div className="bg-white rounded-xl border border-[#E2E8F0] p-6 mb-5 shadow-card">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#F7F5F1] border border-[#E9E5DD] flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5 text-[#9CA3AF]" />
+          <div className="w-11 h-11 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center shrink-0">
+            <Shield className="w-5 h-5 text-[#94A3B8]" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <h1 className="text-[18px] font-bold text-[#18181B]">{report.frameworkName}</h1>
+              <h1 className="text-[18px] font-bold text-[#0F172A]">{report.frameworkName}</h1>
               <RiskBadge score={report.summary.riskScore} />
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-[#9CA3AF]">
+            <div className="flex flex-wrap items-center gap-4 text-xs text-[#94A3B8]">
               <span className="flex items-center gap-1.5">
                 <Building2 className="w-3.5 h-3.5" />
                 {report.tenantDisplayName}
@@ -237,15 +237,15 @@ export default function ReportPage() {
                 <Calendar className="w-3.5 h-3.5" />
                 {new Date(report.generatedAt).toLocaleString()}
               </span>
-              <span className="font-mono text-[10px] text-[#C4BFB5]">{report.reportId}</span>
+              <span className="font-mono text-[10px] text-[#B0BEC5]">{report.reportId}</span>
             </div>
           </div>
           <div className="text-right shrink-0">
             <div className="font-bold leading-none tabular-nums" style={{ fontSize: 40, color: scoreColor }}>
               {pct}
-              <span className="text-xl text-[#D4CFC5] font-medium">%</span>
+              <span className="text-xl text-[#CBD5E1] font-medium">%</span>
             </div>
-            <div className="text-[11px] text-[#9CA3AF] mt-1">Compliance Score</div>
+            <div className="text-[11px] text-[#94A3B8] mt-1">Compliance Score</div>
           </div>
         </div>
       </div>
@@ -258,11 +258,11 @@ export default function ReportPage() {
         <ComplianceDonut summary={report.summary} />
 
         {report.summary.topFindings.length > 0 && (
-          <div className="lg:col-span-2 bg-white rounded-xl border border-[#E9E5DD] p-5 shadow-card">
-            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">Top Findings</p>
+          <div className="lg:col-span-2 bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-card">
+            <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-3">Top Findings</p>
             <ul className="space-y-2.5">
               {report.summary.topFindings.map((f, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[13px] text-[#374151]">
+                <li key={i} className="flex items-start gap-2.5 text-[13px] text-[#334155]">
                   <span className="w-5 h-5 rounded-full bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                     {i + 1}
                   </span>
@@ -275,18 +275,18 @@ export default function ReportPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex items-center gap-1 bg-white border border-[#E9E5DD] rounded-xl p-1 shadow-card mb-5">
+      <div className="flex items-center gap-1 bg-white border border-[#E2E8F0] rounded-xl p-1 shadow-card mb-5">
         <button
           onClick={() => setActiveTab('controls')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
             activeTab === 'controls'
-              ? 'bg-[#18181B] text-white shadow-sm'
-              : 'text-[#9CA3AF] hover:text-[#18181B]'
+              ? 'bg-[#0F172A] text-white shadow-sm'
+              : 'text-[#94A3B8] hover:text-[#0F172A]'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
           Control Assessments
-          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#F0EDE6] text-[#9CA3AF]'}`}>
+          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
             {report.controlAssessments.length}
           </span>
         </button>
@@ -296,13 +296,13 @@ export default function ReportPage() {
             onClick={() => setActiveTab('dibcac')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
               activeTab === 'dibcac'
-                ? 'bg-[#18181B] text-white shadow-sm'
-                : 'text-[#9CA3AF] hover:text-[#18181B]'
+                ? 'bg-[#0F172A] text-white shadow-sm'
+                : 'text-[#94A3B8] hover:text-[#0F172A]'
             }`}
           >
             <ClipboardList className="w-3.5 h-3.5" />
             DIBCAC 320 Objectives
-            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#F0EDE6] text-[#9CA3AF]'}`}>
+            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
               320
             </span>
           </button>
@@ -313,22 +313,22 @@ export default function ReportPage() {
       {activeTab === 'controls' && (
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-bold text-[#18181B] uppercase tracking-widest">Control Assessments</h2>
+            <h2 className="text-[13px] font-bold text-[#0F172A] uppercase tracking-widest">Control Assessments</h2>
             {/* Filter tabs */}
-            <div className="flex items-center gap-1 bg-white border border-[#E9E5DD] rounded-lg p-1 shadow-card">
+            <div className="flex items-center gap-1 bg-white border border-[#E2E8F0] rounded-lg p-1 shadow-card">
               {statusFilters.map(f => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition
                     ${filter === f.value
-                      ? 'bg-[#18181B] text-white shadow-sm'
-                      : 'text-[#9CA3AF] hover:text-[#18181B]'
+                      ? 'bg-[#0F172A] text-white shadow-sm'
+                      : 'text-[#94A3B8] hover:text-[#0F172A]'
                     }`}
                 >
                   {f.label}
                   <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold
-                    ${filter === f.value ? 'bg-white/20 text-white' : 'bg-[#F0EDE6] text-[#9CA3AF]'}`}>
+                    ${filter === f.value ? 'bg-white/20 text-white' : 'bg-[#F1F5F9] text-[#94A3B8]'}`}>
                     {f.count}
                   </span>
                 </button>
@@ -337,14 +337,14 @@ export default function ReportPage() {
           </div>
 
           {families.length === 0 ? (
-            <div className="text-center py-12 text-[#C4BFB5] text-sm bg-white rounded-xl border border-[#E9E5DD] shadow-card">
+            <div className="text-center py-12 text-[#B0BEC5] text-sm bg-white rounded-xl border border-[#E2E8F0] shadow-card">
               No controls match this filter.
             </div>
           ) : (
             <div className="space-y-6">
               {families.map(family => (
                 <div key={family}>
-                  <h3 className="text-[10px] font-bold text-[#C4BFB5] uppercase tracking-widest mb-3 px-1">
+                  <h3 className="text-[10px] font-bold text-[#B0BEC5] uppercase tracking-widest mb-3 px-1">
                     {family}
                   </h3>
                   <div className="space-y-2">

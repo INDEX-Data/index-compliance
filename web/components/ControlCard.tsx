@@ -22,7 +22,7 @@ export function ControlCard({ assessment, onViewEvidence }: Props) {
     <button
       type="button"
       onClick={() => onViewEvidence(assessment)}
-      className="w-full bg-white rounded-lg border border-[#E9E5DD] hover:border-[#D4CFC5] hover:bg-[#FAFAF8] active:bg-[#F0EDE6] transition-colors text-left"
+      className="w-full bg-white rounded-lg border border-[#E2E8F0] hover:border-[#CBD5E1] hover:bg-[#F8FAFC] active:bg-[#F1F5F9] transition-colors text-left"
     >
       <div className="flex items-center gap-3 px-4 py-3.5">
         <span className="shrink-0 text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
@@ -30,8 +30,8 @@ export function ControlCard({ assessment, onViewEvidence }: Props) {
         </span>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[#18181B] truncate">{controlTitle}</p>
-          {family && <p className="text-[11px] text-[#A1A1AA] mt-0.5">{family}</p>}
+          <p className="text-sm font-medium text-[#0F172A] truncate">{controlTitle}</p>
+          {family && <p className="text-[11px] text-[#94A3B8] mt-0.5">{family}</p>}
         </div>
 
         {showRemediation && (
@@ -42,7 +42,7 @@ export function ControlCard({ assessment, onViewEvidence }: Props) {
 
         <StatusBadge status={status} size="sm" />
 
-        <ChevronRight className="w-3.5 h-3.5 text-[#D1D5DB] shrink-0 ml-1" />
+        <ChevronRight className="w-3.5 h-3.5 text-[#CBD5E1] shrink-0 ml-1" />
       </div>
     </button>
   )

@@ -41,8 +41,8 @@ function NavItem({ href, label, icon: Icon, active }: NavItemProps) {
         'relative flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg text-[13px] font-medium',
         'transition-colors duration-100 select-none',
         active
-          ? 'bg-[#1D1D1B] text-[#ECEAE3]'
-          : 'text-[#6B6860] hover:bg-[#191917] hover:text-[#A8A49E]',
+          ? 'bg-[#13253A] text-[#E4EFFF]'
+          : 'text-[#546F89] hover:bg-[#0F2035] hover:text-[#9ABDD6]',
       ].join(' ')}
     >
       {active && (
@@ -66,25 +66,25 @@ export function Sidebar() {
     : user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] ?? 'Account'
 
   return (
-    <aside className="flex flex-col w-[240px] shrink-0 bg-[#111110] border-r border-[#1D1D1B] h-screen">
+    <aside className="flex flex-col w-[240px] shrink-0 bg-[#091524] border-r border-[#13253A] h-screen">
 
       {/* Workspace switcher */}
-      <button className="group flex items-center gap-2.5 px-4 py-[13px] border-b border-[#1D1D1B] hover:bg-[#191917] transition-colors w-full text-left">
+      <button className="group flex items-center gap-2.5 px-4 py-[13px] border-b border-[#13253A] hover:bg-[#0F2035] transition-colors w-full text-left">
         <div className="w-7 h-7 rounded-lg bg-[#C4A96D]/10 border border-[#C4A96D]/20 flex items-center justify-center shrink-0">
           <ShieldCheck className="w-3.5 h-3.5 text-[#C4A96D]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-[#ECEAE3] tracking-tight leading-none">INDEX</p>
-          <p className="text-[10px] text-[#3D3D3A] mt-[5px] leading-none">Compliance Platform</p>
+          <p className="text-[13px] font-semibold text-[#E4EFFF] tracking-tight leading-none">INDEX</p>
+          <p className="text-[10px] text-[#274060] mt-[5px] leading-none">Compliance Platform</p>
         </div>
-        <ChevronDown className="w-3.5 h-3.5 text-[#3D3D3A] group-hover:text-[#6B6860] transition-colors shrink-0" />
+        <ChevronDown className="w-3.5 h-3.5 text-[#274060] group-hover:text-[#546F89] transition-colors shrink-0" />
       </button>
 
       {/* Navigation sections */}
       <nav className="flex-1 overflow-y-auto sidebar-scroll px-2.5 pt-4 pb-2 space-y-5">
         {NAV_SECTIONS.map(section => (
           <div key={section.label}>
-            <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.07em] text-[#3D3D3A]">
+            <p className="px-2.5 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.07em] text-[#274060]">
               {section.label}
             </p>
             <div className="space-y-0.5">
@@ -97,7 +97,7 @@ export function Sidebar() {
       </nav>
 
       {/* Settings + user footer */}
-      <div className="border-t border-[#1D1D1B]">
+      <div className="border-t border-[#13253A]">
         <div className="px-2.5 pt-2.5 pb-1">
           <NavItem href="/settings" label="Settings" icon={Settings} active={isActive('/settings')} />
         </div>
@@ -107,8 +107,8 @@ export function Sidebar() {
             appearance={{ elements: { avatarBox: 'w-7 h-7' } }}
           />
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium text-[#A8A49E] truncate leading-none">{displayName}</p>
-            <p className="text-[10px] text-[#3D3D3A] mt-[5px] leading-none">MSP Platform</p>
+            <p className="text-[12px] font-medium text-[#9ABDD6] truncate leading-none">{displayName}</p>
+            <p className="text-[10px] text-[#274060] mt-[5px] leading-none">MSP Platform</p>
           </div>
         </div>
       </div>

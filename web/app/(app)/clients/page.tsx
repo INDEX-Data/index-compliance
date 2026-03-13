@@ -89,7 +89,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
     }
     if (inv.status === 'revoked') {
       return (
-        <span className="text-[10px] font-semibold text-[#6B7280] bg-[#F7F5F1] border border-[#E9E5DD] px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-semibold text-[#64748B] bg-[#F8FAFC] border border-[#E2E8F0] px-2 py-0.5 rounded-full">
           Revoked
         </span>
       )
@@ -108,15 +108,15 @@ function InviteModal({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={e => { if (e.target === overlayRef.current) onClose() }}
     >
-      <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0EDE6]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F5F9]">
           <div className="flex items-center gap-2">
             <Link className="w-4 h-4 text-[#C4A96D]" />
-            <span className="text-[14px] font-bold text-[#18181B]">Invite a Client</span>
+            <span className="text-[14px] font-bold text-[#0F172A]">Invite a Client</span>
           </div>
-          <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#6B7280] transition">
+          <button onClick={onClose} className="text-[#94A3B8] hover:text-[#64748B] transition">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -126,7 +126,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
           {/* Generate form */}
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+              <label className="block text-xs font-semibold text-[#334155] mb-1.5 uppercase tracking-wide">
                 Client Name
               </label>
               <input
@@ -135,24 +135,24 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                 onChange={e => setClientName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleGenerate()}
                 placeholder="e.g. Contoso Ltd"
-                className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm text-[#18181B]
-                           placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                className="w-full px-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#0F172A]
+                           placeholder-[#B0BEC5] bg-white focus:outline-none focus:ring-2
                            focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
-                Email <span className="font-normal normal-case text-[#9CA3AF]">(optional)</span>
+              <label className="block text-xs font-semibold text-[#334155] mb-1.5 uppercase tracking-wide">
+                Email <span className="font-normal normal-case text-[#94A3B8]">(optional)</span>
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#C4BFB5]" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#B0BEC5]" />
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="contact@company.com"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm text-[#18181B]
-                             placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#0F172A]
+                             placeholder-[#B0BEC5] bg-white focus:outline-none focus:ring-2
                              focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                 />
               </div>
@@ -169,8 +169,8 @@ function InviteModal({ onClose }: { onClose: () => void }) {
               onClick={handleGenerate}
               disabled={!clientName.trim() || generating}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
-                         bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold
-                         disabled:bg-[#F3F4F6] disabled:text-[#9CA3AF] disabled:cursor-not-allowed transition"
+                         bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-semibold
+                         disabled:bg-[#F3F4F6] disabled:text-[#94A3B8] disabled:cursor-not-allowed transition"
             >
               {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Link className="w-3.5 h-3.5" />}
               Generate Link
@@ -185,18 +185,18 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                 <input
                   readOnly
                   value={newLink}
-                  className="flex-1 bg-white border border-[#E9E5DD] rounded-lg px-3 py-2 text-xs font-mono text-[#374151] focus:outline-none"
+                  className="flex-1 bg-white border border-[#E2E8F0] rounded-lg px-3 py-2 text-xs font-mono text-[#334155] focus:outline-none"
                 />
                 <button
                   onClick={() => handleCopy(newLink)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-[#E9E5DD]
-                             hover:bg-[#F7F5F1] text-xs font-medium text-[#374151] transition shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-[#E2E8F0]
+                             hover:bg-[#F8FAFC] text-xs font-medium text-[#334155] transition shrink-0"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-[#15803D]" /> : <Copy className="w-3.5 h-3.5" />}
                   {copied ? 'Copied!' : 'Copy'}
                 </button>
               </div>
-              <p className="text-[10px] text-[#6B7280] mt-2 flex items-center gap-1">
+              <p className="text-[10px] text-[#64748B] mt-2 flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 Expires in 3 days
               </p>
@@ -205,31 +205,31 @@ function InviteModal({ onClose }: { onClose: () => void }) {
 
           {/* Divider */}
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#F0EDE6]" />
-            <span className="text-[10px] font-semibold text-[#C4BFB5] uppercase tracking-widest">Previous invites</span>
-            <div className="flex-1 h-px bg-[#F0EDE6]" />
+            <div className="flex-1 h-px bg-[#F1F5F9]" />
+            <span className="text-[10px] font-semibold text-[#B0BEC5] uppercase tracking-widest">Previous invites</span>
+            <div className="flex-1 h-px bg-[#F1F5F9]" />
           </div>
 
           {/* Invitations list */}
           {loadingList ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-4 h-4 animate-spin text-[#C4BFB5]" />
+              <Loader2 className="w-4 h-4 animate-spin text-[#B0BEC5]" />
             </div>
           ) : invitations.length === 0 ? (
-            <p className="text-xs text-[#9CA3AF] text-center py-3">No invitations yet.</p>
+            <p className="text-xs text-[#94A3B8] text-center py-3">No invitations yet.</p>
           ) : (
             <div className="space-y-2">
               {invitations.map(inv => (
                 <div
                   key={inv.id}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
-                    inv.status === 'revoked' ? 'opacity-50 border-[#E9E5DD] bg-[#F9F9F7]' : 'border-[#E9E5DD] bg-white'
+                    inv.status === 'revoked' ? 'opacity-50 border-[#E2E8F0] bg-[#F9F9F7]' : 'border-[#E2E8F0] bg-white'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#18181B] truncate">{inv.clientName}</p>
+                    <p className="text-xs font-semibold text-[#0F172A] truncate">{inv.clientName}</p>
                     {inv.email && (
-                      <p className="text-[10px] text-[#9CA3AF] truncate">{inv.email}</p>
+                      <p className="text-[10px] text-[#94A3B8] truncate">{inv.email}</p>
                     )}
                   </div>
                   {statusBadge(inv)}
@@ -237,7 +237,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                     <button
                       onClick={() => handleRevoke(inv.id)}
                       disabled={revoking === inv.id}
-                      className="text-[10px] font-medium text-[#9CA3AF] hover:text-[#B91C1C] transition shrink-0"
+                      className="text-[10px] font-medium text-[#94A3B8] hover:text-[#B91C1C] transition shrink-0"
                     >
                       {revoking === inv.id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Revoke'}
                     </button>
@@ -306,14 +306,14 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
   const canAdd  = canTest && name.trim()
 
   return (
-    <div className="bg-white rounded-xl border border-[#E9E5DD] shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-card overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EDE6]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F1F5F9]">
         <div className="flex items-center gap-2">
           <Plus className="w-4 h-4 text-[#C4A96D]" />
-          <span className="text-[13px] font-semibold text-[#18181B]">Add New Client</span>
+          <span className="text-[13px] font-semibold text-[#0F172A]">Add New Client</span>
         </div>
-        <button onClick={onCancel} className="text-[#9CA3AF] hover:text-[#6B7280] transition">
+        <button onClick={onCancel} className="text-[#94A3B8] hover:text-[#64748B] transition">
           <X className="w-4 h-4" />
         </button>
       </div>
@@ -321,23 +321,23 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
       <div className="p-5 space-y-4">
 
         {/* ── Azure guide accordion ── */}
-        <div className="rounded-lg border border-[#E9E5DD] overflow-hidden">
+        <div className="rounded-lg border border-[#E2E8F0] overflow-hidden">
           <button
             type="button"
             onClick={() => setGuideOpen(s => !s)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-[#F7F5F1] hover:bg-[#F0EDE6] text-sm font-medium text-[#374151] transition text-left"
+            className="w-full flex items-center justify-between px-4 py-3 bg-[#F8FAFC] hover:bg-[#F1F5F9] text-sm font-medium text-[#334155] transition text-left"
           >
             <span className="flex items-center gap-2">
               <HelpCircle className="w-3.5 h-3.5 text-[#C4A96D] shrink-0" />
               How to find your Azure credentials
             </span>
             {guideOpen
-              ? <ChevronUp   className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />
-              : <ChevronDown className="w-3.5 h-3.5 text-[#9CA3AF] shrink-0" />}
+              ? <ChevronUp   className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />
+              : <ChevronDown className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />}
           </button>
 
           {guideOpen && (
-            <div className="px-4 pt-4 pb-3 border-t border-[#E9E5DD] space-y-3.5">
+            <div className="px-4 pt-4 pb-3 border-t border-[#E2E8F0] space-y-3.5">
               {[
                 {
                   step: '1',
@@ -356,12 +356,12 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
                 },
               ].map(s => (
                 <div key={s.step} className="flex items-start gap-3">
-                  <span className="w-5 h-5 rounded-full bg-[#141412] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-[#0B1829] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                     {s.step}
                   </span>
                   <div>
-                    <div className="text-xs font-semibold text-[#374151]">{s.title}</div>
-                    <div className="text-xs text-[#6B7280] mt-0.5 leading-relaxed">{s.desc}</div>
+                    <div className="text-xs font-semibold text-[#334155]">{s.title}</div>
+                    <div className="text-xs text-[#64748B] mt-0.5 leading-relaxed">{s.desc}</div>
                   </div>
                 </div>
               ))}
@@ -369,7 +369,7 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
                 href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#374151] transition pt-1"
+                className="flex items-center gap-1.5 text-xs text-[#64748B] hover:text-[#334155] transition pt-1"
               >
                 <ExternalLink className="w-3 h-3" />
                 Open Azure Portal →
@@ -380,7 +380,7 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
 
         {/* Client Name */}
         <div>
-          <label className="block text-xs font-semibold text-[#374151] mb-1.5 uppercase tracking-wide">
+          <label className="block text-xs font-semibold text-[#334155] mb-1.5 uppercase tracking-wide">
             Client Name
           </label>
           <input
@@ -388,8 +388,8 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g. Acme Corp"
-            className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm text-[#18181B]
-                       placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+            className="w-full px-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm text-[#0F172A]
+                       placeholder-[#B0BEC5] bg-white focus:outline-none focus:ring-2
                        focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
           />
         </div>
@@ -397,32 +397,32 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
         {/* Tenant ID + Client ID row */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-semibold text-[#374151] mb-0.5 uppercase tracking-wide">
+            <label className="block text-xs font-semibold text-[#334155] mb-0.5 uppercase tracking-wide">
               Tenant ID
             </label>
-            <p className="text-[10px] text-[#9CA3AF] mb-1.5">Azure AD → Properties</p>
+            <p className="text-[10px] text-[#94A3B8] mb-1.5">Azure AD → Properties</p>
             <input
               type="text"
               value={tenantId}
               onChange={e => setTenantId(e.target.value)}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm font-mono text-[#18181B]
-                         placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm font-mono text-[#0F172A]
+                         placeholder-[#B0BEC5] bg-white focus:outline-none focus:ring-2
                          focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[#374151] mb-0.5 uppercase tracking-wide">
+            <label className="block text-xs font-semibold text-[#334155] mb-0.5 uppercase tracking-wide">
               Client ID
             </label>
-            <p className="text-[10px] text-[#9CA3AF] mb-1.5">App Registration → Overview</p>
+            <p className="text-[10px] text-[#94A3B8] mb-1.5">App Registration → Overview</p>
             <input
               type="text"
               value={clientId}
               onChange={e => setClientId(e.target.value)}
               placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#E9E5DD] text-sm font-mono text-[#18181B]
-                         placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+              className="w-full px-3 py-2.5 rounded-lg border border-[#E2E8F0] text-sm font-mono text-[#0F172A]
+                         placeholder-[#B0BEC5] bg-white focus:outline-none focus:ring-2
                          focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
             />
           </div>
@@ -430,25 +430,25 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
 
         {/* Client Secret */}
         <div>
-          <label className="block text-xs font-semibold text-[#374151] mb-0.5 uppercase tracking-wide">
+          <label className="block text-xs font-semibold text-[#334155] mb-0.5 uppercase tracking-wide">
             Client Secret
           </label>
-          <p className="text-[10px] text-[#9CA3AF] mb-1.5">Certificates &amp; secrets → secret Value (not ID)</p>
+          <p className="text-[10px] text-[#94A3B8] mb-1.5">Certificates &amp; secrets → secret Value (not ID)</p>
           <div className="relative" suppressHydrationWarning>
             <input
               type={showSecret ? 'text' : 'password'}
               value={clientSecret}
               onChange={e => setClientSecret(e.target.value)}
               placeholder="App registration secret value"
-              className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#E9E5DD] text-sm font-mono text-[#18181B]
-                         placeholder-[#C4BFB5] bg-white focus:outline-none focus:ring-2
+              className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#E2E8F0] text-sm font-mono text-[#0F172A]
+                         placeholder-[#B0BEC5] bg-white focus:outline-none focus:ring-2
                          focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
               suppressHydrationWarning
             />
             <button
               type="button"
               onClick={() => setShowSecret(s => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#C4BFB5] hover:text-[#6B7280] transition"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#B0BEC5] hover:text-[#64748B] transition"
             >
               {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -487,8 +487,8 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
           <button
             onClick={handleTest}
             disabled={!canTest || testing}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#E9E5DD] bg-white
-                       hover:bg-[#F7F5F1] text-sm font-medium text-[#374151]
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#E2E8F0] bg-white
+                       hover:bg-[#F8FAFC] text-sm font-medium text-[#334155]
                        disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
@@ -498,8 +498,8 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
             onClick={handleAdd}
             disabled={!canAdd || saving}
             className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
-                       bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold
-                       disabled:bg-[#F3F4F6] disabled:text-[#9CA3AF] disabled:cursor-not-allowed transition"
+                       bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-semibold
+                       disabled:bg-[#F3F4F6] disabled:text-[#94A3B8] disabled:cursor-not-allowed transition"
           >
             {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
             Add Client
@@ -552,20 +552,20 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
   })
 
   return (
-    <div className="bg-white rounded-xl border border-[#E9E5DD] shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl border border-[#E2E8F0] shadow-card overflow-hidden">
       {/* Main row */}
       <div className="flex items-center gap-4 px-5 py-4">
         {/* Icon */}
-        <div className="w-10 h-10 rounded-xl bg-[#F7F5F1] border border-[#E9E5DD] flex items-center justify-center shrink-0">
-          <Building2 className="w-5 h-5 text-[#6B7280]" />
+        <div className="w-10 h-10 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center shrink-0">
+          <Building2 className="w-5 h-5 text-[#64748B]" />
         </div>
 
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-[14px] font-semibold text-[#18181B] truncate">{client.name}</h3>
+            <h3 className="text-[14px] font-semibold text-[#0F172A] truncate">{client.name}</h3>
           </div>
-          <p className="text-xs text-[#9CA3AF] font-mono truncate mt-0.5">
+          <p className="text-xs text-[#94A3B8] font-mono truncate mt-0.5">
             {client.tenantId}
           </p>
         </div>
@@ -587,8 +587,8 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
             onClick={handleTest}
             disabled={testing}
             title="Test connection"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white
-                       hover:bg-[#F7F5F1] text-xs font-medium text-[#374151]
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white
+                       hover:bg-[#F8FAFC] text-xs font-medium text-[#334155]
                        disabled:opacity-40 transition"
           >
             {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
@@ -599,7 +599,7 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
             <button
               onClick={() => setConfirming(true)}
               title="Remove client"
-              className="p-1.5 rounded-lg text-[#C4BFB5] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition"
+              className="p-1.5 rounded-lg text-[#B0BEC5] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -614,7 +614,7 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
               </button>
               <button
                 onClick={() => setConfirming(false)}
-                className="px-2.5 py-1 rounded-lg border border-[#E9E5DD] text-xs font-medium text-[#6B7280] hover:bg-[#F7F5F1] transition"
+                className="px-2.5 py-1 rounded-lg border border-[#E2E8F0] text-xs font-medium text-[#64748B] hover:bg-[#F8FAFC] transition"
               >
                 Cancel
               </button>
@@ -623,7 +623,7 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
 
           <button
             onClick={() => setExpanded(s => !s)}
-            className="p-1.5 rounded-lg text-[#C4BFB5] hover:text-[#6B7280] hover:bg-[#F7F5F1] transition"
+            className="p-1.5 rounded-lg text-[#B0BEC5] hover:text-[#64748B] hover:bg-[#F8FAFC] transition"
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
@@ -632,27 +632,27 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
 
       {/* Expanded metadata */}
       {expanded && (
-        <div className="border-t border-[#F0EDE6] px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
+        <div className="border-t border-[#F1F5F9] px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
           <div>
-            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Tenant ID</p>
-            <p className="text-xs font-mono text-[#374151] break-all">{client.tenantId}</p>
+            <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-1">Tenant ID</p>
+            <p className="text-xs font-mono text-[#334155] break-all">{client.tenantId}</p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Client ID</p>
-            <p className="text-xs font-mono text-[#374151] break-all">{client.clientId}</p>
+            <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-1">Client ID</p>
+            <p className="text-xs font-mono text-[#334155] break-all">{client.clientId}</p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Client Secret</p>
-            <p className="text-xs font-mono text-[#374151]">{client.clientSecret}</p>
+            <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-1">Client Secret</p>
+            <p className="text-xs font-mono text-[#334155]">{client.clientSecret}</p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Added</p>
-            <p className="text-xs text-[#374151]">{added}</p>
+            <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-1">Added</p>
+            <p className="text-xs text-[#334155]">{added}</p>
           </div>
 
           {testResult && !testResult.ok && testResult.error && (
             <div className="col-span-2">
-              <p className="text-[10px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-1">Last Error</p>
+              <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-1">Last Error</p>
               <p className="text-xs text-[#B91C1C] leading-relaxed">{testResult.error}</p>
             </div>
           )}
@@ -693,12 +693,12 @@ export default function ClientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white border border-[#E9E5DD] flex items-center justify-center shadow-card">
-            <Building2 className="w-4 h-4 text-[#6B7280]" />
+          <div className="w-9 h-9 rounded-lg bg-white border border-[#E2E8F0] flex items-center justify-center shadow-card">
+            <Building2 className="w-4 h-4 text-[#64748B]" />
           </div>
           <div>
-            <h1 className="text-[22px] font-bold text-[#18181B] tracking-tight">Clients</h1>
-            <p className="text-sm text-[#6B7280] mt-0.5">
+            <h1 className="text-[22px] font-bold text-[#0F172A] tracking-tight">Clients</h1>
+            <p className="text-sm text-[#64748B] mt-0.5">
               Manage Microsoft 365 tenants for multi-client assessments
             </p>
           </div>
@@ -707,7 +707,7 @@ export default function ClientsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowInvite(true)}
-            className="flex items-center gap-2 bg-white hover:bg-[#F7F5F1] text-[#374151] border border-[#E9E5DD]
+            className="flex items-center gap-2 bg-white hover:bg-[#F8FAFC] text-[#334155] border border-[#E2E8F0]
                        text-sm font-semibold px-4 py-2.5 rounded-lg transition"
           >
             <Link className="w-4 h-4 text-[#C4A96D]" />
@@ -716,7 +716,7 @@ export default function ClientsPage() {
           {!showAddForm && (
             <button
               onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white
+              className="flex items-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-white
                          text-sm font-semibold px-4 py-2.5 rounded-lg transition"
             >
               <Plus className="w-4 h-4" />
@@ -735,23 +735,23 @@ export default function ClientsPage() {
 
       {/* Client list */}
       {loading ? (
-        <div className="flex items-center justify-center py-24 text-[#9CA3AF]">
+        <div className="flex items-center justify-center py-24 text-[#94A3B8]">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />
           <span className="text-sm">Loading clients…</span>
         </div>
       ) : clients.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-14 h-14 rounded-2xl bg-[#F7F5F1] border border-[#E9E5DD] flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-7 h-7 text-[#C4BFB5]" />
+          <div className="w-14 h-14 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-7 h-7 text-[#B0BEC5]" />
           </div>
-          <h3 className="text-[14px] font-semibold text-[#374151] mb-1">No clients yet</h3>
-          <p className="text-sm text-[#9CA3AF] mb-6 max-w-xs mx-auto">
+          <h3 className="text-[14px] font-semibold text-[#334155] mb-1">No clients yet</h3>
+          <p className="text-sm text-[#94A3B8] mb-6 max-w-xs mx-auto">
             Connect a Microsoft 365 tenant to start running compliance assessments.
           </p>
 
           {/* What you'll need */}
-          <div className="bg-[#F7F5F1] border border-[#E9E5DD] rounded-xl px-5 py-4 mb-6 max-w-sm mx-auto text-left">
-            <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-3">
+          <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-5 py-4 mb-6 max-w-sm mx-auto text-left">
+            <p className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-3">
               Before you start, you&apos;ll need:
             </p>
             <ul className="space-y-2.5">
@@ -761,10 +761,10 @@ export default function ClientsPage() {
                 { label: 'Client Secret value',     hint: 'Certificates & Secrets tab' },
               ].map(item => (
                 <li key={item.label} className="flex items-start gap-2.5">
-                  <div className="w-4 h-4 rounded border-2 border-[#D4CFC5] shrink-0 mt-0.5" />
+                  <div className="w-4 h-4 rounded border-2 border-[#CBD5E1] shrink-0 mt-0.5" />
                   <div>
-                    <span className="text-sm text-[#374151] font-medium">{item.label}</span>
-                    <span className="text-xs text-[#9CA3AF] ml-1.5">{item.hint}</span>
+                    <span className="text-sm text-[#334155] font-medium">{item.label}</span>
+                    <span className="text-xs text-[#94A3B8] ml-1.5">{item.hint}</span>
                   </div>
                 </li>
               ))}
@@ -773,7 +773,7 @@ export default function ClientsPage() {
               href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-3.5 flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#374151] transition"
+              className="mt-3.5 flex items-center gap-1.5 text-xs text-[#64748B] hover:text-[#334155] transition"
             >
               <ExternalLink className="w-3 h-3" />
               Open Azure Portal
@@ -782,7 +782,7 @@ export default function ClientsPage() {
 
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white
+            className="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-white
                        text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             <Plus className="w-4 h-4" />
@@ -791,7 +791,7 @@ export default function ClientsPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest mb-4">
+          <p className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-4">
             {clients.length} {clients.length === 1 ? 'Client' : 'Clients'}
           </p>
           {clients.map(client => (

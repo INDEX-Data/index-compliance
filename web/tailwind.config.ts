@@ -9,19 +9,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas:  '#F7F5F1',
+        canvas:  '#F8FAFC',
         surface: '#FFFFFF',
-        border:  '#E9E5DD',
-        'border-light': '#F0EDE6',
-        ink:     '#18181B',
-        muted:   '#6B7280',
-        faint:   '#A1A1AA',
+        border:  '#E2E8F0',
+        'border-light': '#F1F5F9',
+        ink:     '#0F172A',
+        muted:   '#64748B',
+        faint:   '#94A3B8',
         sidebar: {
-          bg:     '#141412',
-          hover:  '#1A1A18',
-          active: '#1E1E1C',
-          border: '#252521',
-          text:   '#A09F92',
+          bg:     '#0B1829',
+          hover:  '#102238',
+          active: '#162B40',
+          border: '#1A2D3F',
+          text:   '#7B96B2',
           bright: '#F5F4EF',
         },
         teal: {
@@ -48,8 +48,9 @@ const config: Config = {
         },
       },
       boxShadow: {
-        card: '0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
-        'card-hover': '0 4px 12px 0 rgb(0 0 0 / 0.06), 0 2px 4px -1px rgb(0 0 0 / 0.04)',
+        card: '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04)',
+        'card-hover': '0 8px 24px 0 rgb(15 23 42 / 0.10), 0 2px 6px -1px rgb(15 23 42 / 0.06)',
+        'card-lg': '0 4px 16px 0 rgb(15 23 42 / 0.08), 0 2px 4px -1px rgb(15 23 42 / 0.05)',
       },
     },
   },

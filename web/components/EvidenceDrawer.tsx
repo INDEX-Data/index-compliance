@@ -21,7 +21,7 @@ function cellVal(val: unknown): string {
 
 function EvidenceTable({ data }: { data: unknown[] }) {
   if (data.length === 0)
-    return <p className="text-xs text-[#A1A1AA] italic py-2">No records returned.</p>
+    return <p className="text-xs text-[#94A3B8] italic py-2">No records returned.</p>
 
   const first = data[0]
   if (typeof first !== 'object' || first === null)
@@ -32,15 +32,15 @@ function EvidenceTable({ data }: { data: unknown[] }) {
   const rows    = data.slice(0, 15)
 
   if (cols.length === 0)
-    return <p className="text-xs text-[#A1A1AA] italic py-2">Metadata-only response.</p>
+    return <p className="text-xs text-[#94A3B8] italic py-2">Metadata-only response.</p>
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-[#E9E5DD]">
+    <div className="overflow-x-auto rounded-lg border border-[#E2E8F0]">
       <table className="w-full text-[11px] font-mono min-w-max">
         <thead>
-          <tr className="bg-[#F0EDE6]">
+          <tr className="bg-[#F1F5F9]">
             {cols.map(c => (
-              <th key={c} className="px-3 py-2 text-left text-[#6B7280] font-semibold whitespace-nowrap border-r border-[#E9E5DD] last:border-r-0">
+              <th key={c} className="px-3 py-2 text-left text-[#64748B] font-semibold whitespace-nowrap border-r border-[#E2E8F0] last:border-r-0">
                 {c}
               </th>
             ))}
@@ -48,11 +48,11 @@ function EvidenceTable({ data }: { data: unknown[] }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#FAFAF8]'}>
+            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#F8FAFC]'}>
               {cols.map(col => (
                 <td
                   key={col}
-                  className="px-3 py-1.5 text-[#374151] border-r border-[#E9E5DD] last:border-r-0 max-w-[220px] truncate"
+                  className="px-3 py-1.5 text-[#334155] border-r border-[#E2E8F0] last:border-r-0 max-w-[220px] truncate"
                   title={String((row as Record<string, unknown>)[col] ?? '')}
                 >
                   {cellVal((row as Record<string, unknown>)[col])}
@@ -63,7 +63,7 @@ function EvidenceTable({ data }: { data: unknown[] }) {
         </tbody>
       </table>
       {data.length > 15 && (
-        <div className="px-3 py-1.5 bg-[#F8F8F6] border-t border-[#E9E5DD] text-[11px] text-[#A1A1AA]">
+        <div className="px-3 py-1.5 bg-[#F8F8F6] border-t border-[#E2E8F0] text-[11px] text-[#94A3B8]">
           Showing 15 of {data.length} records
         </div>
       )}
@@ -84,8 +84,8 @@ function EvidenceBlock({ ev }: { ev: EvidenceResult }) {
             : <AlertCircle  className="w-3.5 h-3.5" />}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-semibold text-[#18181B] leading-snug">{ev.queryDescription}</p>
-          <p className="text-[10px] font-mono text-[#6B7280] mt-0.5 break-all">{ev.endpoint}</p>
+          <p className="text-[12px] font-semibold text-[#0F172A] leading-snug">{ev.queryDescription}</p>
+          <p className="text-[10px] font-mono text-[#64748B] mt-0.5 break-all">{ev.endpoint}</p>
         </div>
       </div>
 
@@ -95,7 +95,7 @@ function EvidenceBlock({ ev }: { ev: EvidenceResult }) {
           {ev.recordCount} {ev.recordCount === 1 ? 'record' : 'records'}
         </span>
         {ts && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[#9CA3AF]">
+          <span className="inline-flex items-center gap-1 text-[10px] text-[#94A3B8]">
             <Clock className="w-2.5 h-2.5" />
             {ts}
           </span>
@@ -119,8 +119,8 @@ function Section({ icon, label, children }: { icon: React.ReactNode; label: stri
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
-        <span className="text-[#9CA3AF]">{icon}</span>
-        <h3 className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">{label}</h3>
+        <span className="text-[#94A3B8]">{icon}</span>
+        <h3 className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">{label}</h3>
       </div>
       {children}
     </div>
@@ -172,12 +172,12 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
 
       {/* Drawer panel */}
       <div
-        className="fixed right-0 top-0 h-full w-full max-w-[560px] z-50 bg-white border-l border-[#E9E5DD] flex flex-col animate-slide-in-right"
+        className="fixed right-0 top-0 h-full w-full max-w-[560px] z-50 bg-white border-l border-[#E2E8F0] flex flex-col animate-slide-in-right"
         style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}
       >
 
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex items-start gap-3 px-5 py-4 border-b border-[#E9E5DD] bg-[#FAFAF8] shrink-0">
+        <div className="flex items-start gap-3 px-5 py-4 border-b border-[#E2E8F0] bg-[#F8FAFC] shrink-0">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
@@ -185,12 +185,12 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
               </span>
               <StatusBadge status={assessment.status} size="sm" />
             </div>
-            <p className="text-[13px] font-semibold text-[#18181B] leading-snug">{assessment.controlTitle}</p>
+            <p className="text-[13px] font-semibold text-[#0F172A] leading-snug">{assessment.controlTitle}</p>
             {assessment.family && (
-              <p className="text-[11px] text-[#9CA3AF] mt-0.5">{assessment.family}</p>
+              <p className="text-[11px] text-[#94A3B8] mt-0.5">{assessment.family}</p>
             )}
             {collected && (
-              <p className="text-[10px] text-[#C4BFB5] mt-1 flex items-center gap-1">
+              <p className="text-[10px] text-[#B0BEC5] mt-1 flex items-center gap-1">
                 <Clock className="w-2.5 h-2.5" />
                 Collected {collected}
               </p>
@@ -198,7 +198,7 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-[#F0EDE6] text-[#9CA3AF] hover:text-[#18181B] shrink-0 transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[#F1F5F9] text-[#94A3B8] hover:text-[#0F172A] shrink-0 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -239,7 +239,7 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
                         ? <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D]" />
                         : <AlertCircle  className="w-3.5 h-3.5 text-[#D97706]" />}
                     </span>
-                    <p className="text-[12px] text-[#374151] leading-relaxed">{f}</p>
+                    <p className="text-[12px] text-[#334155] leading-relaxed">{f}</p>
                   </li>
                 ))}
               </ul>
@@ -252,8 +252,8 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
               <ul className="space-y-2">
                 {assessment.recommendations.map((r, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="shrink-0 text-[#9CA3AF] text-[12px] leading-relaxed">→</span>
-                    <p className="text-[12px] text-[#374151] leading-relaxed">{r}</p>
+                    <span className="shrink-0 text-[#94A3B8] text-[12px] leading-relaxed">→</span>
+                    <p className="text-[12px] text-[#334155] leading-relaxed">{r}</p>
                   </li>
                 ))}
               </ul>
@@ -267,9 +267,9 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
           >
             {queries.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-32 gap-3 text-center">
-                <Database className="w-7 h-7 text-[#E9E5DD]" />
-                <p className="text-sm text-[#C4BFB5]">No evidence collected for this control.</p>
-                <p className="text-xs text-[#D4CFC5]">Run a fresh assessment to capture evidence.</p>
+                <Database className="w-7 h-7 text-[#E2E8F0]" />
+                <p className="text-sm text-[#B0BEC5]">No evidence collected for this control.</p>
+                <p className="text-xs text-[#CBD5E1]">Run a fresh assessment to capture evidence.</p>
               </div>
             ) : !hasData ? (
               <div className="space-y-4">
@@ -277,14 +277,14 @@ export function EvidenceDrawer({ assessment, onClose }: Props) {
                   Queries ran but no data was returned. This may indicate insufficient permissions or no matching records.
                 </p>
                 {queries.map(ev => (
-                  <div key={ev.queryId} className="border-b border-[#F0EDE6] pb-4 last:border-0 last:pb-0">
+                  <div key={ev.queryId} className="border-b border-[#F1F5F9] pb-4 last:border-0 last:pb-0">
                     <EvidenceBlock ev={ev} />
                   </div>
                 ))}
               </div>
             ) : (
               queries.map(ev => (
-                <div key={ev.queryId} className="border-b border-[#F0EDE6] pb-6 last:border-0 last:pb-0">
+                <div key={ev.queryId} className="border-b border-[#F1F5F9] pb-6 last:border-0 last:pb-0">
                   <EvidenceBlock ev={ev} />
                 </div>
               ))

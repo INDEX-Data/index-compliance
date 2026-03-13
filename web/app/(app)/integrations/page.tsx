@@ -43,7 +43,7 @@ function StatusPill({ status }: { status: ConnStatus }) {
     connected:     { label: 'Connected',         dot: 'bg-[#16A34A] animate-pulse', text: 'text-[#16A34A]', bg: 'bg-[#F0FDF4]', border: 'border-[#BBF7D0]' },
     error:         { label: 'Error',             dot: 'bg-[#DC2626]',               text: 'text-[#DC2626]', bg: 'bg-[#FEF2F2]', border: 'border-[#FECACA]' },
     pending:       { label: 'Credentials saved', dot: 'bg-[#D97706]',               text: 'text-[#D97706]', bg: 'bg-[#FFFBEB]', border: 'border-[#FDE68A]' },
-    not_connected: { label: 'Not connected',     dot: 'bg-[#D1D5DB]',               text: 'text-[#9CA3AF]', bg: 'bg-[#F7F5F1]', border: 'border-[#E9E5DD]' },
+    not_connected: { label: 'Not connected',     dot: 'bg-[#CBD5E1]',               text: 'text-[#94A3B8]', bg: 'bg-[#F8FAFC]', border: 'border-[#E2E8F0]' },
   }
   const s = styles[status]
   return (
@@ -84,31 +84,31 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
       meta.soon ? 'opacity-60' : '',
       status === 'connected' ? 'border-[#BBF7D0]' :
       status === 'error'     ? 'border-[#FECACA]' :
-      'border-[#E9E5DD]',
+      'border-[#E2E8F0]',
     ].join(' ')}>
       <div className="p-4 flex flex-col h-full">
         <div className="flex items-start gap-3 mb-3">
           <PlatformLogo color={meta.color} name={meta.name} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[13px] font-semibold text-[#18181B] leading-tight">{meta.name}</h3>
+              <h3 className="text-[13px] font-semibold text-[#0F172A] leading-tight">{meta.name}</h3>
               {meta.soon && (
                 <span className="text-[10px] font-semibold text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-1.5 py-0.5 rounded-full">
                   Soon
                 </span>
               )}
             </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#9CA3AF] mt-0.5">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#94A3B8] mt-0.5">
               <meta.categoryIcon className="w-2.5 h-2.5" />
               {meta.category}
             </span>
           </div>
         </div>
 
-        <p className="text-[11px] text-[#6B7280] leading-relaxed flex-1">{meta.description}</p>
+        <p className="text-[11px] text-[#64748B] leading-relaxed flex-1">{meta.description}</p>
 
         {intg?.connectedAt && (
-          <p className="text-[10px] text-[#9CA3AF] mt-2">
+          <p className="text-[10px] text-[#94A3B8] mt-2">
             Connected {new Date(intg.connectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         )}
@@ -116,12 +116,12 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
           <p className="text-[10px] text-[#DC2626] mt-1 truncate">{intg.errorMessage}</p>
         )}
 
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F0EDE6]">
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F1F5F9]">
           <StatusPill status={status} />
           {!meta.soon && (
             <button
               onClick={() => onConnect(id)}
-              className="text-[11px] font-semibold text-[#374151] hover:text-[#18181B] transition px-2.5 py-1 rounded-lg hover:bg-[#F7F5F1] border border-transparent hover:border-[#E9E5DD]"
+              className="text-[11px] font-semibold text-[#334155] hover:text-[#0F172A] transition px-2.5 py-1 rounded-lg hover:bg-[#F8FAFC] border border-transparent hover:border-[#E2E8F0]"
             >
               {status === 'connected' ? 'Configure' : 'Connect'}
             </button>
@@ -139,8 +139,8 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
   onReconfigure: () => void; onTest: () => void; testing: boolean
 }) {
   return (
-    <div className={`bg-white rounded-xl border overflow-hidden shadow-card ${connected ? 'border-[#BBF7D0]' : 'border-[#E9E5DD]'}`}>
-      <div className="flex items-start gap-4 p-5 border-b border-[#F0EDE6]">
+    <div className={`bg-white rounded-xl border overflow-hidden shadow-card ${connected ? 'border-[#BBF7D0]' : 'border-[#E2E8F0]'}`}>
+      <div className="flex items-start gap-4 p-5 border-b border-[#F1F5F9]">
         <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center shrink-0">
           <svg viewBox="0 0 96 96" className="w-6 h-6" fill="none">
             <path d="M48 4L4 20v56l44 16 44-16V20L48 4z" fill="#0078D4"/>
@@ -150,10 +150,10 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-[14px] font-semibold text-[#18181B]">Microsoft Entra ID</h3>
+            <h3 className="text-[14px] font-semibold text-[#0F172A]">Microsoft Entra ID</h3>
             <span className="text-[10px] font-medium text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-2 py-0.5 rounded-full">Identity</span>
           </div>
-          <p className="text-[12px] text-[#6B7280] leading-relaxed">
+          <p className="text-[12px] text-[#64748B] leading-relaxed">
             OAuth 2.0 client credentials for Microsoft Graph API access across all connected tenants.
           </p>
         </div>
@@ -161,7 +161,7 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
       </div>
 
       {connected && (
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 px-5 py-4 bg-[#FAFAF8] border-b border-[#F0EDE6]">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3 px-5 py-4 bg-[#F8FAFC] border-b border-[#F1F5F9]">
           {[
             ['Tenant Name', tenantName],
             ['Tenant ID',   tenantId],
@@ -169,8 +169,8 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
             ['Scope',       'https://graph.microsoft.com/.default'],
           ].map(([k, v]) => (
             <div key={k}>
-              <p className="text-[10px] font-semibold text-[#C4BFB5] uppercase tracking-widest">{k}</p>
-              <p className="text-[12px] text-[#374151] font-mono mt-0.5 truncate">{v}</p>
+              <p className="text-[10px] font-semibold text-[#B0BEC5] uppercase tracking-widest">{k}</p>
+              <p className="text-[12px] text-[#334155] font-mono mt-0.5 truncate">{v}</p>
             </div>
           ))}
         </div>
@@ -179,7 +179,7 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
       <div className="flex items-center gap-2 px-5 py-3">
         <button
           onClick={onReconfigure}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white hover:bg-[#F7F5F1] text-[#374151] transition"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#334155] transition"
         >
           <Settings className="w-3 h-3" />
           {connected ? 'Reconfigure' : 'Connect'}
@@ -188,7 +188,7 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
           <button
             onClick={onTest}
             disabled={testing}
-            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white hover:bg-[#F7F5F1] text-[#374151] transition disabled:opacity-60 disabled:cursor-wait"
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#334155] transition disabled:opacity-60 disabled:cursor-wait"
           >
             {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
             Test Connection
@@ -279,8 +279,8 @@ export default function IntegrationsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-bold text-[#18181B] tracking-tight">Integrations</h1>
-          <p className="text-[13px] text-[#9CA3AF] mt-1">Connect INDEX to your security and productivity tools</p>
+          <h1 className="text-[22px] font-bold text-[#0F172A] tracking-tight">Integrations</h1>
+          <p className="text-[13px] text-[#94A3B8] mt-1">Connect INDEX to your security and productivity tools</p>
         </div>
       </div>
 
@@ -302,12 +302,12 @@ export default function IntegrationsPage() {
       {/* ── Microsoft Platform ── */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-widest">Microsoft Platform</h2>
-          <div className="flex-1 h-px bg-[#F0EDE6]" />
+          <h2 className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-widest">Microsoft Platform</h2>
+          <div className="flex-1 h-px bg-[#F1F5F9]" />
         </div>
         {loadingStatus ? (
-          <div className="bg-white rounded-xl border border-[#E9E5DD] p-10 flex justify-center shadow-card">
-            <Loader2 className="w-5 h-5 animate-spin text-[#C4BFB5]" />
+          <div className="bg-white rounded-xl border border-[#E2E8F0] p-10 flex justify-center shadow-card">
+            <Loader2 className="w-5 h-5 animate-spin text-[#B0BEC5]" />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -320,8 +320,8 @@ export default function IntegrationsPage() {
               testing={testing}
             />
             {/* Graph API tile */}
-            <div className="bg-white rounded-xl border border-[#E9E5DD] overflow-hidden shadow-card">
-              <div className="flex items-start gap-4 p-5 border-b border-[#F0EDE6]">
+            <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden shadow-card">
+              <div className="flex items-start gap-4 p-5 border-b border-[#F1F5F9]">
                 <div className="w-11 h-11 rounded-xl bg-[#F0F9FF] border border-[#BAE6FD] flex items-center justify-center shrink-0">
                   <svg viewBox="0 0 96 96" className="w-6 h-6" fill="none">
                     <circle cx="48" cy="48" r="44" fill="#00BCF2"/>
@@ -331,10 +331,10 @@ export default function IntegrationsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-[14px] font-semibold text-[#18181B]">Microsoft Graph API</h3>
+                    <h3 className="text-[14px] font-semibold text-[#0F172A]">Microsoft Graph API</h3>
                     <span className="text-[10px] font-medium text-[#0369A1] bg-[#F0F9FF] border border-[#BAE6FD] px-2 py-0.5 rounded-full">Data</span>
                   </div>
-                  <p className="text-[12px] text-[#6B7280] leading-relaxed">
+                  <p className="text-[12px] text-[#64748B] leading-relaxed">
                     Unified endpoint for users, devices, security events, compliance policies, and audit logs.
                   </p>
                 </div>
@@ -344,13 +344,13 @@ export default function IntegrationsPage() {
                 <a
                   href="https://developer.microsoft.com/en-us/graph/graph-explorer"
                   target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white hover:bg-[#F7F5F1] text-[#374151] transition"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#334155] transition"
                 >
                   <Globe className="w-3 h-3" /> Graph Explorer <ExternalLink className="w-3 h-3" />
                 </a>
                 <button
                   onClick={() => router.push('/assess')}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white hover:bg-[#F7F5F1] text-[#374151] transition"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[#334155] transition"
                 >
                   <Lock className="w-3 h-3" /> View Permissions
                 </button>
@@ -364,8 +364,8 @@ export default function IntegrationsPage() {
       <div>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-[11px] font-bold text-[#9CA3AF] uppercase tracking-widest">Client Integrations</h2>
-            <div className="flex-1 h-px bg-[#F0EDE6] w-8" />
+            <h2 className="text-[11px] font-bold text-[#94A3B8] uppercase tracking-widest">Client Integrations</h2>
+            <div className="flex-1 h-px bg-[#F1F5F9] w-8" />
           </div>
 
           {/* Client selector */}
@@ -373,20 +373,20 @@ export default function IntegrationsPage() {
             <div className="relative ml-auto">
               <button
                 onClick={() => setDropdownOpen(o => !o)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E9E5DD] bg-white hover:bg-[#F7F5F1] text-[12px] font-medium text-[#374151] transition"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E2E8F0] bg-white hover:bg-[#F8FAFC] text-[12px] font-medium text-[#334155] transition"
               >
-                <Building2 className="w-3 h-3 text-[#9CA3AF]" />
+                <Building2 className="w-3 h-3 text-[#94A3B8]" />
                 {selectedClient?.name ?? 'Select client'}
-                <ChevronDown className="w-3 h-3 text-[#9CA3AF]" />
+                <ChevronDown className="w-3 h-3 text-[#94A3B8]" />
               </button>
               {dropdownOpen && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-[#E9E5DD] rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 bg-white border border-[#E2E8F0] rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
                   {clients.map(c => (
                     <button
                       key={c.id}
                       onClick={() => { setSelectedClient(c); setDropdownOpen(false) }}
                       className={`w-full text-left px-4 py-2.5 text-[12px] font-medium transition ${
-                        selectedClient?.id === c.id ? 'bg-[#F7F5F1] text-[#18181B]' : 'text-[#374151] hover:bg-[#F7F5F1]'
+                        selectedClient?.id === c.id ? 'bg-[#F8FAFC] text-[#0F172A]' : 'text-[#334155] hover:bg-[#F8FAFC]'
                       }`}
                     >
                       {c.name}
@@ -399,14 +399,14 @@ export default function IntegrationsPage() {
         </div>
 
         {loadingClients ? (
-          <div className="bg-white rounded-xl border border-[#E9E5DD] p-10 flex justify-center shadow-card">
-            <Loader2 className="w-5 h-5 animate-spin text-[#C4BFB5]" />
+          <div className="bg-white rounded-xl border border-[#E2E8F0] p-10 flex justify-center shadow-card">
+            <Loader2 className="w-5 h-5 animate-spin text-[#B0BEC5]" />
           </div>
         ) : clients.length === 0 ? (
-          <div className="bg-white rounded-xl border border-[#E9E5DD] p-10 text-center shadow-card">
-            <Building2 className="w-8 h-8 text-[#D4CFC5] mx-auto mb-3" />
-            <p className="text-[13px] font-medium text-[#9CA3AF] mb-1">No clients yet</p>
-            <p className="text-[12px] text-[#C4BFB5]">
+          <div className="bg-white rounded-xl border border-[#E2E8F0] p-10 text-center shadow-card">
+            <Building2 className="w-8 h-8 text-[#CBD5E1] mx-auto mb-3" />
+            <p className="text-[13px] font-medium text-[#94A3B8] mb-1">No clients yet</p>
+            <p className="text-[12px] text-[#B0BEC5]">
               Add a client on the{' '}
               <button onClick={() => router.push('/clients')} className="text-[#C4A96D] hover:underline">Clients page</button>
               {' '}to configure integrations.
@@ -415,7 +415,7 @@ export default function IntegrationsPage() {
         ) : (
           <>
             {/* Filter tabs */}
-            <div className="flex items-center gap-1 bg-[#F7F5F1] rounded-lg p-1 w-fit mb-5 border border-[#E9E5DD]">
+            <div className="flex items-center gap-1 bg-[#F8FAFC] rounded-lg p-1 w-fit mb-5 border border-[#E2E8F0]">
               {(['all', 'connected', 'available'] as FilterTab[]).map(tab => (
                 <button
                   key={tab}
@@ -423,12 +423,12 @@ export default function IntegrationsPage() {
                   className={[
                     'px-3.5 py-1.5 rounded-md text-[12px] font-semibold capitalize transition-colors',
                     filter === tab
-                      ? 'bg-white text-[#18181B] shadow-sm border border-[#E9E5DD]'
-                      : 'text-[#9CA3AF] hover:text-[#374151]',
+                      ? 'bg-white text-[#0F172A] shadow-sm border border-[#E2E8F0]'
+                      : 'text-[#94A3B8] hover:text-[#334155]',
                   ].join(' ')}
                 >
                   {tab}
-                  <span className={`ml-1.5 text-[10px] ${filter === tab ? 'text-[#9CA3AF]' : 'text-[#C4BFB5]'}`}>
+                  <span className={`ml-1.5 text-[10px] ${filter === tab ? 'text-[#94A3B8]' : 'text-[#B0BEC5]'}`}>
                     {filterCounts[tab]}
                   </span>
                 </button>
@@ -436,8 +436,8 @@ export default function IntegrationsPage() {
             </div>
 
             {loadingIntgs ? (
-              <div className="bg-white rounded-xl border border-[#E9E5DD] p-10 flex justify-center shadow-card">
-                <Loader2 className="w-5 h-5 animate-spin text-[#C4BFB5]" />
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-10 flex justify-center shadow-card">
+                <Loader2 className="w-5 h-5 animate-spin text-[#B0BEC5]" />
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -453,8 +453,8 @@ export default function IntegrationsPage() {
             )}
 
             {filteredIds.length === 0 && (
-              <div className="bg-white rounded-xl border border-[#E9E5DD] p-10 text-center shadow-card">
-                <p className="text-[13px] text-[#9CA3AF]">
+              <div className="bg-white rounded-xl border border-[#E2E8F0] p-10 text-center shadow-card">
+                <p className="text-[13px] text-[#94A3B8]">
                   {filter === 'connected' ? 'No integrations connected yet.' : 'No integrations available.'}
                 </p>
               </div>

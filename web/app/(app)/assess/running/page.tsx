@@ -92,11 +92,11 @@ function RunningInner() {
           <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center mx-auto mb-5">
             <XCircle className="w-7 h-7 text-[#B91C1C]" />
           </div>
-          <h2 className="text-base font-bold text-[#18181B] mb-2">Assessment failed</h2>
-          <p className="text-sm text-[#6B7280] mb-6 leading-relaxed">{error}</p>
+          <h2 className="text-base font-bold text-[#0F172A] mb-2">Assessment failed</h2>
+          <p className="text-sm text-[#64748B] mb-6 leading-relaxed">{error}</p>
           <button
             onClick={() => router.push('/assess')}
-            className="bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             Back to Frameworks
           </button>
@@ -113,58 +113,58 @@ function RunningInner() {
         <div className="flex items-center gap-3 mb-1">
           {done
             ? <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-            : <Loader2 className="w-5 h-5 text-[#9CA3AF] animate-spin" />
+            : <Loader2 className="w-5 h-5 text-[#94A3B8] animate-spin" />
           }
-          <h1 className="text-[20px] font-bold text-[#18181B] tracking-tight">
+          <h1 className="text-[20px] font-bold text-[#0F172A] tracking-tight">
             {done ? 'Assessment Complete' : 'Running Assessment'}
           </h1>
         </div>
         {frameworkName && (
-          <p className="text-sm text-[#6B7280] ml-8">{frameworkName}</p>
+          <p className="text-sm text-[#64748B] ml-8">{frameworkName}</p>
         )}
       </div>
 
       {/* Progress */}
-      <div className="bg-white rounded-xl border border-[#E9E5DD] p-5 mb-5 shadow-card">
+      <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 mb-5 shadow-card">
         <div className="flex items-center justify-between text-sm mb-3">
-          <span className="text-[#18181B] font-medium truncate mr-4">
+          <span className="text-[#0F172A] font-medium truncate mr-4">
             {done ? 'All controls assessed' : currentTitle || 'Preparing…'}
           </span>
-          <span className="text-[#9CA3AF] font-mono text-xs shrink-0">{current}/{total}</span>
+          <span className="text-[#94A3B8] font-mono text-xs shrink-0">{current}/{total}</span>
         </div>
-        <div className="w-full bg-[#F0EDE6] rounded-full h-2 overflow-hidden">
+        <div className="w-full bg-[#F1F5F9] rounded-full h-2 overflow-hidden">
           <div
             className="h-2 rounded-full transition-all duration-500"
             style={{
               width: `${done ? 100 : pct}%`,
-              background: done ? '#15803D' : '#18181B',
+              background: done ? '#15803D' : '#0F172A',
             }}
           />
         </div>
-        <div className="flex items-center justify-between mt-2 text-[11px] text-[#C4BFB5]">
+        <div className="flex items-center justify-between mt-2 text-[11px] text-[#B0BEC5]">
           <span>{done ? '100' : pct}% complete</span>
-          {!done && <span className="animate-pulse text-[#9CA3AF]">Querying Microsoft Graph…</span>}
+          {!done && <span className="animate-pulse text-[#94A3B8]">Querying Microsoft Graph…</span>}
         </div>
       </div>
 
       {/* Control list */}
-      <div className="bg-white rounded-xl border border-[#E9E5DD] overflow-hidden mb-5 shadow-card">
-        <div className="px-5 py-3 border-b border-[#F0EDE6] flex items-center gap-2">
-          <Shield className="w-3.5 h-3.5 text-[#C4BFB5]" />
-          <span className="text-[11px] font-semibold text-[#9CA3AF] uppercase tracking-widest">Controls</span>
+      <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden mb-5 shadow-card">
+        <div className="px-5 py-3 border-b border-[#F1F5F9] flex items-center gap-2">
+          <Shield className="w-3.5 h-3.5 text-[#B0BEC5]" />
+          <span className="text-[11px] font-semibold text-[#94A3B8] uppercase tracking-widest">Controls</span>
         </div>
-        <div ref={listRef} className="divide-y divide-[#F7F5F1] max-h-[400px] overflow-y-auto sidebar-scroll">
+        <div ref={listRef} className="divide-y divide-[#F8FAFC] max-h-[400px] overflow-y-auto sidebar-scroll">
           {items.length === 0 && (
             <div className="py-10 text-center">
-              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#C4BFB5]" />
-              <p className="text-xs text-[#9CA3AF]">Starting…</p>
+              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#B0BEC5]" />
+              <p className="text-xs text-[#94A3B8]">Starting…</p>
             </div>
           )}
           {items.map(item => (
             <div key={item.controlId} className="flex items-center gap-3 px-5 py-3">
               <div className="w-4 h-4 shrink-0 flex items-center justify-center">
                 {!item.done ? (
-                  <Loader2 className="w-3.5 h-3.5 text-[#C4BFB5] animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 text-[#B0BEC5] animate-spin" />
                 ) : item.status === 'pass' ? (
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D]" />
                 ) : item.status === 'fail' ? (
@@ -176,7 +176,7 @@ function RunningInner() {
               <span className="font-mono text-[10px] text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-1.5 py-0.5 rounded shrink-0">
                 {item.controlId}
               </span>
-              <span className="text-[13px] text-[#374151] flex-1 truncate">{item.title}</span>
+              <span className="text-[13px] text-[#334155] flex-1 truncate">{item.title}</span>
               {item.done && item.status && (
                 <StatusBadge status={item.status} size="sm" />
               )}
@@ -190,14 +190,14 @@ function RunningInner() {
         <div className="flex gap-3">
           <button
             onClick={() => router.push(`/assess/${reportId}`)}
-            className="flex-1 bg-[#18181B] hover:bg-[#27272A] text-white text-sm font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+            className="flex-1 bg-[#0F172A] hover:bg-[#1E293B] text-white text-sm font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             View Full Report
           </button>
           <button
             onClick={() => router.push('/')}
-            className="px-5 py-3 bg-white hover:bg-[#F7F5F1] text-[#6B7280] hover:text-[#18181B] text-sm font-medium rounded-lg transition border border-[#E9E5DD]"
+            className="px-5 py-3 bg-white hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F172A] text-sm font-medium rounded-lg transition border border-[#E2E8F0]"
           >
             Dashboard
           </button>
@@ -211,7 +211,7 @@ export default function RunningPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-6 h-6 animate-spin text-[#C4BFB5]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#B0BEC5]" />
       </div>
     }>
       <RunningInner />

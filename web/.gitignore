@@ -3,3 +3,6 @@ node_modules/
 .config/
 .reports/
 *.tgz
+
+# clerk configuration (can include secrets)
+/.clerk/

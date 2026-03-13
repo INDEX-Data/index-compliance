@@ -63,40 +63,40 @@ export default function JoinPage() {
 
   // ── Layout wrapper ────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#F7F5F1] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4">
       <div className="w-full max-w-md">
 
         {/* Logo */}
         <div className="flex justify-center mb-8">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#18181B] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#0F172A] flex items-center justify-center">
               <span className="text-[#D4A843] text-xs font-black tracking-wider">IX</span>
             </div>
-            <span className="text-lg font-bold text-[#18181B] tracking-tight">INDEX</span>
+            <span className="text-lg font-bold text-[#0F172A] tracking-tight">INDEX</span>
           </div>
         </div>
 
         {/* Card */}
         {phase === 'loading' && (
-          <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-xl p-8 text-center">
-            <Loader2 className="w-8 h-8 text-[#9CA3AF] animate-spin mx-auto mb-3" />
-            <p className="text-sm text-[#6B7280]">Loading invite…</p>
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-8 text-center">
+            <Loader2 className="w-8 h-8 text-[#94A3B8] animate-spin mx-auto mb-3" />
+            <p className="text-sm text-[#64748B]">Loading invite…</p>
           </div>
         )}
 
         {phase === 'sign-in' && (
-          <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-xl overflow-hidden">
-            <div className="px-8 pt-8 pb-4 text-center border-b border-[#E9E5DD]">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl overflow-hidden">
+            <div className="px-8 pt-8 pb-4 text-center border-b border-[#E2E8F0]">
               <div className="w-12 h-12 rounded-full bg-[#F0F9FF] border border-[#BAE6FD] flex items-center justify-center mx-auto mb-4">
                 <Users className="w-5 h-5 text-[#0369A1]" />
               </div>
-              <h1 className="text-xl font-bold text-[#18181B]">You've been invited</h1>
+              <h1 className="text-xl font-bold text-[#0F172A]">You've been invited</h1>
               {inviteEmail && (
-                <p className="text-sm text-[#6B7280] mt-1">
-                  This invite was sent to <strong className="text-[#18181B]">{inviteEmail}</strong>
+                <p className="text-sm text-[#64748B] mt-1">
+                  This invite was sent to <strong className="text-[#0F172A]">{inviteEmail}</strong>
                 </p>
               )}
-              <p className="text-sm text-[#6B7280] mt-1">Sign in to accept and get access.</p>
+              <p className="text-sm text-[#64748B] mt-1">Sign in to accept and get access.</p>
             </div>
             <div className="p-4">
               <SignIn
@@ -114,19 +114,19 @@ export default function JoinPage() {
         )}
 
         {(phase === 'ready' || phase === 'accepting') && (
-          <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-xl p-8 text-center">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-[#F0F9FF] border border-[#BAE6FD] flex items-center justify-center mx-auto mb-5">
               <Users className="w-6 h-6 text-[#0369A1]" />
             </div>
-            <h1 className="text-xl font-bold text-[#18181B] mb-2">Join as a team member</h1>
-            <p className="text-sm text-[#6B7280] mb-6">
+            <h1 className="text-xl font-bold text-[#0F172A] mb-2">Join as a team member</h1>
+            <p className="text-sm text-[#64748B] mb-6">
               You'll get read and write access to all clients managed by the person who sent this invite.
             </p>
             <button
               type="button"
               onClick={handleAccept}
               disabled={phase === 'accepting'}
-              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#18181B] rounded-xl hover:bg-[#27272A] active:bg-[#3F3F46] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#1E293B] active:bg-[#334155] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {phase === 'accepting'
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting…</>
@@ -137,18 +137,18 @@ export default function JoinPage() {
         )}
 
         {phase === 'done' && (
-          <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-xl p-8 text-center">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-7 h-7 text-[#15803D]" />
             </div>
-            <h1 className="text-xl font-bold text-[#18181B] mb-2">You're in!</h1>
-            <p className="text-sm text-[#6B7280] mb-6">
+            <h1 className="text-xl font-bold text-[#0F172A] mb-2">You're in!</h1>
+            <p className="text-sm text-[#64748B] mb-6">
               You now have access to your team's clients. Head to the dashboard to get started.
             </p>
             <button
               type="button"
               onClick={() => router.push('/dashboard')}
-              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#18181B] rounded-xl hover:bg-[#27272A] transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#1E293B] transition-colors flex items-center justify-center gap-2"
             >
               Go to Dashboard <ArrowRight className="w-4 h-4" />
             </button>
@@ -156,18 +156,18 @@ export default function JoinPage() {
         )}
 
         {phase === 'already' && (
-          <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-xl p-8 text-center">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 className="w-7 h-7 text-[#15803D]" />
             </div>
-            <h1 className="text-xl font-bold text-[#18181B] mb-2">Already a member</h1>
-            <p className="text-sm text-[#6B7280] mb-6">
+            <h1 className="text-xl font-bold text-[#0F172A] mb-2">Already a member</h1>
+            <p className="text-sm text-[#64748B] mb-6">
               You're already part of this team. Head to the dashboard to get started.
             </p>
             <button
               type="button"
               onClick={() => router.push('/dashboard')}
-              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#18181B] rounded-xl hover:bg-[#27272A] transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 px-6 text-sm font-semibold text-white bg-[#0F172A] rounded-xl hover:bg-[#1E293B] transition-colors flex items-center justify-center gap-2"
             >
               Go to Dashboard <ArrowRight className="w-4 h-4" />
             </button>
@@ -175,13 +175,13 @@ export default function JoinPage() {
         )}
 
         {phase === 'error' && (
-          <div className="bg-white rounded-2xl border border-[#E9E5DD] shadow-xl p-8 text-center">
+          <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xl p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-[#FFF1F2] border border-[#FECDD3] flex items-center justify-center mx-auto mb-5">
               <AlertCircle className="w-7 h-7 text-[#BE123C]" />
             </div>
-            <h1 className="text-xl font-bold text-[#18181B] mb-2">Invite unavailable</h1>
-            <p className="text-sm text-[#6B7280] mb-2">{errMsg || 'This invite link is invalid or has expired.'}</p>
-            <p className="text-xs text-[#9CA3AF]">Ask your team admin to send a new invite.</p>
+            <h1 className="text-xl font-bold text-[#0F172A] mb-2">Invite unavailable</h1>
+            <p className="text-sm text-[#64748B] mb-2">{errMsg || 'This invite link is invalid or has expired.'}</p>
+            <p className="text-xs text-[#94A3B8]">Ask your team admin to send a new invite.</p>
           </div>
         )}
 
