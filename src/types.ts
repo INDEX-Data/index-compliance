@@ -108,7 +108,7 @@ export interface EvidenceResult {
   queryId: string;
   queryDescription: string;
   endpoint: string;
-  rawDataSummary: string;
+  rawData: unknown[];
   recordCount: number;
   collectedAt: string; // ISO 8601
   success: boolean;

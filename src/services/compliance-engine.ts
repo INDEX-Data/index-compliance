@@ -58,7 +58,7 @@ export async function collectEvidence(
         queryId: query.id,
         queryDescription: query.description,
         endpoint: query.endpoint,
-        rawDataSummary: summarizeEvidence(records),
+        rawData: records,
         recordCount: records.length,
         collectedAt,
         success: true,
@@ -68,7 +68,7 @@ export async function collectEvidence(
         queryId: query.id,
         queryDescription: query.description,
         endpoint: query.endpoint,
-        rawDataSummary: "Query failed",
+        rawData: [],
         recordCount: 0,
         collectedAt,
         success: false,
@@ -78,12 +78,6 @@ export async function collectEvidence(
   }
 
   return results;
-}
-
-function summarizeEvidence(records: unknown[]): string {
-  if (records.length === 0) return "No records found";
-  if (records.length === 1) return JSON.stringify(records[0], null, 2).slice(0, 2000);
-  return `${records.length} records collected. Sample: ${JSON.stringify(records[0], null, 2).slice(0, 1000)}`;
 }
 
 // -------------------------------------------------------------------------
@@ -108,9 +102,12 @@ const evaluators: Record<string, EvaluatorFn> = {
       };
     }
 
-    // Parse the summary to check for MFA grant controls
-    const hasMfaPolicy = caEvidence.rawDataSummary.toLowerCase().includes("mfa")
-      || caEvidence.rawDataSummary.toLowerCase().includes("multifactor");
+    // Check CA policy grant controls for MFA requirement
+    const policies = caEvidence.rawData as any[];
+    const hasMfaPolicy = policies.some(p => {
+      const controls: string[] = p.grantControls?.builtInControls ?? [];
+      return controls.some(c => c.toLowerCase().includes("mfa") || c.toLowerCase().includes("multifactor"));
+    });
 
     if (hasMfaPolicy && caEvidence.recordCount > 0) {
       return {
@@ -143,10 +140,9 @@ const evaluators: Record<string, EvaluatorFn> = {
       };
     }
 
-    // Check secure score for AIP/DLP-related components
-    const scoreHasAip = scoreEvidence?.success && (
-      scoreEvidence.rawDataSummary.includes("HasAIPP") ||
-      scoreEvidence.rawDataSummary.includes("HasDLP")
+    // Check secure score enabledServices for AIP/DLP license signals
+    const scoreHasAip = scoreEvidence?.success && (scoreEvidence.rawData as any[]).some(s =>
+      (s.enabledServices as string[] ?? []).some((svc: string) => svc === "HasAIPP" || svc === "HasDLP")
     );
 
     // Check audit log for any label-related activity
@@ -234,9 +230,12 @@ const evaluators: Record<string, EvaluatorFn> = {
     }
 
     // Flag if too many global admin assignments
-    const summary = roleEvidence.rawDataSummary.toLowerCase();
+    const assignments = roleEvidence.rawData as any[];
     const hasExcessiveAdmins = roleEvidence.recordCount > 5
-      && summary.includes("globaladmin");
+      && assignments.some(a => {
+        const name: string = a.roleDefinition?.displayName ?? a.displayName ?? "";
+        return name.toLowerCase().includes("global administrator") || name.toLowerCase().includes("globaladmin");
+      });
 
     if (hasExcessiveAdmins) {
       return {
@@ -305,9 +304,8 @@ const evaluators: Record<string, EvaluatorFn> = {
       };
     }
 
-    const scoreHasDlp = scoreEvidence?.success && (
-      scoreEvidence.rawDataSummary.includes("HasDLP") ||
-      scoreEvidence.rawDataSummary.includes("HasAIPP")
+    const scoreHasDlp = scoreEvidence?.success && (scoreEvidence.rawData as any[]).some(s =>
+      (s.enabledServices as string[] ?? []).some((svc: string) => svc === "HasDLP" || svc === "HasAIPP")
     );
     const policyActivityFound = auditEvidence?.success && auditEvidence.recordCount > 0;
 
@@ -405,9 +403,9 @@ const evaluators: Record<string, EvaluatorFn> = {
         recommendations: ["Ensure UserAuthenticationMethod.Read.All is granted and users exist in the tenant"],
       };
     }
-    const summary = mfaEvidence.rawDataSummary;
-    const mfaRegistered = (summary.match(/"isMfaRegistered"\s*:\s*true/g) ?? []).length;
-    const mfaNotRegistered = (summary.match(/"isMfaRegistered"\s*:\s*false/g) ?? []).length;
+    const users = mfaEvidence.rawData as any[];
+    const mfaRegistered = users.filter(u => u.isMfaRegistered === true).length;
+    const mfaNotRegistered = users.filter(u => u.isMfaRegistered === false).length;
     const sampleSize = mfaEvidence.recordCount;
 
     if (mfaRegistered > 0 && mfaNotRegistered === 0) {
@@ -470,11 +468,10 @@ const evaluators: Record<string, EvaluatorFn> = {
     const recommendations: string[] = [];
 
     if (scoreEvidence?.success && scoreEvidence.recordCount > 0) {
-      const scoreMatch = scoreEvidence.rawDataSummary.match(/"currentScore"\s*:\s*([\d.]+)/);
-      const maxMatch = scoreEvidence.rawDataSummary.match(/"maxScore"\s*:\s*([\d.]+)/);
-      if (scoreMatch && maxMatch) {
-        const pct = Math.round((parseFloat(scoreMatch[1]) / parseFloat(maxMatch[1])) * 100);
-        findings.push(`Microsoft Secure Score: ${scoreMatch[1]}/${maxMatch[1]} (${pct}%)`);
+      const score = (scoreEvidence.rawData as any[])[0];
+      if (score?.currentScore != null && score?.maxScore != null) {
+        const pct = Math.round((score.currentScore / score.maxScore) * 100);
+        findings.push(`Microsoft Secure Score: ${score.currentScore}/${score.maxScore} (${pct}%)`);
       } else {
         findings.push("Microsoft Secure Score data collected — posture is being tracked");
       }
@@ -637,11 +634,11 @@ const evaluators: Record<string, EvaluatorFn> = {
     const findings: string[] = [];
     const recommendations: string[] = [];
 
-    // Parse allowInvitesFrom from authorizationPolicy (now captured as single-object)
+    // Read allowInvitesFrom directly from authorizationPolicy object
     let invitePolicy = "unknown";
-    if (policyEvidence?.success && policyEvidence.rawDataSummary) {
-      const match = policyEvidence.rawDataSummary.match(/"allowInvitesFrom"\s*:\s*"([^"]+)"/);
-      if (match) invitePolicy = match[1];
+    if (policyEvidence?.success && policyEvidence.rawData.length > 0) {
+      const policy = policyEvidence.rawData[0] as any;
+      if (policy.allowInvitesFrom) invitePolicy = policy.allowInvitesFrom;
     }
 
     findings.push(`${guestCount} external/guest user account(s) found in the directory`);
