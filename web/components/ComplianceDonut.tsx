@@ -7,7 +7,7 @@ const COLORS: Record<string, string> = {
   Passed:         '#15803D',
   Partial:        '#B45309',
   Failed:         '#B91C1C',
-  'Not Assessed': '#CBD5E1',
+  'Not Assessed': '#D4D4D4',
 }
 
 interface Props { summary: ComplianceSummary }
@@ -23,8 +23,8 @@ export function ComplianceDonut({ summary }: Props) {
   ].filter(d => d.value > 0)
 
   return (
-    <div className="bg-white rounded-xl border border-[#E2E8F0] p-5">
-      <p className="text-xs font-semibold text-[#64748B] uppercase tracking-widest mb-4">Control Breakdown</p>
+    <div className="bg-white rounded-xl border border-[#E8E8E8] p-5">
+      <p className="text-xs font-semibold text-[#555555] uppercase tracking-widest mb-4">Control Breakdown</p>
       <div className="flex items-center gap-5">
         <ResponsiveContainer width={120} height={120}>
           <PieChart>
@@ -46,9 +46,9 @@ export function ComplianceDonut({ summary }: Props) {
               contentStyle={{
                 fontSize: 11,
                 borderRadius: 8,
-                border: '1px solid #E2E8F0',
+                border: '1px solid #E8E8E8',
                 background: '#FFFFFF',
-                color: '#0F172A',
+                color: '#0A0A0A',
                 boxShadow: '0 4px 12px rgb(0 0 0 / 0.06)',
               }}
               formatter={(value: number, name: string) => [`${value} controls`, name]}
@@ -62,12 +62,12 @@ export function ComplianceDonut({ summary }: Props) {
             { key: 'Passed',       color: '#15803D', val: passed       },
             { key: 'Partial',      color: '#B45309', val: partial      },
             { key: 'Failed',       color: '#B91C1C', val: failed       },
-            { key: 'Not Assessed', color: '#CBD5E1', val: notAssessed  },
+            { key: 'Not Assessed', color: '#D4D4D4', val: notAssessed  },
           ].map(({ key, color, val }) => (
             <div key={key} className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-              <span className="text-[11px] text-[#64748B] flex-1">{key}</span>
-              <span className="text-[11px] font-semibold text-[#0F172A]">{val}</span>
+              <span className="text-[11px] text-[#555555] flex-1">{key}</span>
+              <span className="text-[11px] font-semibold text-[#0A0A0A]">{val}</span>
             </div>
           ))}
         </div>

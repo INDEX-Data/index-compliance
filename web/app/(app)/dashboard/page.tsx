@@ -26,7 +26,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, iconColor, iconBg, sub }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-[#E2E8F0] p-5 shadow-card">
+    <div className="bg-white rounded-xl border border-[#E8E8E8] p-5 shadow-card">
       <div className="flex items-center justify-between mb-4">
         <div
           className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -35,11 +35,11 @@ function StatCard({ label, value, icon: Icon, iconColor, iconBg, sub }: StatCard
           <Icon className="w-[15px] h-[15px]" style={{ color: iconColor }} />
         </div>
       </div>
-      <div className="text-[28px] font-bold text-[#0F172A] tabular-nums leading-none tracking-tight">
+      <div className="text-[28px] font-bold text-[#0A0A0A] tabular-nums leading-none tracking-tight">
         {value}
       </div>
-      <div className="text-[12px] font-medium text-[#94A3B8] mt-2">{label}</div>
-      {sub && <div className="text-[11px] text-[#B0BEC5] mt-0.5">{sub}</div>}
+      <div className="text-[12px] font-medium text-[#999999] mt-2">{label}</div>
+      {sub && <div className="text-[11px] text-[#BBBBBB] mt-0.5">{sub}</div>}
     </div>
   )
 }
@@ -73,25 +73,25 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
     { label: 'Passed',       value: report.summary.passed,       icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4' },
     { label: 'Partial',      value: report.summary.partial,      icon: MinusCircle,  color: '#D97706', bg: '#FFFBEB' },
     { label: 'Failed',       value: report.summary.failed,       icon: XCircle,      color: '#DC2626', bg: '#FEF2F2' },
-    { label: 'Not Assessed', value: report.summary.notAssessed,  icon: HelpCircle,   color: '#94A3B8', bg: '#F3F4F6' },
+    { label: 'Not Assessed', value: report.summary.notAssessed,  icon: HelpCircle,   color: '#999999', bg: '#F3F4F6' },
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-[#E2E8F0] overflow-hidden shadow-card hover:shadow-card-hover transition-shadow">
+    <div className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden shadow-card hover:shadow-card-hover transition-shadow">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#F1F5F9]">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#F3F3F3]">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#0F172A] tracking-tight">{report.frameworkName}</h2>
+          <h2 className="text-[15px] font-semibold text-[#0A0A0A] tracking-tight">{report.frameworkName}</h2>
           <div className="flex items-center gap-3 mt-1">
-            <span className="flex items-center gap-1 text-[11px] text-[#94A3B8]">
+            <span className="flex items-center gap-1 text-[11px] text-[#999999]">
               <Clock className="w-3 h-3" />
               {ago}
             </span>
             {runCount > 1 && (
-              <span className="text-[11px] text-[#B0BEC5]">{runCount} runs</span>
+              <span className="text-[11px] text-[#BBBBBB]">{runCount} runs</span>
             )}
-            <span className="flex items-center gap-1 text-[11px] text-[#CBD5E1] font-mono">
+            <span className="flex items-center gap-1 text-[11px] text-[#D4D4D4] font-mono">
               <FileText className="w-3 h-3" />
               {report.reportId}
             </span>
@@ -101,7 +101,7 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
           <RiskBadge score={report.summary.riskScore} />
           <Link
             href={`/assess/${report.reportId}`}
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#334155] hover:text-[#0F172A] transition"
+            className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#1A1A1A] hover:text-[#0A0A0A] transition"
           >
             Full report <ChevronRight className="w-3.5 h-3.5" />
           </Link>
@@ -178,14 +178,14 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
 
       {/* ── Key Findings ── */}
       {report.summary.topFindings.length > 0 && (
-        <div className="px-6 pb-5 border-t border-[#F1F5F9] pt-4">
-          <p className="text-[10px] font-semibold text-[#94A3B8] uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+        <div className="px-6 pb-5 border-t border-[#F3F3F3] pt-4">
+          <p className="text-[10px] font-semibold text-[#999999] uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
             <AlertTriangle className="w-3 h-3 text-[#D97706]" />
             Key Findings
           </p>
           <ul className="space-y-1.5">
             {report.summary.topFindings.slice(0, 3).map((f, i) => (
-              <li key={i} className="text-[12px] text-[#64748B] flex items-start gap-2 leading-relaxed">
+              <li key={i} className="text-[12px] text-[#555555] flex items-start gap-2 leading-relaxed">
                 <span className="w-1 h-1 rounded-full bg-[#DC2626] shrink-0 mt-[6px]" />
                 {f}
               </li>
@@ -220,8 +220,8 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
-          <Shield className="w-8 h-8 text-[#CBD5E1] animate-pulse" />
-          <span className="text-[13px] text-[#94A3B8]">Loading dashboard…</span>
+          <Shield className="w-8 h-8 text-[#D4D4D4] animate-pulse" />
+          <span className="text-[13px] text-[#999999]">Loading dashboard…</span>
         </div>
       </div>
     )
@@ -261,12 +261,12 @@ export default function DashboardPage() {
       {/* ── Page header ── */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-bold text-[#0F172A] tracking-tight">Dashboard</h1>
-          <p className="text-[13px] text-[#94A3B8] mt-1">Compliance posture across all clients</p>
+          <h1 className="text-[22px] font-bold text-[#0A0A0A] tracking-tight">Dashboard</h1>
+          <p className="text-[13px] text-[#999999] mt-1">Compliance posture across all clients</p>
         </div>
         <Link
           href="/assess"
-          className="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold px-4 py-2.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#111111] text-white text-[13px] font-semibold px-4 py-2.5 rounded-lg transition-colors"
         >
           <Play className="w-3.5 h-3.5" />
           New Assessment
@@ -320,10 +320,10 @@ export default function DashboardPage() {
 
           {/* ── Framework cards ── */}
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-semibold text-[#334155]">Framework Posture</h2>
+            <h2 className="text-[13px] font-semibold text-[#1A1A1A]">Framework Posture</h2>
             <Link
               href="/history"
-              className="text-[12px] text-[#94A3B8] hover:text-[#334155] font-medium transition flex items-center gap-1"
+              className="text-[12px] text-[#999999] hover:text-[#1A1A1A] font-medium transition flex items-center gap-1"
             >
               View history <ChevronRight className="w-3.5 h-3.5" />
             </Link>
@@ -349,11 +349,11 @@ export default function DashboardPage() {
 function EmptyNoClients() {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-white border border-[#E2E8F0] flex items-center justify-center mb-5 shadow-card">
-        <Building2 className="w-6 h-6 text-[#CBD5E1]" />
+      <div className="w-14 h-14 rounded-2xl bg-white border border-[#E8E8E8] flex items-center justify-center mb-5 shadow-card">
+        <Building2 className="w-6 h-6 text-[#D4D4D4]" />
       </div>
-      <h3 className="text-[15px] font-semibold text-[#0F172A] mb-2">Add your first client</h3>
-      <p className="text-[13px] text-[#64748B] max-w-sm mb-8 leading-relaxed">
+      <h3 className="text-[15px] font-semibold text-[#0A0A0A] mb-2">Add your first client</h3>
+      <p className="text-[13px] text-[#555555] max-w-sm mb-8 leading-relaxed">
         Connect a Microsoft 365 tenant to start running compliance assessments.
       </p>
 
@@ -367,18 +367,18 @@ function EmptyNoClients() {
             <div key={s.step} className="flex flex-col items-center gap-1">
               <div className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold border ${
                 s.active
-                  ? 'bg-[#0F172A] text-white border-transparent'
-                  : 'bg-white text-[#94A3B8] border-[#E2E8F0]'
+                  ? 'bg-[#0A0A0A] text-white border-transparent'
+                  : 'bg-white text-[#999999] border-[#E8E8E8]'
               }`}>
                 <span className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
-                  s.active ? 'bg-[#C4A96D] text-[#0F172A]' : 'bg-[#E2E8F0] text-[#94A3B8]'
+                  s.active ? 'bg-[#C4A96D] text-[#0A0A0A]' : 'bg-[#E8E8E8] text-[#999999]'
                 }`}>{s.step}</span>
                 {s.label}
               </div>
-              {s.time && <span className="text-[10px] text-[#94A3B8]">{s.time}</span>}
+              {s.time && <span className="text-[10px] text-[#999999]">{s.time}</span>}
             </div>
             {i < arr.length - 1 && (
-              <ArrowRight key={`arrow-${i}`} className="w-4 h-4 text-[#CBD5E1] mb-4 shrink-0" />
+              <ArrowRight key={`arrow-${i}`} className="w-4 h-4 text-[#D4D4D4] mb-4 shrink-0" />
             )}
           </>
         ))}
@@ -386,7 +386,7 @@ function EmptyNoClients() {
 
       <Link
         href="/clients"
-        className="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        className="inline-flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#111111] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors"
       >
         <Building2 className="w-3.5 h-3.5" />
         Add First Client
@@ -398,13 +398,13 @@ function EmptyNoClients() {
 function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-white border border-[#E2E8F0] flex items-center justify-center mb-5 shadow-card">
-        <Shield className="w-6 h-6 text-[#CBD5E1]" />
+      <div className="w-14 h-14 rounded-2xl bg-white border border-[#E8E8E8] flex items-center justify-center mb-5 shadow-card">
+        <Shield className="w-6 h-6 text-[#D4D4D4]" />
       </div>
-      <h3 className="text-[15px] font-semibold text-[#0F172A] mb-2">Run your first assessment</h3>
-      <p className="text-[13px] text-[#64748B] max-w-sm mb-8 leading-relaxed">
+      <h3 className="text-[15px] font-semibold text-[#0A0A0A] mb-2">Run your first assessment</h3>
+      <p className="text-[13px] text-[#555555] max-w-sm mb-8 leading-relaxed">
         {firstClientName
-          ? <><strong className="text-[#334155]">{firstClientName}</strong> is connected. Choose a framework and run a compliance assessment.</>
+          ? <><strong className="text-[#1A1A1A]">{firstClientName}</strong> is connected. Choose a framework and run a compliance assessment.</>
           : <>Your client is connected. Choose a framework and run your first compliance assessment.</>
         }
       </p>
@@ -416,18 +416,18 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
             {firstClientName || 'Client added'}
           </div>
         </div>
-        <ArrowRight className="w-4 h-4 text-[#CBD5E1] mb-4 shrink-0" />
+        <ArrowRight className="w-4 h-4 text-[#D4D4D4] mb-4 shrink-0" />
         <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold border bg-[#0F172A] text-white border-transparent">
-            <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#0F172A] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold border bg-[#0A0A0A] text-white border-transparent">
+            <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#0A0A0A] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
             Run assessment
           </div>
-          <span className="text-[10px] text-[#94A3B8]">~5 min</span>
+          <span className="text-[10px] text-[#999999]">~5 min</span>
         </div>
-        <ArrowRight className="w-4 h-4 text-[#CBD5E1] mb-4 shrink-0" />
+        <ArrowRight className="w-4 h-4 text-[#D4D4D4] mb-4 shrink-0" />
         <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium border bg-white text-[#94A3B8] border-[#E2E8F0]">
-            <span className="w-4 h-4 rounded-full bg-[#E2E8F0] text-[#94A3B8] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium border bg-white text-[#999999] border-[#E8E8E8]">
+            <span className="w-4 h-4 rounded-full bg-[#E8E8E8] text-[#999999] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
             View results
           </div>
         </div>
@@ -435,7 +435,7 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
 
       <Link
         href="/assess"
-        className="inline-flex items-center gap-2 bg-[#0F172A] hover:bg-[#1E293B] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        className="inline-flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#111111] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors"
       >
         <Play className="w-3.5 h-3.5" />
         Run First Assessment

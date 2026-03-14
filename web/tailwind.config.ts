@@ -9,20 +9,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas:  '#F8FAFC',
+        canvas:  '#FAFAFA',
         surface: '#FFFFFF',
-        border:  '#E2E8F0',
-        'border-light': '#F1F5F9',
-        ink:     '#0F172A',
-        muted:   '#64748B',
-        faint:   '#94A3B8',
+        border:  '#E8E8E8',
+        'border-light': '#F3F3F3',
+        ink:     '#0A0A0A',
+        muted:   '#555555',
+        faint:   '#999999',
         sidebar: {
-          bg:     '#0B1829',
-          hover:  '#102238',
-          active: '#162B40',
-          border: '#1A2D3F',
-          text:   '#7B96B2',
-          bright: '#F5F4EF',
+          bg:     '#FFFFFF',
+          hover:  '#F5F5F5',
+          active: '#EBEBEB',
+          border: '#D0D0D0',
+          text:   '#666666',
+          bright: '#FAFAFA',
         },
         teal: {
           50:  '#F0FDFA',
@@ -33,7 +33,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
       },
       animation: {
@@ -48,9 +48,9 @@ const config: Config = {
         },
       },
       boxShadow: {
-        card: '0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04)',
-        'card-hover': '0 8px 24px 0 rgb(15 23 42 / 0.10), 0 2px 6px -1px rgb(15 23 42 / 0.06)',
-        'card-lg': '0 4px 16px 0 rgb(15 23 42 / 0.08), 0 2px 4px -1px rgb(15 23 42 / 0.05)',
+        card:       '0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.04)',
+        'card-hover':'0 4px 16px 0 rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04)',
+        'card-lg':  '0 2px 8px 0 rgb(0 0 0 / 0.06), 0 1px 3px -1px rgb(0 0 0 / 0.04)',
       },
     },
   },

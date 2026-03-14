@@ -13,7 +13,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex">
 
       {/* ── Left panel — dark branding ─────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[400px] xl:w-[460px] shrink-0 flex-col bg-[#0B1829] text-white px-10 py-12">
+      <div className="hidden lg:flex lg:w-[400px] xl:w-[460px] shrink-0 flex-col bg-[#FFFFFF] text-white px-10 py-12">
 
         {/* Logo */}
         <div className="flex items-center gap-3">
@@ -60,18 +60,18 @@ export default function SignInPage() {
       </div>
 
       {/* ── Right panel — Clerk form ────────────────────────────────── */}
-      <div className="flex-1 bg-[#F8FAFC] flex flex-col items-center justify-center px-8 py-12">
+      <div className="flex-1 bg-[#FAFAFA] flex flex-col items-center justify-center px-8 py-12">
 
         {/* Mobile logo (hidden on lg+) */}
         <div className="flex items-center gap-3 mb-8 lg:hidden">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#0B1829]">
-            <svg className="w-5 h-5 text-[#F8FAFC]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#FFFFFF]">
+            <svg className="w-5 h-5 text-[#FAFAFA]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
             </svg>
           </div>
           <div>
-            <div className="text-[15px] font-bold text-[#0B1829] tracking-widest uppercase">INDEX</div>
+            <div className="text-[15px] font-bold text-[#FFFFFF] tracking-widest uppercase">INDEX</div>
             <div className="text-[10px] text-[#5A5A52] leading-none tracking-wide uppercase">Compliance</div>
           </div>
         </div>

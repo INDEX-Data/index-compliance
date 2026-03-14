@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --canvas:  #F8FAFC;
+  --canvas:  #FAFAFA;
   --surface: #FFFFFF;
-  --border:  #E2E8F0;
-  --ink:     #0F172A;
-  --muted:   #64748B;
+  --border:  #E8E8E8;
+  --ink:     #0A0A0A;
+  --muted:   #555555;
 }
 
 * {
@@ -18,17 +18,25 @@ html, body {
   height: 100%;
 }
 
-/* Scrollbar — main content */
+/* ── Inter font rendering ─────────────────────────────────────────────────── */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01', 'rlig' 1, 'calt' 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Scrollbar — main content ─────────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: #CBD5E1; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+::-webkit-scrollbar-thumb    { background: #E0E0E0; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #C8C8C8; }
 
-/* Scrollbar — navy sidebar */
-.sidebar-scroll::-webkit-scrollbar-thumb       { background: #1A2D3F; }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #243D56; }
+/* ── Scrollbar — sidebar (white bg, very subtle) ──────────────────────────── */
+.sidebar-scroll::-webkit-scrollbar-thumb       { background: #EBEBEB; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #D8D8D8; }
 
-/* Smooth micro-transitions */
+/* ── Smooth micro-transitions ─────────────────────────────────────────────── */
 *, *::before, *::after {
   transition-property: background-color, border-color, color, opacity;
   transition-duration: 120ms;
@@ -39,7 +47,7 @@ button, a {
   transition-property: background-color, border-color, color, opacity, box-shadow, transform;
 }
 
-/* Evidence drawer slide-in */
+/* ── Evidence drawer slide-in ─────────────────────────────────────────────── */
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0.6; }
   to   { transform: translateX(0);    opacity: 1;   }
@@ -48,7 +56,7 @@ button, a {
   animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Page fade-in */
+/* ── Page fade-in ─────────────────────────────────────────────────────────── */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
