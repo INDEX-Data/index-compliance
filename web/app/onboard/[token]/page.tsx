@@ -109,20 +109,20 @@ function StepBar({ step }: { step: number }) {
           <div key={i} className="flex items-center flex-1 last:flex-none">
             <div className="flex items-center gap-2">
               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                completed ? 'bg-[#0A0A0A] text-white'
+                completed ? 'bg-[#1c1d1f] text-white'
                   : active ? 'bg-[#C4A96D] text-white'
-                  : 'bg-[#E8E8E8] text-[#999999]'
+                  : 'bg-[#e4e7ec] text-[#6f7988]'
               }`}>
                 {completed ? <Check className="w-3.5 h-3.5" /> : num}
               </div>
               <span className={`text-xs font-semibold hidden sm:block ${
-                active ? 'text-[#0A0A0A]' : completed ? 'text-[#1A1A1A]' : 'text-[#999999]'
+                active ? 'text-[#1c1d1f]' : completed ? 'text-[#1c1d1f]' : 'text-[#6f7988]'
               }`}>
                 {label}
               </span>
             </div>
             {i < STEP_LABELS.length - 1 && (
-              <div className={`flex-1 h-px mx-3 ${completed ? 'bg-[#0A0A0A]' : 'bg-[#E8E8E8]'}`} />
+              <div className={`flex-1 h-px mx-3 ${completed ? 'bg-[#1c1d1f]' : 'bg-[#e4e7ec]'}`} />
             )}
           </div>
         )
@@ -186,7 +186,7 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
         ? 'border-[#BBF7D0] bg-[#F0FDF4]'
         : open
         ? 'border-[#C4A96D] bg-white shadow-md'
-        : 'border-[#E8E8E8] bg-white hover:border-[#D4D4D4]'
+        : 'border-[#e4e7ec] bg-white hover:border-[#cad0d9]'
     }`}>
       {/* Card header */}
       <button
@@ -200,8 +200,8 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
           <div className="w-3 h-3 rounded-full" style={{ backgroundColor: platform.color }} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-[#0A0A0A]">{platform.name}</p>
-          <p className="text-xs text-[#999999]">
+          <p className="text-sm font-semibold text-[#1c1d1f]">{platform.name}</p>
+          <p className="text-xs text-[#6f7988]">
             {saved ? 'Connected' : open ? 'Enter credentials below' : 'Not connected'}
           </p>
         </div>
@@ -213,7 +213,7 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
           <span className={`text-xs font-medium px-2.5 py-1 rounded-lg border transition ${
             open
               ? 'bg-[#C4A96D] text-white border-[#C4A96D]'
-              : 'bg-white text-[#555555] border-[#E8E8E8] hover:bg-[#FAFAFA]'
+              : 'bg-white text-[#505967] border-[#e4e7ec] hover:bg-[#fafafa]'
           }`}>
             {open ? 'Cancel' : 'Connect'}
           </span>
@@ -222,10 +222,10 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
 
       {/* Expanded form */}
       {open && !saved && (
-        <div className="border-t border-[#F3F3F3] px-4 pb-4 pt-3 space-y-3">
+        <div className="border-t border-[#eeeff1] px-4 pb-4 pt-3 space-y-3">
           {platform.fields.map(field => (
             <div key={field.key}>
-              <label className="block text-xs font-semibold text-[#1A1A1A] mb-1 uppercase tracking-wide">
+              <label className="block text-xs font-semibold text-[#1c1d1f] mb-1 uppercase tracking-wide">
                 {field.label}
               </label>
               <div className="relative">
@@ -234,15 +234,15 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
                   value={fields[field.key] ?? ''}
                   onChange={e => setFields(prev => ({ ...prev, [field.key]: e.target.value }))}
                   placeholder={field.placeholder ?? ''}
-                  className="w-full px-3 py-2 rounded-lg border border-[#E8E8E8] text-sm text-[#0A0A0A]
-                             placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                  className="w-full px-3 py-2 rounded-lg border border-[#e4e7ec] text-sm text-[#1c1d1f]
+                             placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                              focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition pr-8"
                 />
                 {field.type === 'password' && (
                   <button
                     type="button"
                     onClick={() => setShowFields(prev => ({ ...prev, [field.key]: !prev[field.key] }))}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#BBBBBB] hover:text-[#555555]"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a4adba] hover:text-[#505967]"
                   >
                     {showFields[field.key] ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
@@ -270,8 +270,8 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
               type="button"
               onClick={handleTest}
               disabled={!allFilled || testing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E8E8E8]
-                         bg-white hover:bg-[#FAFAFA] text-xs font-medium text-[#1A1A1A]
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e4e7ec]
+                         bg-white hover:bg-[#fafafa] text-xs font-medium text-[#1c1d1f]
                          disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
@@ -282,7 +282,7 @@ function PlatformCard({ platform, token, savedConfig, onSaved }: PlatformCardPro
               onClick={handleSave}
               disabled={!allFilled || saving}
               className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg
-                         bg-[#0A0A0A] hover:bg-[#111111] text-white text-xs font-semibold
+                         bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-xs font-semibold
                          disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
@@ -392,7 +392,7 @@ export default function OnboardPage() {
   // ── Render: loading ────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center">
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-[#C4A96D]" />
       </div>
     )
@@ -401,14 +401,14 @@ export default function OnboardPage() {
   // ── Render: token error ────────────────────────────────────────────────
   if (tokenError) {
     return (
-      <div className="min-h-screen bg-[#FAFAFA] flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-xl p-10 max-w-md w-full text-center">
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-xl p-10 max-w-md w-full text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center mx-auto mb-5">
             <AlertCircle className="w-7 h-7 text-[#B91C1C]" />
           </div>
-          <h1 className="text-xl font-bold text-[#0A0A0A] mb-2">Link Unavailable</h1>
-          <p className="text-sm text-[#555555] mb-6">{tokenError}</p>
-          <p className="text-xs text-[#999999]">
+          <h1 className="text-xl font-bold text-[#1c1d1f] mb-2">Link Unavailable</h1>
+          <p className="text-sm text-[#505967] mb-6">{tokenError}</p>
+          <p className="text-xs text-[#6f7988]">
             Contact your compliance advisor to request a new invitation link.
           </p>
         </div>
@@ -434,7 +434,7 @@ export default function OnboardPage() {
           <h2 className="text-2xl font-bold text-white mb-2 leading-snug">
             {inviteInfo?.clientName} is setting up their compliance assessment
           </h2>
-          <p className="text-[#555555] text-sm mt-4 leading-relaxed">
+          <p className="text-[#505967] text-sm mt-4 leading-relaxed">
             Connect your platforms so INDEX can automatically gather evidence for your assessment.
           </p>
 
@@ -447,7 +447,7 @@ export default function OnboardPage() {
             ].map(p => (
               <div key={p.name} className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                <span className="text-[13px] text-[#999999]">{p.name}</span>
+                <span className="text-[13px] text-[#6f7988]">{p.name}</span>
                 {p.required && (
                   <span className="text-[10px] font-semibold text-[#C4A96D] uppercase tracking-wide ml-auto">Required</span>
                 )}
@@ -461,7 +461,7 @@ export default function OnboardPage() {
       </div>
 
       {/* ── Right panel (form) ── */}
-      <div className="flex-1 bg-[#FAFAFA] overflow-y-auto">
+      <div className="flex-1 bg-[#fafafa] overflow-y-auto">
         <div className="max-w-xl mx-auto px-6 py-12">
 
           {/* Mobile logo */}
@@ -469,35 +469,35 @@ export default function OnboardPage() {
             <div className="w-7 h-7 rounded-lg bg-[#FFFFFF] flex items-center justify-center">
               <span className="text-[#C4A96D] font-black text-xs">IX</span>
             </div>
-            <span className="text-[#0A0A0A] font-bold">INDEX</span>
+            <span className="text-[#1c1d1f] font-bold">INDEX</span>
           </div>
 
           <StepBar step={step} />
 
           {/* ── Step 1: Company Details ── */}
           {step === 1 && (
-            <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-card p-8">
-              <h1 className="text-xl font-bold text-[#0A0A0A] mb-1">Confirm your company information</h1>
-              <p className="text-sm text-[#555555] mb-6">
+            <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-card p-8">
+              <h1 className="text-xl font-bold text-[#1c1d1f] mb-1">Confirm your company information</h1>
+              <p className="text-sm text-[#505967] mb-6">
                 Your compliance advisor has pre-filled your company name. Please confirm the details below.
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                  <label className="block text-xs font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                     Company Name
                   </label>
                   <input
                     type="text"
                     value={companyName}
                     onChange={e => setCompanyName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E8] text-sm text-[#0A0A0A]
-                               placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                    className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm text-[#1c1d1f]
+                               placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                                focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                  <label className="block text-xs font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                     Contact Name
                   </label>
                   <input
@@ -505,13 +505,13 @@ export default function OnboardPage() {
                     value={contactName}
                     onChange={e => setContactName(e.target.value)}
                     placeholder="Your full name"
-                    className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E8] text-sm text-[#0A0A0A]
-                               placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                    className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm text-[#1c1d1f]
+                               placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                                focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                  <label className="block text-xs font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                     Contact Email
                   </label>
                   <input
@@ -519,8 +519,8 @@ export default function OnboardPage() {
                     value={contactEmail}
                     onChange={e => setContactEmail(e.target.value)}
                     placeholder="you@company.com"
-                    className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E8] text-sm text-[#0A0A0A]
-                               placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                    className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm text-[#1c1d1f]
+                               placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                                focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                   />
                 </div>
@@ -530,7 +530,7 @@ export default function OnboardPage() {
                 <button
                   onClick={() => setStep(2)}
                   disabled={!companyName.trim() || !contactName.trim() || !contactEmail.trim()}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0A0A0A] hover:bg-[#111111]
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1c1d1f] hover:bg-[#1c1d1f]
                              text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
                 >
                   Continue
@@ -542,9 +542,9 @@ export default function OnboardPage() {
 
           {/* ── Step 2: Microsoft 365 ── */}
           {step === 2 && (
-            <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-card p-8">
-              <h1 className="text-xl font-bold text-[#0A0A0A] mb-1">Connect Microsoft 365</h1>
-              <p className="text-sm text-[#555555] mb-2">
+            <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-card p-8">
+              <h1 className="text-xl font-bold text-[#1c1d1f] mb-1">Connect Microsoft 365</h1>
+              <p className="text-sm text-[#505967] mb-2">
                 This is required for compliance assessment. We need read-only access to your Azure tenant.
               </p>
               <a
@@ -560,56 +560,56 @@ export default function OnboardPage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1A1A1A] mb-0.5 uppercase tracking-wide">
+                    <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">
                       Tenant ID
                     </label>
-                    <p className="text-[10px] text-[#999999] mb-1.5">Azure AD → Properties</p>
+                    <p className="text-[10px] text-[#6f7988] mb-1.5">Azure AD → Properties</p>
                     <input
                       type="text"
                       value={tenantId}
                       onChange={e => setTenantId(e.target.value)}
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E8] text-sm font-mono text-[#0A0A0A]
-                                 placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                      className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
+                                 placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                                  focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#1A1A1A] mb-0.5 uppercase tracking-wide">
+                    <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">
                       Client ID
                     </label>
-                    <p className="text-[10px] text-[#999999] mb-1.5">App Registration → Overview</p>
+                    <p className="text-[10px] text-[#6f7988] mb-1.5">App Registration → Overview</p>
                     <input
                       type="text"
                       value={clientId}
                       onChange={e => setClientId(e.target.value)}
                       placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                      className="w-full px-3 py-2.5 rounded-lg border border-[#E8E8E8] text-sm font-mono text-[#0A0A0A]
-                                 placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                      className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
+                                 placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                                  focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#1A1A1A] mb-0.5 uppercase tracking-wide">
+                  <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">
                     Client Secret
                   </label>
-                  <p className="text-[10px] text-[#999999] mb-1.5">Certificates & secrets → secret Value (not ID)</p>
+                  <p className="text-[10px] text-[#6f7988] mb-1.5">Certificates & secrets → secret Value (not ID)</p>
                   <div className="relative">
                     <input
                       type={showSecret ? 'text' : 'password'}
                       value={clientSecret}
                       onChange={e => setClientSecret(e.target.value)}
                       placeholder="App registration secret value"
-                      className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#E8E8E8] text-sm font-mono text-[#0A0A0A]
-                                 placeholder-[#BBBBBB] bg-white focus:outline-none focus:ring-2
+                      className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
+                                 placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
                                  focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
                     />
                     <button
                       type="button"
                       onClick={() => setShowSecret(s => !s)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#BBBBBB] hover:text-[#555555]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a4adba] hover:text-[#505967]"
                     >
                       {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -639,8 +639,8 @@ export default function OnboardPage() {
               <div className="flex items-center justify-between mt-6">
                 <button
                   onClick={() => setStep(1)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#E8E8E8]
-                             bg-white hover:bg-[#FAFAFA] text-sm font-medium text-[#555555] transition"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#e4e7ec]
+                             bg-white hover:bg-[#fafafa] text-sm font-medium text-[#505967] transition"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
@@ -649,8 +649,8 @@ export default function OnboardPage() {
                   <button
                     onClick={handleM365Test}
                     disabled={!tenantId || !clientId || !clientSecret || m365Testing}
-                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#E8E8E8]
-                               bg-white hover:bg-[#FAFAFA] text-sm font-medium text-[#1A1A1A]
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#e4e7ec]
+                               bg-white hover:bg-[#fafafa] text-sm font-medium text-[#1c1d1f]
                                disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     {m365Testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
@@ -659,7 +659,7 @@ export default function OnboardPage() {
                   <button
                     onClick={handleM365Save}
                     disabled={!m365Result?.ok || m365Saving}
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0A0A0A] hover:bg-[#111111]
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1c1d1f] hover:bg-[#1c1d1f]
                                text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition"
                   >
                     {m365Saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
@@ -673,9 +673,9 @@ export default function OnboardPage() {
 
           {/* ── Step 3: Additional Platforms ── */}
           {step === 3 && (
-            <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-card p-8">
-              <h1 className="text-xl font-bold text-[#0A0A0A] mb-1">Connect your other platforms</h1>
-              <p className="text-sm text-[#555555] mb-6">
+            <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-card p-8">
+              <h1 className="text-xl font-bold text-[#1c1d1f] mb-1">Connect your other platforms</h1>
+              <p className="text-sm text-[#505967] mb-6">
                 These help INDEX gather evidence from more systems for a fuller assessment. All integrations are optional.
               </p>
 
@@ -698,18 +698,18 @@ export default function OnboardPage() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-[#F3F3F3]">
+              <div className="flex items-center justify-between pt-2 border-t border-[#eeeff1]">
                 <button
                   onClick={() => setStep(2)}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#E8E8E8]
-                             bg-white hover:bg-[#FAFAFA] text-sm font-medium text-[#555555] transition"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-[#e4e7ec]
+                             bg-white hover:bg-[#fafafa] text-sm font-medium text-[#505967] transition"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   Back
                 </button>
                 <button
                   onClick={() => setStep(4)}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0A0A0A] hover:bg-[#111111]
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1c1d1f] hover:bg-[#1c1d1f]
                              text-white text-sm font-semibold transition"
                 >
                   Finish Setup
@@ -721,27 +721,27 @@ export default function OnboardPage() {
 
           {/* ── Step 4: Done ── */}
           {step === 4 && (
-            <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-card p-10 text-center">
+            <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-card p-10 text-center">
               <div className="w-16 h-16 rounded-2xl bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="w-8 h-8 text-[#15803D]" />
               </div>
-              <h1 className="text-2xl font-bold text-[#0A0A0A] mb-3">Setup complete!</h1>
-              <p className="text-sm text-[#555555] leading-relaxed mb-2 max-w-sm mx-auto">
+              <h1 className="text-2xl font-bold text-[#1c1d1f] mb-3">Setup complete!</h1>
+              <p className="text-sm text-[#505967] leading-relaxed mb-2 max-w-sm mx-auto">
                 Your Microsoft 365 tenant is connected and your assessment will begin shortly.
               </p>
               {connectedPlatforms.size > 0 && (
-                <p className="text-sm text-[#555555] mb-6 max-w-sm mx-auto">
+                <p className="text-sm text-[#505967] mb-6 max-w-sm mx-auto">
                   {connectedPlatforms.size} additional platform{connectedPlatforms.size !== 1 ? 's' : ''} connected:{' '}
                   {Array.from(connectedPlatforms).map(id => PLATFORMS.find(p => p.id === id)?.name).filter(Boolean).join(', ')}.
                 </p>
               )}
-              <p className="text-sm text-[#999999] mb-8 max-w-sm mx-auto">
+              <p className="text-sm text-[#6f7988] mb-8 max-w-sm mx-auto">
                 Your compliance advisor will be in touch.
               </p>
               <a
                 href="/"
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[#E8E8E8]
-                           bg-white hover:bg-[#FAFAFA] text-sm font-medium text-[#1A1A1A] transition"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg border border-[#e4e7ec]
+                           bg-white hover:bg-[#fafafa] text-sm font-medium text-[#1c1d1f] transition"
               >
                 Return to homepage
                 <ArrowRight className="w-4 h-4" />

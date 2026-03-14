@@ -196,10 +196,10 @@ function ConfigureModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl border border-[#E8E8E8] shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-2xl w-full max-w-md overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-6 py-4 border-b border-[#F3F3F3]">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-[#eeeff1]">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[13px] font-bold"
             style={{ background: meta.color + '18', color: meta.color }}
@@ -207,14 +207,14 @@ function ConfigureModal({
             {meta.name.charAt(0)}
           </div>
           <div className="flex-1 min-w-0">
-            <h2 className="text-[14px] font-semibold text-[#0A0A0A]">
+            <h2 className="text-[14px] font-semibold text-[#1c1d1f]">
               {existing?.status === 'connected' ? 'Reconfigure' : 'Connect'} {meta.name}
             </h2>
-            <p className="text-[11px] text-[#999999] truncate">{meta.description}</p>
+            <p className="text-[11px] text-[#6f7988] truncate">{meta.description}</p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[#999999] hover:text-[#0A0A0A] hover:bg-[#FAFAFA] transition"
+            className="p-1.5 rounded-lg text-[#6f7988] hover:text-[#1c1d1f] hover:bg-[#fafafa] transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -227,7 +227,7 @@ function ConfigureModal({
             const isShow = showPwd[field.key]
             return (
               <div key={field.key}>
-                <label className="block text-[11px] font-semibold text-[#444444] uppercase tracking-widest mb-1.5">
+                <label className="block text-[11px] font-semibold text-[#505967] uppercase tracking-widest mb-1.5">
                   {field.label}
                 </label>
                 <div className="relative">
@@ -236,13 +236,13 @@ function ConfigureModal({
                     value={values[field.key] ?? ''}
                     onChange={e => setVal(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    className="w-full px-3 py-2.5 text-[13px] rounded-lg border border-[#E8E8E8] bg-white text-[#0A0A0A] placeholder-[#D4D4D4] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/10 focus:border-[#999999] transition pr-9"
+                    className="w-full px-3 py-2.5 text-[13px] rounded-lg border border-[#e4e7ec] bg-white text-[#1c1d1f] placeholder-[#cad0d9] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/10 focus:border-[#6f7988] transition pr-9"
                   />
                   {isPwd && (
                     <button
                       type="button"
                       onClick={() => setShowPwd(s => ({ ...s, [field.key]: !s[field.key] }))}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555]"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6f7988] hover:text-[#505967]"
                     >
                       {isShow ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
@@ -268,11 +268,11 @@ function ConfigureModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-[#F3F3F3] bg-[#FAFAFA]">
+        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-[#eeeff1] bg-[#fafafa]">
           <button
             onClick={handleTest}
             disabled={!allFilled() || testing || saving}
-            className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg border border-[#E8E8E8] bg-white text-[#1A1A1A] hover:bg-[#F3F3F3] disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg border border-[#e4e7ec] bg-white text-[#1c1d1f] hover:bg-[#eeeff1] disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
             Test Connection
@@ -280,14 +280,14 @@ function ConfigureModal({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold rounded-lg border border-[#E8E8E8] bg-white text-[#555555] hover:bg-[#F3F3F3] transition"
+              className="px-4 py-2 text-[12px] font-semibold rounded-lg border border-[#e4e7ec] bg-white text-[#505967] hover:bg-[#eeeff1] transition"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!allFilled() || saving || testing}
-              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg bg-[#0A0A0A] text-white hover:bg-[#111111] disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg bg-[#1c1d1f] text-white hover:bg-[#1c1d1f] disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Save Credentials
@@ -306,7 +306,7 @@ function StatusPill({ status }: { status: ConnStatus }) {
     connected:     { label: 'Connected',         dot: 'bg-[#16A34A] animate-pulse', text: 'text-[#16A34A]', bg: 'bg-[#F0FDF4]', border: 'border-[#BBF7D0]' },
     error:         { label: 'Error',             dot: 'bg-[#DC2626]',               text: 'text-[#DC2626]', bg: 'bg-[#FEF2F2]', border: 'border-[#FECACA]' },
     pending:       { label: 'Credentials saved', dot: 'bg-[#D97706]',               text: 'text-[#D97706]', bg: 'bg-[#FFFBEB]', border: 'border-[#FDE68A]' },
-    not_connected: { label: 'Not connected',     dot: 'bg-[#D4D4D4]',               text: 'text-[#999999]', bg: 'bg-[#FAFAFA]', border: 'border-[#E8E8E8]' },
+    not_connected: { label: 'Not connected',     dot: 'bg-[#cad0d9]',               text: 'text-[#6f7988]', bg: 'bg-[#fafafa]', border: 'border-[#e4e7ec]' },
   }
   const s = styles[status]
   return (
@@ -347,31 +347,31 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
       meta.soon ? 'opacity-60' : '',
       status === 'connected' ? 'border-[#BBF7D0]' :
       status === 'error'     ? 'border-[#FECACA]' :
-      'border-[#E8E8E8]',
+      'border-[#e4e7ec]',
     ].join(' ')}>
       <div className="p-4 flex flex-col h-full">
         <div className="flex items-start gap-3 mb-3">
           <PlatformLogo color={meta.color} name={meta.name} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-[13px] font-semibold text-[#0A0A0A] leading-tight">{meta.name}</h3>
+              <h3 className="text-[13px] font-semibold text-[#1c1d1f] leading-tight">{meta.name}</h3>
               {meta.soon && (
                 <span className="text-[10px] font-semibold text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-1.5 py-0.5 rounded-full">
                   Soon
                 </span>
               )}
             </div>
-            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#999999] mt-0.5">
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[#6f7988] mt-0.5">
               <meta.categoryIcon className="w-2.5 h-2.5" />
               {meta.category}
             </span>
           </div>
         </div>
 
-        <p className="text-[11px] text-[#555555] leading-relaxed flex-1">{meta.description}</p>
+        <p className="text-[11px] text-[#505967] leading-relaxed flex-1">{meta.description}</p>
 
         {intg?.connectedAt && (
-          <p className="text-[10px] text-[#999999] mt-2">
+          <p className="text-[10px] text-[#6f7988] mt-2">
             Connected {new Date(intg.connectedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </p>
         )}
@@ -379,12 +379,12 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
           <p className="text-[10px] text-[#DC2626] mt-1 truncate" title={intg.errorMessage}>{intg.errorMessage}</p>
         )}
 
-        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F3F3F3]">
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#eeeff1]">
           <StatusPill status={status} />
           {!meta.soon && (
             <button
               onClick={() => onConnect(id)}
-              className="text-[11px] font-semibold text-[#1A1A1A] hover:text-[#0A0A0A] transition px-2.5 py-1 rounded-lg hover:bg-[#FAFAFA] border border-transparent hover:border-[#E8E8E8]"
+              className="text-[11px] font-semibold text-[#1c1d1f] hover:text-[#1c1d1f] transition px-2.5 py-1 rounded-lg hover:bg-[#fafafa] border border-transparent hover:border-[#e4e7ec]"
             >
               {status === 'connected' ? 'Reconfigure' : 'Connect →'}
             </button>
@@ -402,8 +402,8 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
   onReconfigure: () => void; onTest: () => void; testing: boolean
 }) {
   return (
-    <div className={`bg-white rounded-xl border overflow-hidden shadow-card ${connected ? 'border-[#BBF7D0]' : 'border-[#E8E8E8]'}`}>
-      <div className="flex items-start gap-4 p-5 border-b border-[#F3F3F3]">
+    <div className={`bg-white rounded-xl border overflow-hidden shadow-card ${connected ? 'border-[#BBF7D0]' : 'border-[#e4e7ec]'}`}>
+      <div className="flex items-start gap-4 p-5 border-b border-[#eeeff1]">
         <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center shrink-0">
           <svg viewBox="0 0 96 96" className="w-6 h-6" fill="none">
             <path d="M48 4L4 20v56l44 16 44-16V20L48 4z" fill="#0078D4"/>
@@ -413,10 +413,10 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-[14px] font-semibold text-[#0A0A0A]">Microsoft Entra ID</h3>
+            <h3 className="text-[14px] font-semibold text-[#1c1d1f]">Microsoft Entra ID</h3>
             <span className="text-[10px] font-medium text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-2 py-0.5 rounded-full">Identity</span>
           </div>
-          <p className="text-[12px] text-[#555555] leading-relaxed">
+          <p className="text-[12px] text-[#505967] leading-relaxed">
             OAuth 2.0 client credentials for Microsoft Graph API access across all connected tenants.
           </p>
         </div>
@@ -424,7 +424,7 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
       </div>
 
       {connected && (
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3 px-5 py-4 bg-[#FAFAFA] border-b border-[#F3F3F3]">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3 px-5 py-4 bg-[#fafafa] border-b border-[#eeeff1]">
           {[
             ['Tenant Name', tenantName],
             ['Tenant ID',   tenantId],
@@ -432,8 +432,8 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
             ['Scope',       'https://graph.microsoft.com/.default'],
           ].map(([k, v]) => (
             <div key={k}>
-              <p className="text-[10px] font-semibold text-[#BBBBBB] uppercase tracking-widest">{k}</p>
-              <p className="text-[12px] text-[#1A1A1A] font-mono mt-0.5 truncate">{v}</p>
+              <p className="text-[10px] font-semibold text-[#a4adba] uppercase tracking-widest">{k}</p>
+              <p className="text-[12px] text-[#1c1d1f] font-mono mt-0.5 truncate">{v}</p>
             </div>
           ))}
         </div>
@@ -442,7 +442,7 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
       <div className="flex items-center gap-2 px-5 py-3">
         <button
           onClick={onReconfigure}
-          className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E8E8E8] bg-white hover:bg-[#FAFAFA] text-[#1A1A1A] transition"
+          className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#e4e7ec] bg-white hover:bg-[#fafafa] text-[#1c1d1f] transition"
         >
           <Settings className="w-3 h-3" />
           {connected ? 'Reconfigure' : 'Connect'}
@@ -451,7 +451,7 @@ function MicrosoftEntraCard({ connected, tenantName, tenantId, onReconfigure, on
           <button
             onClick={onTest}
             disabled={testing}
-            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E8E8E8] bg-white hover:bg-[#FAFAFA] text-[#1A1A1A] transition disabled:opacity-60 disabled:cursor-wait"
+            className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#e4e7ec] bg-white hover:bg-[#fafafa] text-[#1c1d1f] transition disabled:opacity-60 disabled:cursor-wait"
           >
             {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Activity className="w-3 h-3" />}
             Test Connection
@@ -548,8 +548,8 @@ export default function IntegrationsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-bold text-[#0A0A0A] tracking-tight">Integrations</h1>
-          <p className="text-[13px] text-[#999999] mt-1">Connect INDEX to your clients' security and productivity tools</p>
+          <h1 className="text-[22px] font-bold text-[#1c1d1f] tracking-tight">Integrations</h1>
+          <p className="text-[13px] text-[#6f7988] mt-1">Connect INDEX to your clients' security and productivity tools</p>
         </div>
       </div>
 
@@ -571,12 +571,12 @@ export default function IntegrationsPage() {
       {/* ── Microsoft Platform ── */}
       <div className="mb-8">
         <div className="flex items-center gap-2 mb-3">
-          <h2 className="text-[11px] font-bold text-[#999999] uppercase tracking-widest">Microsoft Platform</h2>
-          <div className="flex-1 h-px bg-[#F3F3F3]" />
+          <h2 className="text-[11px] font-bold text-[#6f7988] uppercase tracking-widest">Microsoft Platform</h2>
+          <div className="flex-1 h-px bg-[#eeeff1]" />
         </div>
         {loadingStatus ? (
-          <div className="bg-white rounded-xl border border-[#E8E8E8] p-10 flex justify-center shadow-card">
-            <Loader2 className="w-5 h-5 animate-spin text-[#BBBBBB]" />
+          <div className="bg-white rounded-xl border border-[#e4e7ec] p-10 flex justify-center shadow-card">
+            <Loader2 className="w-5 h-5 animate-spin text-[#a4adba]" />
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -588,8 +588,8 @@ export default function IntegrationsPage() {
               onTest={handleTest}
               testing={testing}
             />
-            <div className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden shadow-card">
-              <div className="flex items-start gap-4 p-5 border-b border-[#F3F3F3]">
+            <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden shadow-card">
+              <div className="flex items-start gap-4 p-5 border-b border-[#eeeff1]">
                 <div className="w-11 h-11 rounded-xl bg-[#F0F9FF] border border-[#BAE6FD] flex items-center justify-center shrink-0">
                   <svg viewBox="0 0 96 96" className="w-6 h-6" fill="none">
                     <circle cx="48" cy="48" r="44" fill="#00BCF2"/>
@@ -599,10 +599,10 @@ export default function IntegrationsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-[14px] font-semibold text-[#0A0A0A]">Microsoft Graph API</h3>
+                    <h3 className="text-[14px] font-semibold text-[#1c1d1f]">Microsoft Graph API</h3>
                     <span className="text-[10px] font-medium text-[#0369A1] bg-[#F0F9FF] border border-[#BAE6FD] px-2 py-0.5 rounded-full">Data</span>
                   </div>
-                  <p className="text-[12px] text-[#555555] leading-relaxed">
+                  <p className="text-[12px] text-[#505967] leading-relaxed">
                     Unified endpoint for users, devices, security events, compliance policies, and audit logs.
                   </p>
                 </div>
@@ -612,13 +612,13 @@ export default function IntegrationsPage() {
                 <a
                   href="https://developer.microsoft.com/en-us/graph/graph-explorer"
                   target="_blank" rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E8E8E8] bg-white hover:bg-[#FAFAFA] text-[#1A1A1A] transition"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#e4e7ec] bg-white hover:bg-[#fafafa] text-[#1c1d1f] transition"
                 >
                   <Globe className="w-3 h-3" /> Graph Explorer <ExternalLink className="w-3 h-3" />
                 </a>
                 <button
                   onClick={() => router.push('/assess')}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#E8E8E8] bg-white hover:bg-[#FAFAFA] text-[#1A1A1A] transition"
+                  className="inline-flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded-lg border border-[#e4e7ec] bg-white hover:bg-[#fafafa] text-[#1c1d1f] transition"
                 >
                   <Lock className="w-3 h-3" /> View Permissions
                 </button>
@@ -632,8 +632,8 @@ export default function IntegrationsPage() {
       <div>
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center gap-2">
-            <h2 className="text-[11px] font-bold text-[#999999] uppercase tracking-widest">Client Integrations</h2>
-            <div className="h-px bg-[#F3F3F3] w-8" />
+            <h2 className="text-[11px] font-bold text-[#6f7988] uppercase tracking-widest">Client Integrations</h2>
+            <div className="h-px bg-[#eeeff1] w-8" />
           </div>
 
           {/* Client selector */}
@@ -641,20 +641,20 @@ export default function IntegrationsPage() {
             <div className="relative ml-auto">
               <button
                 onClick={() => setDropdownOpen(o => !o)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#E8E8E8] bg-white hover:bg-[#FAFAFA] text-[12px] font-medium text-[#1A1A1A] transition"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#e4e7ec] bg-white hover:bg-[#fafafa] text-[12px] font-medium text-[#1c1d1f] transition"
               >
-                <Building2 className="w-3 h-3 text-[#999999]" />
+                <Building2 className="w-3 h-3 text-[#6f7988]" />
                 {selectedClient?.name ?? 'Select client'}
-                <ChevronDown className="w-3 h-3 text-[#999999]" />
+                <ChevronDown className="w-3 h-3 text-[#6f7988]" />
               </button>
               {dropdownOpen && (
-                <div className="absolute right-0 top-full mt-1 bg-white border border-[#E8E8E8] rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 bg-white border border-[#e4e7ec] rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
                   {clients.map(c => (
                     <button
                       key={c.id}
                       onClick={() => { setSelectedClient(c); setDropdownOpen(false) }}
                       className={`w-full text-left px-4 py-2.5 text-[12px] font-medium transition ${
-                        selectedClient?.id === c.id ? 'bg-[#FAFAFA] text-[#0A0A0A]' : 'text-[#1A1A1A] hover:bg-[#FAFAFA]'
+                        selectedClient?.id === c.id ? 'bg-[#fafafa] text-[#1c1d1f]' : 'text-[#1c1d1f] hover:bg-[#fafafa]'
                       }`}
                     >
                       {c.name}
@@ -667,14 +667,14 @@ export default function IntegrationsPage() {
         </div>
 
         {loadingClients ? (
-          <div className="bg-white rounded-xl border border-[#E8E8E8] p-10 flex justify-center shadow-card">
-            <Loader2 className="w-5 h-5 animate-spin text-[#BBBBBB]" />
+          <div className="bg-white rounded-xl border border-[#e4e7ec] p-10 flex justify-center shadow-card">
+            <Loader2 className="w-5 h-5 animate-spin text-[#a4adba]" />
           </div>
         ) : clients.length === 0 ? (
-          <div className="bg-white rounded-xl border border-[#E8E8E8] p-10 text-center shadow-card">
-            <Building2 className="w-8 h-8 text-[#D4D4D4] mx-auto mb-3" />
-            <p className="text-[13px] font-medium text-[#999999] mb-1">No clients yet</p>
-            <p className="text-[12px] text-[#BBBBBB]">
+          <div className="bg-white rounded-xl border border-[#e4e7ec] p-10 text-center shadow-card">
+            <Building2 className="w-8 h-8 text-[#cad0d9] mx-auto mb-3" />
+            <p className="text-[13px] font-medium text-[#6f7988] mb-1">No clients yet</p>
+            <p className="text-[12px] text-[#a4adba]">
               Add a client on the{' '}
               <button onClick={() => router.push('/clients')} className="text-[#C4A96D] hover:underline">Clients page</button>
               {' '}to configure integrations.
@@ -683,7 +683,7 @@ export default function IntegrationsPage() {
         ) : (
           <>
             {/* Filter tabs */}
-            <div className="flex items-center gap-1 bg-[#FAFAFA] rounded-lg p-1 w-fit mb-5 border border-[#E8E8E8]">
+            <div className="flex items-center gap-1 bg-[#fafafa] rounded-lg p-1 w-fit mb-5 border border-[#e4e7ec]">
               {(['all', 'connected', 'available'] as FilterTab[]).map(tab => (
                 <button
                   key={tab}
@@ -691,12 +691,12 @@ export default function IntegrationsPage() {
                   className={[
                     'px-3.5 py-1.5 rounded-md text-[12px] font-semibold capitalize transition-colors',
                     filter === tab
-                      ? 'bg-white text-[#0A0A0A] shadow-sm border border-[#E8E8E8]'
-                      : 'text-[#999999] hover:text-[#1A1A1A]',
+                      ? 'bg-white text-[#1c1d1f] shadow-sm border border-[#e4e7ec]'
+                      : 'text-[#6f7988] hover:text-[#1c1d1f]',
                   ].join(' ')}
                 >
                   {tab}
-                  <span className={`ml-1.5 text-[10px] ${filter === tab ? 'text-[#999999]' : 'text-[#BBBBBB]'}`}>
+                  <span className={`ml-1.5 text-[10px] ${filter === tab ? 'text-[#6f7988]' : 'text-[#a4adba]'}`}>
                     {filterCounts[tab]}
                   </span>
                 </button>
@@ -704,8 +704,8 @@ export default function IntegrationsPage() {
             </div>
 
             {loadingIntgs ? (
-              <div className="bg-white rounded-xl border border-[#E8E8E8] p-10 flex justify-center shadow-card">
-                <Loader2 className="w-5 h-5 animate-spin text-[#BBBBBB]" />
+              <div className="bg-white rounded-xl border border-[#e4e7ec] p-10 flex justify-center shadow-card">
+                <Loader2 className="w-5 h-5 animate-spin text-[#a4adba]" />
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -721,8 +721,8 @@ export default function IntegrationsPage() {
             )}
 
             {filteredIds.length === 0 && (
-              <div className="bg-white rounded-xl border border-[#E8E8E8] p-10 text-center shadow-card">
-                <p className="text-[13px] text-[#999999]">
+              <div className="bg-white rounded-xl border border-[#e4e7ec] p-10 text-center shadow-card">
+                <p className="text-[13px] text-[#6f7988]">
                   {filter === 'connected' ? 'No integrations connected yet.' : 'No integrations available.'}
                 </p>
               </div>

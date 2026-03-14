@@ -9,21 +9,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        canvas:  '#FAFAFA',
-        surface: '#FFFFFF',
-        border:  '#E8E8E8',
-        'border-light': '#F3F3F3',
-        ink:     '#0A0A0A',
-        muted:   '#555555',
-        faint:   '#999999',
+        // ── Attio-exact semantic tokens ──────────────────────────────────────
+        canvas:        '#fafafa',     // page background
+        surface:       '#ffffff',     // card / modal backgrounds
+        border:        '#e4e7ec',     // standard border
+        'border-subtle': '#eeeff1',   // dividers, sidebar border
+        ink:           '#1c1d1f',     // primary text (near-black, slight blue cast)
+        secondary:     '#2e3238',     // nav text, button text
+        muted:         '#505967',     // body text, descriptions
+        faint:         '#6f7988',     // secondary muted, icons
+        placeholder:   '#a4adba',     // placeholder, overlines, very faint labels
+        // ── Surface states ───────────────────────────────────────────────────
+        hover:         '#f3f4f6',     // ghost button hover
+        active:        '#edeff3',     // ghost button active / nav active bg
+        // ── Sidebar ──────────────────────────────────────────────────────────
         sidebar: {
-          bg:     '#FFFFFF',
-          hover:  '#F5F5F5',
-          active: '#EBEBEB',
-          border: '#D0D0D0',
-          text:   '#666666',
-          bright: '#FAFAFA',
+          bg:     '#fbfbfb',          // barely-off-white (Attio exact)
+          border: '#eeeff1',
+          hover:  '#f3f4f6',
+          active: '#edeff3',
+          text:   '#505967',
         },
+        // ── Accent ───────────────────────────────────────────────────────────
+        gold:          '#C4A96D',     // INDEX brand accent
+        blue:          '#266df0',     // interactive / AI features (Attio blue)
+        // ── Semantic status (kept as pops of color) ───────────────────────────
         teal: {
           50:  '#F0FDFA',
           100: '#CCFBF1',
@@ -47,10 +57,26 @@ const config: Config = {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
+      // ── Attio multi-layer shadow system ──────────────────────────────────────
+      // Base color: rgba(28,29,31,…) — their near-black, not pure black
       boxShadow: {
-        card:       '0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 3px 0 rgb(0 0 0 / 0.04)',
-        'card-hover':'0 4px 16px 0 rgb(0 0 0 / 0.08), 0 2px 4px -1px rgb(0 0 0 / 0.04)',
-        'card-lg':  '0 2px 8px 0 rgb(0 0 0 / 0.06), 0 1px 3px -1px rgb(0 0 0 / 0.04)',
+        card: [
+          '0px 0px 0px 1px rgba(28,29,31,0.08)',
+          '0px 1px 2px 0px rgba(28,29,31,0.05)',
+          '0px 2px 4px -1px rgba(28,29,31,0.04)',
+        ].join(', '),
+        'card-hover': [
+          '0px 0px 0px 1px rgba(28,29,31,0.08)',
+          '0px 4px 8px -2px rgba(28,29,31,0.06)',
+          '0px 8px 16px -4px rgba(28,29,31,0.08)',
+          '0px 16px 32px -8px rgba(28,29,31,0.06)',
+        ].join(', '),
+        'card-lg': [
+          '0px 0px 0px 1px rgba(28,29,31,0.08)',
+          '0px 2px 6px 0px rgba(28,29,31,0.06)',
+          '0px 6px 20px -2px rgba(28,29,31,0.08)',
+        ].join(', '),
+        float: '0px 2px 6px 0px rgba(28,40,64,0.06), 0px 6px 20px -2px rgba(28,40,64,0.08)',
       },
     },
   },

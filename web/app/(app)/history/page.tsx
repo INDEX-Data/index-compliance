@@ -53,14 +53,14 @@ export default function HistoryPage() {
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-[22px] font-bold text-[#0A0A0A] tracking-tight">Report History</h1>
-          <p className="text-sm text-[#555555] mt-1">
+          <h1 className="text-[22px] font-bold text-[#1c1d1f] tracking-tight">Report History</h1>
+          <p className="text-sm text-[#505967] mt-1">
             {reports.length > 0 ? `${reports.length} report${reports.length !== 1 ? 's' : ''} across ${frameworkIds.length} framework${frameworkIds.length !== 1 ? 's' : ''}` : 'All saved compliance assessment reports'}
           </p>
         </div>
         <Link
           href="/assess"
-          className="inline-flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#111111] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+          className="inline-flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
         >
           <Play className="w-3.5 h-3.5" />
           New Assessment
@@ -68,22 +68,22 @@ export default function HistoryPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-32 text-[#999999]">
+        <div className="flex items-center justify-center py-32 text-[#6f7988]">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />
           <span className="text-sm">Loading reports…</span>
         </div>
       ) : reports.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-white border border-[#E8E8E8] flex items-center justify-center mb-5 shadow-card">
-            <FileText className="w-7 h-7 text-[#D4D4D4]" />
+          <div className="w-14 h-14 rounded-2xl bg-white border border-[#e4e7ec] flex items-center justify-center mb-5 shadow-card">
+            <FileText className="w-7 h-7 text-[#cad0d9]" />
           </div>
-          <h3 className="text-base font-semibold text-[#0A0A0A] mb-2">No reports yet</h3>
-          <p className="text-sm text-[#555555] max-w-sm mb-7 leading-relaxed">
+          <h3 className="text-base font-semibold text-[#1c1d1f] mb-2">No reports yet</h3>
+          <p className="text-sm text-[#505967] max-w-sm mb-7 leading-relaxed">
             Run an assessment to generate your first compliance report.
           </p>
           <Link
             href="/assess"
-            className="inline-flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#111111] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            className="inline-flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             <Play className="w-3.5 h-3.5" />
             Run Assessment
@@ -94,32 +94,32 @@ export default function HistoryPage() {
           {frameworkIds.map(fwId => {
             const rows = grouped[fwId]
             return (
-              <div key={fwId} className="bg-white rounded-xl border border-[#E8E8E8] overflow-hidden shadow-card">
+              <div key={fwId} className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden shadow-card">
                 {/* Framework group header */}
-                <div className="px-5 py-3 bg-[#FAFAFA] border-b border-[#F3F3F3] flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-white border border-[#E8E8E8] flex items-center justify-center shrink-0">
-                    <Shield className="w-3.5 h-3.5 text-[#999999]" />
+                <div className="px-5 py-3 bg-[#fafafa] border-b border-[#eeeff1] flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-white border border-[#e4e7ec] flex items-center justify-center shrink-0">
+                    <Shield className="w-3.5 h-3.5 text-[#6f7988]" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-[13px] font-bold text-[#0A0A0A]">{rows[0].frameworkName}</span>
+                    <span className="text-[13px] font-bold text-[#1c1d1f]">{rows[0].frameworkName}</span>
                   </div>
-                  <span className="text-[11px] text-[#BBBBBB]">
+                  <span className="text-[11px] text-[#a4adba]">
                     {rows.length} run{rows.length !== 1 ? 's' : ''}
                   </span>
                 </div>
 
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#F3F3F3]">
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#999999] uppercase tracking-widest">Date</th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#999999] uppercase tracking-widest">Score</th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#999999] uppercase tracking-widest">Δ vs prev</th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#999999] uppercase tracking-widest">Risk</th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#999999] uppercase tracking-widest">Controls</th>
-                      <th className="text-right px-5 py-3 text-[10px] font-semibold text-[#999999] uppercase tracking-widest" />
+                    <tr className="border-b border-[#eeeff1]">
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest">Date</th>
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest">Score</th>
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest">Δ vs prev</th>
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest">Risk</th>
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest">Controls</th>
+                      <th className="text-right px-5 py-3 text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest" />
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#F3F3F3]">
+                  <tbody className="divide-y divide-[#eeeff1]">
                     {rows.map((r, idx) => {
                       const pct      = r.summary.compliancePercentage
                       const color    = scoreColor(pct)
@@ -131,7 +131,7 @@ export default function HistoryPage() {
                       return (
                         <tr
                           key={r.reportId}
-                          className="hover:bg-[#FAFAFA] transition cursor-pointer"
+                          className="hover:bg-[#fafafa] transition cursor-pointer"
                           onClick={() => router.push(`/assess/${r.reportId}`)}
                         >
                           {/* Date */}
@@ -143,14 +143,14 @@ export default function HistoryPage() {
                                 </span>
                               )}
                               <div>
-                                <div className="text-[12px] text-[#1A1A1A] flex items-center gap-1.5">
-                                  <Calendar className="w-3 h-3 text-[#BBBBBB]" />
+                                <div className="text-[12px] text-[#1c1d1f] flex items-center gap-1.5">
+                                  <Calendar className="w-3 h-3 text-[#a4adba]" />
                                   {new Date(r.generatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </div>
-                                <div className="text-[10px] text-[#BBBBBB] mt-0.5 ml-4.5">
+                                <div className="text-[10px] text-[#a4adba] mt-0.5 ml-4.5">
                                   {new Date(r.generatedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                                 </div>
-                                <div className="text-[9px] text-[#D4D4D4] font-mono mt-0.5">{r.reportId}</div>
+                                <div className="text-[9px] text-[#cad0d9] font-mono mt-0.5">{r.reportId}</div>
                               </div>
                             </div>
                           </td>
@@ -158,7 +158,7 @@ export default function HistoryPage() {
                           {/* Score */}
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-2">
-                              <div className="w-16 bg-[#F3F3F3] rounded-full h-1.5">
+                              <div className="w-16 bg-[#eeeff1] rounded-full h-1.5">
                                 <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, background: color }} />
                               </div>
                               <span className="text-[13px] font-bold tabular-nums" style={{ color }}>{pct}%</span>
@@ -181,7 +181,7 @@ export default function HistoryPage() {
                               <span className="font-semibold text-[#15803D]">{r.summary.passed}✓</span>
                               {r.summary.partial > 0 && <span className="font-semibold text-[#B45309]">{r.summary.partial}~</span>}
                               {r.summary.failed > 0 && <span className="font-semibold text-[#B91C1C]">{r.summary.failed}✗</span>}
-                              <span className="text-[#D4D4D4]">/ {r.summary.totalControls}</span>
+                              <span className="text-[#cad0d9]">/ {r.summary.totalControls}</span>
                             </div>
                           </td>
 
@@ -190,7 +190,7 @@ export default function HistoryPage() {
                             <div className="flex items-center justify-end gap-1">
                               <Link
                                 href={`/assess/${r.reportId}`}
-                                className="p-1.5 rounded-lg text-[#BBBBBB] hover:text-[#0A0A0A] hover:bg-[#FAFAFA] transition"
+                                className="p-1.5 rounded-lg text-[#a4adba] hover:text-[#1c1d1f] hover:bg-[#fafafa] transition"
                                 title="View report"
                               >
                                 <ChevronRight className="w-4 h-4" />
@@ -198,7 +198,7 @@ export default function HistoryPage() {
                               <button
                                 onClick={() => handleDelete(r.reportId)}
                                 disabled={deleting === r.reportId}
-                                className="p-1.5 rounded-lg text-[#BBBBBB] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition disabled:opacity-40"
+                                className="p-1.5 rounded-lg text-[#a4adba] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition disabled:opacity-40"
                                 title="Delete report"
                               >
                                 {deleting === r.reportId
@@ -224,11 +224,11 @@ export default function HistoryPage() {
 
 function DeltaCell({ delta }: { delta: number | null }) {
   if (delta === null) {
-    return <span className="text-[11px] text-[#D4D4D4]">—</span>
+    return <span className="text-[11px] text-[#cad0d9]">—</span>
   }
   if (Math.abs(delta) < 0.5) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-[#999999]">
+      <span className="inline-flex items-center gap-1 text-[11px] text-[#6f7988]">
         <Minus className="w-3 h-3" /> 0%
       </span>
     )

@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --canvas:  #FAFAFA;
+  --canvas:  #fafafa;
   --surface: #FFFFFF;
-  --border:  #E8E8E8;
-  --ink:     #0A0A0A;
-  --muted:   #555555;
+  --border:  #e4e7ec;
+  --ink:     #1c1d1f;
+  --muted:   #505967;
 }
 
 * {
@@ -29,12 +29,12 @@ body {
 /* ── Scrollbar — main content ─────────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: #E0E0E0; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #C8C8C8; }
+::-webkit-scrollbar-thumb    { background: #e4e7ec; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #cad0d9; }
 
-/* ── Scrollbar — sidebar (white bg, very subtle) ──────────────────────────── */
-.sidebar-scroll::-webkit-scrollbar-thumb       { background: #EBEBEB; }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #D8D8D8; }
+/* ── Scrollbar — sidebar (barely-off-white bg, ultra-subtle) ─────────────── */
+.sidebar-scroll::-webkit-scrollbar-thumb       { background: #eeeff1; }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #e4e7ec; }
 
 /* ── Smooth micro-transitions ─────────────────────────────────────────────── */
 *, *::before, *::after {

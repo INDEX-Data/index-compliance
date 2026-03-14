@@ -45,10 +45,10 @@ function Section({ title, description, children, last }: {
   title: string; description?: string; children: React.ReactNode; last?: boolean
 }) {
   return (
-    <div className={`py-7 ${!last ? 'border-b border-[#F3F3F3]' : ''}`}>
+    <div className={`py-7 ${!last ? 'border-b border-[#eeeff1]' : ''}`}>
       <div className="mb-5">
-        <h3 className="text-[14px] font-semibold text-[#0A0A0A]">{title}</h3>
-        {description && <p className="text-[13px] text-[#999999] mt-1 leading-relaxed">{description}</p>}
+        <h3 className="text-[14px] font-semibold text-[#1c1d1f]">{title}</h3>
+        {description && <p className="text-[13px] text-[#6f7988] mt-1 leading-relaxed">{description}</p>}
       </div>
       {children}
     </div>
@@ -65,7 +65,7 @@ function GeneralTab({ tenantName, clientCount, loading }: {
   return (
     <div>
       <Section title="Primary Azure Tenant" description="The Microsoft Entra ID tenant used for compliance assessments.">
-        <div className="bg-[#FAFAFA] rounded-xl border border-[#E8E8E8] p-4">
+        <div className="bg-[#fafafa] rounded-xl border border-[#e4e7ec] p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center">
@@ -76,10 +76,10 @@ function GeneralTab({ tenantName, clientCount, loading }: {
                 </svg>
               </div>
               <div>
-                <p className="text-[13px] font-semibold text-[#0A0A0A]">
+                <p className="text-[13px] font-semibold text-[#1c1d1f]">
                   {loading ? 'Loading…' : tenantName || 'Not configured'}
                 </p>
-                <p className="text-[11px] text-[#999999] mt-0.5">Microsoft Entra ID</p>
+                <p className="text-[11px] text-[#6f7988] mt-0.5">Microsoft Entra ID</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#16A34A] bg-[#F0FDF4] border border-[#BBF7D0] px-2.5 py-1 rounded-full">
@@ -89,7 +89,7 @@ function GeneralTab({ tenantName, clientCount, loading }: {
         </div>
         <button
           onClick={() => router.push('/setup')}
-          className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[#999999] hover:text-[#1A1A1A] transition"
+          className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6f7988] hover:text-[#1c1d1f] transition"
         >
           Reconfigure Azure credentials <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -100,21 +100,21 @@ function GeneralTab({ tenantName, clientCount, loading }: {
         description="Manage multiple Microsoft 365 tenants and run compliance assessments across all client environments."
         last
       >
-        <div className="flex items-center justify-between p-4 bg-[#FAFAFA] rounded-xl border border-[#E8E8E8]">
+        <div className="flex items-center justify-between p-4 bg-[#fafafa] rounded-xl border border-[#e4e7ec]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white border border-[#E8E8E8] flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-[#999999]" />
+            <div className="w-9 h-9 rounded-lg bg-white border border-[#e4e7ec] flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-[#6f7988]" />
             </div>
             <div>
-              <p className="text-[13px] font-semibold text-[#0A0A0A]">
+              <p className="text-[13px] font-semibold text-[#1c1d1f]">
                 {loading ? '—' : `${clientCount} ${clientCount === 1 ? 'client' : 'clients'}`}
               </p>
-              <p className="text-[11px] text-[#999999] mt-0.5">Active tenants</p>
+              <p className="text-[11px] text-[#6f7988] mt-0.5">Active tenants</p>
             </div>
           </div>
           <button
             onClick={() => router.push('/clients')}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#1A1A1A] hover:text-[#0A0A0A] bg-white border border-[#E8E8E8] hover:bg-[#FAFAFA] px-3 py-1.5 rounded-lg transition"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#1c1d1f] hover:text-[#1c1d1f] bg-white border border-[#e4e7ec] hover:bg-[#fafafa] px-3 py-1.5 rounded-lg transition"
           >
             Manage clients <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -182,12 +182,12 @@ function TeamTab() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCreate()}
-            className="flex-1 text-[13px] border border-[#E8E8E8] rounded-lg px-3.5 py-2.5 outline-none focus:border-[#C4A96D] focus:ring-2 focus:ring-[#C4A96D]/10 bg-white placeholder-[#BBBBBB] transition"
+            className="flex-1 text-[13px] border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 outline-none focus:border-[#C4A96D] focus:ring-2 focus:ring-[#C4A96D]/10 bg-white placeholder-[#a4adba] transition"
           />
           <button
             onClick={handleCreate}
             disabled={creating || !email.trim()}
-            className="px-4 py-2.5 text-[13px] font-semibold text-white bg-[#0A0A0A] rounded-lg hover:bg-[#111111] active:bg-[#1A1A1A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+            className="px-4 py-2.5 text-[13px] font-semibold text-white bg-[#1c1d1f] rounded-lg hover:bg-[#1c1d1f] active:bg-[#1c1d1f] disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
           >
             {creating ? 'Creating…' : 'Generate Link'}
           </button>
@@ -220,9 +220,9 @@ function TeamTab() {
       {(loading || pendingInvites.length > 0) && (
         <Section title="Pending Invites" description="Awaiting acceptance. Copy the link to resend.">
           {loading ? (
-            <div className="text-[13px] text-[#BBBBBB]">Loading…</div>
+            <div className="text-[13px] text-[#a4adba]">Loading…</div>
           ) : pendingInvites.length === 0 ? (
-            <p className="text-[13px] text-[#999999]">No pending invites.</p>
+            <p className="text-[13px] text-[#6f7988]">No pending invites.</p>
           ) : (
             <div className="space-y-2">
               {pendingInvites.map(inv => (
@@ -231,21 +231,21 @@ function TeamTab() {
                   className="flex items-center gap-3 px-4 py-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-lg"
                 >
                   <Mail className="w-3.5 h-3.5 text-[#D97706] shrink-0" />
-                  <span className="flex-1 text-[13px] text-[#0A0A0A] truncate font-medium">{inv.email}</span>
+                  <span className="flex-1 text-[13px] text-[#1c1d1f] truncate font-medium">{inv.email}</span>
                   <span className="flex items-center gap-1 text-[11px] text-[#D97706] shrink-0">
                     <Clock className="w-3 h-3" />
                     {timeLeft(inv.expiresAt)}
                   </span>
                   <button
                     onClick={() => copyText(`${window.location.origin}/join/${inv.token}`, inv.id)}
-                    className="p-1.5 text-[#999999] hover:text-[#1A1A1A] rounded-lg hover:bg-white/60 transition"
+                    className="p-1.5 text-[#6f7988] hover:text-[#1c1d1f] rounded-lg hover:bg-white/60 transition"
                     title="Copy invite link"
                   >
                     {copied === inv.id ? <Check className="w-3.5 h-3.5 text-[#16A34A]" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                   <button
                     onClick={async () => { await revokeTeamInvite(inv.id); refresh() }}
-                    className="p-1.5 text-[#999999] hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
+                    className="p-1.5 text-[#6f7988] hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
                     title="Revoke invite"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -260,12 +260,12 @@ function TeamTab() {
       {/* Active members */}
       <Section title="Team Members" description="People with access to your clients and assessments." last>
         {loading ? (
-          <div className="text-[13px] text-[#BBBBBB]">Loading…</div>
+          <div className="text-[13px] text-[#a4adba]">Loading…</div>
         ) : members.length === 0 ? (
           <div className="flex flex-col items-center py-8 text-center">
-            <Users className="w-8 h-8 text-[#D4D4D4] mb-3" />
-            <p className="text-[13px] font-medium text-[#999999]">No team members yet</p>
-            <p className="text-[12px] text-[#BBBBBB] mt-1">Generate an invite link above to get started.</p>
+            <Users className="w-8 h-8 text-[#cad0d9] mb-3" />
+            <p className="text-[13px] font-medium text-[#6f7988]">No team members yet</p>
+            <p className="text-[12px] text-[#a4adba] mt-1">Generate an invite link above to get started.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -276,11 +276,11 @@ function TeamTab() {
                     {m.memberId.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <span className="flex-1 text-[12px] font-mono text-[#1A1A1A] truncate">{m.memberId}</span>
-                <span className="text-[11px] text-[#555555] shrink-0">Joined {fmtDate(m.joinedAt)}</span>
+                <span className="flex-1 text-[12px] font-mono text-[#1c1d1f] truncate">{m.memberId}</span>
+                <span className="text-[11px] text-[#505967] shrink-0">Joined {fmtDate(m.joinedAt)}</span>
                 <button
                   onClick={async () => { await removeTeamMember(m.id); refresh() }}
-                  className="p-1.5 text-[#999999] hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
+                  className="p-1.5 text-[#6f7988] hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
                   title="Remove member"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -311,25 +311,25 @@ function IntegrationsTab() {
       <Section title="Connected Tools" description="Manage your third-party integration connections.">
         <button
           onClick={() => router.push('/integrations')}
-          className="w-full flex items-center justify-between p-4 bg-[#FAFAFA] rounded-xl border border-[#E8E8E8] hover:bg-white hover:border-[#D4D4D4] transition group"
+          className="w-full flex items-center justify-between p-4 bg-[#fafafa] rounded-xl border border-[#e4e7ec] hover:bg-white hover:border-[#cad0d9] transition group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white border border-[#E8E8E8] flex items-center justify-center">
-              <Plug className="w-4 h-4 text-[#999999]" />
+            <div className="w-9 h-9 rounded-lg bg-white border border-[#e4e7ec] flex items-center justify-center">
+              <Plug className="w-4 h-4 text-[#6f7988]" />
             </div>
             <div className="text-left">
-              <p className="text-[13px] font-semibold text-[#0A0A0A]">Manage Integrations</p>
-              <p className="text-[11px] text-[#999999] mt-0.5">ServiceNow, Splunk, Jira, Slack and more</p>
+              <p className="text-[13px] font-semibold text-[#1c1d1f]">Manage Integrations</p>
+              <p className="text-[11px] text-[#6f7988] mt-0.5">ServiceNow, Splunk, Jira, Slack and more</p>
             </div>
           </div>
-          <ExternalLink className="w-4 h-4 text-[#999999] group-hover:text-[#1A1A1A] transition" />
+          <ExternalLink className="w-4 h-4 text-[#6f7988] group-hover:text-[#1c1d1f] transition" />
         </button>
       </Section>
 
       <Section title="Available Integrations" description="Tools you can connect to automate workflows." last>
         <div className="grid grid-cols-2 gap-2.5">
           {tools.map(t => (
-            <div key={t.name} className="flex items-center gap-3 p-3.5 bg-white border border-[#E8E8E8] rounded-xl">
+            <div key={t.name} className="flex items-center gap-3 p-3.5 bg-white border border-[#e4e7ec] rounded-xl">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[12px] font-bold"
                 style={{ background: t.color + '18', color: t.color }}
@@ -337,15 +337,15 @@ function IntegrationsTab() {
                 {t.name.charAt(0)}
               </div>
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-[#1A1A1A]">{t.name}</p>
-                <p className="text-[10px] text-[#999999] mt-0.5 truncate">{t.desc}</p>
+                <p className="text-[12px] font-semibold text-[#1c1d1f]">{t.name}</p>
+                <p className="text-[10px] text-[#6f7988] mt-0.5 truncate">{t.desc}</p>
               </div>
             </div>
           ))}
         </div>
         <button
           onClick={() => router.push('/integrations')}
-          className="mt-3 text-[12px] text-[#999999] hover:text-[#1A1A1A] font-medium transition flex items-center gap-1"
+          className="mt-3 text-[12px] text-[#6f7988] hover:text-[#1c1d1f] font-medium transition flex items-center gap-1"
         >
           View all integrations <ChevronRight className="w-3.5 h-3.5" />
         </button>
@@ -361,11 +361,11 @@ function NotificationsTab() {
     <div>
       <Section title="Email Notifications" description="Configure when INDEX sends you compliance alerts." last>
         <div className="flex flex-col items-center py-12 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-[#E8E8E8] flex items-center justify-center mb-4 shadow-card">
-            <Bell className="w-5 h-5 text-[#D4D4D4]" />
+          <div className="w-12 h-12 rounded-2xl bg-white border border-[#e4e7ec] flex items-center justify-center mb-4 shadow-card">
+            <Bell className="w-5 h-5 text-[#cad0d9]" />
           </div>
-          <p className="text-[14px] font-semibold text-[#0A0A0A] mb-1">Coming soon</p>
-          <p className="text-[13px] text-[#999999] max-w-xs leading-relaxed">
+          <p className="text-[14px] font-semibold text-[#1c1d1f] mb-1">Coming soon</p>
+          <p className="text-[13px] text-[#6f7988] max-w-xs leading-relaxed">
             Email alerts when controls change status, assessments complete, or team members join.
           </p>
           <span className="mt-4 inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-3 py-1 rounded-full">
@@ -399,8 +399,8 @@ export default function SettingsPage() {
     <div className="flex h-full min-h-screen">
 
       {/* ── Left sub-nav ── */}
-      <div className="w-[200px] shrink-0 border-r border-[#F3F3F3] bg-[#FAFAFA] px-3 py-6">
-        <p className="px-3 mb-3 text-[10px] font-semibold text-[#BBBBBB] uppercase tracking-[0.07em]">Settings</p>
+      <div className="w-[200px] shrink-0 border-r border-[#eeeff1] bg-[#fafafa] px-3 py-6">
+        <p className="px-3 mb-3 text-[10px] font-semibold text-[#a4adba] uppercase tracking-[0.07em]">Settings</p>
         <nav className="space-y-0.5">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
@@ -409,8 +409,8 @@ export default function SettingsPage() {
               className={[
                 'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-left transition-colors',
                 activeTab === id
-                  ? 'bg-white text-[#0A0A0A] shadow-sm border border-[#E8E8E8]'
-                  : 'text-[#999999] hover:text-[#1A1A1A] hover:bg-white/50',
+                  ? 'bg-white text-[#1c1d1f] shadow-sm border border-[#e4e7ec]'
+                  : 'text-[#6f7988] hover:text-[#1c1d1f] hover:bg-white/50',
               ].join(' ')}
             >
               <Icon className={`w-3.5 h-3.5 shrink-0 ${activeTab === id ? 'text-[#C4A96D]' : ''}`} />
@@ -426,10 +426,10 @@ export default function SettingsPage() {
 
           {/* Page title */}
           <div className="pt-8 pb-2">
-            <h1 className="text-[22px] font-bold text-[#0A0A0A] tracking-tight">
+            <h1 className="text-[22px] font-bold text-[#1c1d1f] tracking-tight">
               {TABS.find(t => t.id === activeTab)?.label}
             </h1>
-            <p className="text-[13px] text-[#999999] mt-1">
+            <p className="text-[13px] text-[#6f7988] mt-1">
               {activeTab === 'general'       && 'Manage your tenant connection and client accounts.'}
               {activeTab === 'team'          && 'Invite colleagues to share access and collaborate on assessments.'}
               {activeTab === 'integrations'  && 'Connect INDEX to your existing security and productivity tools.'}

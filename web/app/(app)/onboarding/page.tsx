@@ -100,7 +100,7 @@ export default function OnboardingPage() {
   if (checking) {
     return (
       <div className="flex items-center justify-center h-full">
-        <ShieldCheck className="w-7 h-7 text-[#D4D4D4] animate-pulse" />
+        <ShieldCheck className="w-7 h-7 text-[#cad0d9] animate-pulse" />
       </div>
     )
   }
@@ -119,20 +119,20 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-colors
-                    ${i < step  ? 'bg-[#0A0A0A] border-[#0A0A0A] text-white'
-                    : i === step ? 'border-[#0A0A0A] text-[#0A0A0A] bg-white'
-                    :              'border-[#D4D4D4] text-[#D4D4D4] bg-white'}`}
+                    ${i < step  ? 'bg-[#1c1d1f] border-[#1c1d1f] text-white'
+                    : i === step ? 'border-[#1c1d1f] text-[#1c1d1f] bg-white'
+                    :              'border-[#cad0d9] text-[#cad0d9] bg-white'}`}
                 >
                   {i < step ? '✓' : i + 1}
                 </div>
                 <span className={`text-[12px] font-medium hidden sm:block transition-colors
-                  ${i <= step ? 'text-[#1A1A1A]' : 'text-[#BBBBBB]'}`}>
+                  ${i <= step ? 'text-[#1c1d1f]' : 'text-[#a4adba]'}`}>
                   {label}
                 </span>
               </div>
               {/* Connector line */}
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-px mx-3 transition-colors ${i < step ? 'bg-[#0A0A0A]' : 'bg-[#E8E8E8]'}`} />
+                <div className={`flex-1 h-px mx-3 transition-colors ${i < step ? 'bg-[#1c1d1f]' : 'bg-[#e4e7ec]'}`} />
               )}
             </div>
           ))}
@@ -140,7 +140,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* ── Card ── */}
-      <div className="w-full max-w-lg bg-white border border-[#E8E8E8] rounded-2xl shadow-sm">
+      <div className="w-full max-w-lg bg-white border border-[#e4e7ec] rounded-2xl shadow-sm">
 
         {/* ══ Step 1: Welcome ══════════════════════════════════════════════ */}
         {step === 0 && (
@@ -149,10 +149,10 @@ export default function OnboardingPage() {
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
 
-            <h1 className="text-2xl font-bold text-[#0A0A0A] tracking-tight mb-2">
+            <h1 className="text-2xl font-bold text-[#1c1d1f] tracking-tight mb-2">
               Welcome to INDEX
             </h1>
-            <p className="text-sm text-[#555555] leading-relaxed mb-8">
+            <p className="text-sm text-[#505967] leading-relaxed mb-8">
               You&apos;re 2 steps away from your first compliance assessment.
               Before you connect, grab these from Azure Portal:
             </p>
@@ -166,12 +166,12 @@ export default function OnboardingPage() {
               ].map(item => (
                 <div
                   key={item.label}
-                  className="flex items-start gap-3 bg-[#FAFAFA] rounded-xl px-4 py-3"
+                  className="flex items-start gap-3 bg-[#fafafa] rounded-xl px-4 py-3"
                 >
                   <div className="w-4 h-4 mt-0.5 rounded border-2 border-[#C4A96D] shrink-0" />
                   <div>
-                    <p className="text-[13px] font-medium text-[#0A0A0A]">{item.label}</p>
-                    <p className="text-[11px] text-[#999999] mt-0.5">{item.hint}</p>
+                    <p className="text-[13px] font-medium text-[#1c1d1f]">{item.label}</p>
+                    <p className="text-[11px] text-[#6f7988] mt-0.5">{item.hint}</p>
                   </div>
                 </div>
               ))}
@@ -181,7 +181,7 @@ export default function OnboardingPage() {
               href="https://portal.azure.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#555555] hover:text-[#0A0A0A] transition mb-8"
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[#505967] hover:text-[#1c1d1f] transition mb-8"
             >
               <ExternalLink className="w-3.5 h-3.5" />
               Open Azure Portal
@@ -190,13 +190,13 @@ export default function OnboardingPage() {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="w-full bg-[#0A0A0A] hover:bg-[#111111] text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2"
+                className="w-full bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2"
               >
                 Get Started <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-sm text-[#999999] hover:text-[#555555] transition text-center py-1"
+                className="text-sm text-[#6f7988] hover:text-[#505967] transition text-center py-1"
               >
                 Skip setup — I&apos;ll do this later
               </button>
@@ -207,10 +207,10 @@ export default function OnboardingPage() {
         {/* ══ Step 2: Connect Tenant ════════════════════════════════════════ */}
         {step === 1 && (
           <div className="p-8">
-            <h2 className="text-xl font-bold text-[#0A0A0A] tracking-tight mb-1">
+            <h2 className="text-xl font-bold text-[#1c1d1f] tracking-tight mb-1">
               Connect your Microsoft 365 tenant
             </h2>
-            <p className="text-sm text-[#555555] mb-7">
+            <p className="text-sm text-[#505967] mb-7">
               Enter your Azure app registration credentials below.
             </p>
 
@@ -218,7 +218,7 @@ export default function OnboardingPage() {
 
               {/* Client Name */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Client Name
                 </label>
                 <input
@@ -226,45 +226,45 @@ export default function OnboardingPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g. Contoso Ltd"
-                  className="w-full border border-[#E8E8E8] rounded-lg px-3.5 py-2.5 text-sm text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 placeholder-[#BBBBBB]"
+                  className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 text-sm text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
                 />
               </div>
 
               {/* Tenant ID */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Tenant ID
-                  <span className="text-[#999999] font-normal ml-2 normal-case">Azure AD → Properties</span>
+                  <span className="text-[#6f7988] font-normal ml-2 normal-case">Azure AD → Properties</span>
                 </label>
                 <input
                   type="text"
                   value={tenantId}
                   onChange={e => { setTenantId(e.target.value); setTestResult(null) }}
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-[#E8E8E8] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 placeholder-[#BBBBBB]"
+                  className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
                 />
               </div>
 
               {/* Client ID */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Client ID
-                  <span className="text-[#999999] font-normal ml-2 normal-case">App Registration → Overview</span>
+                  <span className="text-[#6f7988] font-normal ml-2 normal-case">App Registration → Overview</span>
                 </label>
                 <input
                   type="text"
                   value={clientId}
                   onChange={e => { setClientId(e.target.value); setTestResult(null) }}
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-[#E8E8E8] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 placeholder-[#BBBBBB]"
+                  className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
                 />
               </div>
 
               {/* Client Secret */}
               <div>
-                <label className="block text-[12px] font-semibold text-[#1A1A1A] mb-1.5 uppercase tracking-wide">
+                <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Client Secret
-                  <span className="text-[#999999] font-normal ml-2 normal-case">Certificates &amp; Secrets</span>
+                  <span className="text-[#6f7988] font-normal ml-2 normal-case">Certificates &amp; Secrets</span>
                 </label>
                 <div className="relative">
                   <input
@@ -272,12 +272,12 @@ export default function OnboardingPage() {
                     value={clientSecret}
                     onChange={e => { setClientSecret(e.target.value); setTestResult(null) }}
                     placeholder="Secret value"
-                    className="w-full border border-[#E8E8E8] rounded-lg px-3.5 py-2.5 pr-10 text-sm font-mono text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 placeholder-[#BBBBBB]"
+                    className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 pr-10 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSecret(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#999999] hover:text-[#555555] transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6f7988] hover:text-[#505967] transition"
                     tabIndex={-1}
                   >
                     {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -307,7 +307,7 @@ export default function OnboardingPage() {
             <button
               onClick={handleTestConnection}
               disabled={testing || !tenantId || !clientId || !clientSecret}
-              className="w-full border border-[#E8E8E8] hover:bg-[#FAFAFA] text-[#1A1A1A] font-medium text-sm py-2.5 rounded-xl transition mb-6 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full border border-[#e4e7ec] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition mb-6 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {testing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {testing ? 'Testing connection…' : 'Test Connection'}
@@ -317,14 +317,14 @@ export default function OnboardingPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep(0)}
-                className="flex-1 border border-[#E8E8E8] hover:bg-[#FAFAFA] text-[#1A1A1A] font-medium text-sm py-2.5 rounded-xl transition"
+                className="flex-1 border border-[#e4e7ec] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition"
               >
                 ← Back
               </button>
               <button
                 onClick={handleSaveAndContinue}
                 disabled={!step2Ready || saving}
-                className="flex-[2] bg-[#0A0A0A] hover:bg-[#111111] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-[2] bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {saving ? 'Saving…' : 'Save & Continue →'}
@@ -336,17 +336,17 @@ export default function OnboardingPage() {
         {/* ══ Step 3: Choose Framework ══════════════════════════════════════ */}
         {step === 2 && (
           <div className="p-8">
-            <h2 className="text-xl font-bold text-[#0A0A0A] tracking-tight mb-1">
+            <h2 className="text-xl font-bold text-[#1c1d1f] tracking-tight mb-1">
               Choose a framework
             </h2>
-            <p className="text-sm text-[#555555] mb-7">
+            <p className="text-sm text-[#505967] mb-7">
               Which compliance standard do you need to assess first?
             </p>
 
             <div className="space-y-2.5 mb-8">
               {frameworks.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#D4D4D4]" />
+                  <Loader2 className="w-5 h-5 animate-spin text-[#cad0d9]" />
                 </div>
               ) : (
                 frameworks.map(fw => (
@@ -355,27 +355,27 @@ export default function OnboardingPage() {
                     onClick={() => setSelectedFramework(fw.id)}
                     className={`w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition
                       ${selectedFramework === fw.id
-                        ? 'border-[#0A0A0A] bg-white shadow-sm'
-                        : 'border-[#E8E8E8] bg-white hover:border-[#BBBBBB]'}`}
+                        ? 'border-[#1c1d1f] bg-white shadow-sm'
+                        : 'border-[#e4e7ec] bg-white hover:border-[#a4adba]'}`}
                   >
                     {/* Radio */}
                     <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition
-                      ${selectedFramework === fw.id ? 'border-[#0A0A0A]' : 'border-[#D4D4D4]'}`}>
+                      ${selectedFramework === fw.id ? 'border-[#1c1d1f]' : 'border-[#cad0d9]'}`}>
                       {selectedFramework === fw.id && (
-                        <div className="w-2 h-2 rounded-full bg-[#0A0A0A]" />
+                        <div className="w-2 h-2 rounded-full bg-[#1c1d1f]" />
                       )}
                     </div>
 
                     {/* Label */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[#0A0A0A]">{fw.name}</p>
+                      <p className="text-[13px] font-semibold text-[#1c1d1f]">{fw.name}</p>
                       {fw.description && (
-                        <p className="text-[11px] text-[#999999] mt-0.5 truncate">{fw.description}</p>
+                        <p className="text-[11px] text-[#6f7988] mt-0.5 truncate">{fw.description}</p>
                       )}
                     </div>
 
                     {/* Control count badge */}
-                    <span className="text-[11px] text-[#BBBBBB] font-mono shrink-0">
+                    <span className="text-[11px] text-[#a4adba] font-mono shrink-0">
                       {fw.controlCount} controls
                     </span>
                   </button>
@@ -387,14 +387,14 @@ export default function OnboardingPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 border border-[#E8E8E8] hover:bg-[#FAFAFA] text-[#1A1A1A] font-medium text-sm py-2.5 rounded-xl transition"
+                className="flex-1 border border-[#e4e7ec] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition"
               >
                 ← Back
               </button>
               <button
                 onClick={handleStartAssessment}
                 disabled={!selectedFramework}
-                className="flex-[2] bg-[#0A0A0A] hover:bg-[#111111] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-[2] bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Start My First Assessment <ChevronRight className="w-4 h-4" />
               </button>
@@ -405,7 +405,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step counter below card */}
-      <p className="text-[11px] text-[#BBBBBB] mt-5 font-mono">
+      <p className="text-[11px] text-[#a4adba] mt-5 font-mono">
         Step {step + 1} of {STEPS.length}
       </p>
 

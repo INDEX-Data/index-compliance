@@ -100,26 +100,26 @@ function SummaryBar({ s }: { s: DIBCACObjectiveSummary }) {
     { label: 'Not Met',        value: s.notMet,          color: '#DC2626' },
     { label: 'Needs Action',   value: s.requiresManual,  color: '#2563EB' },
     { label: 'Physical',       value: s.requiresPhysical, color: '#EA580C' },
-    { label: 'Not Assessed',   value: s.notAssessed,     color: '#D4D4D4' },
+    { label: 'Not Assessed',   value: s.notAssessed,     color: '#cad0d9' },
   ]
 
   const pct = s.coveragePercentage
   const pctColor = pct >= 70 ? '#059669' : pct >= 40 ? '#D97706' : '#DC2626'
 
   return (
-    <div className="bg-white border border-[#E8E8E8] rounded-xl p-5 mb-5 shadow-card">
+    <div className="bg-white border border-[#e4e7ec] rounded-xl p-5 mb-5 shadow-card">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[10px] font-semibold text-[#999999] uppercase tracking-widest">
+          <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest">
             DIBCAC 320 Assessment Objectives
           </p>
-          <p className="text-xs text-[#555555] mt-0.5">NIST SP 800-171A · {s.total} total objectives</p>
+          <p className="text-xs text-[#505967] mt-0.5">NIST SP 800-171A · {s.total} total objectives</p>
         </div>
         <div className="text-right">
           <span className="font-bold tabular-nums" style={{ fontSize: 28, color: pctColor }}>
-            {pct}<span className="text-base text-[#BBBBBB] font-medium">%</span>
+            {pct}<span className="text-base text-[#a4adba] font-medium">%</span>
           </span>
-          <p className="text-[10px] text-[#999999]">Coverage</p>
+          <p className="text-[10px] text-[#6f7988]">Coverage</p>
         </div>
       </div>
 
@@ -139,7 +139,7 @@ function SummaryBar({ s }: { s: DIBCACObjectiveSummary }) {
         {segments.map(seg => (
           <div key={seg.label} className="text-center">
             <div className="text-base font-bold tabular-nums" style={{ color: seg.color }}>{seg.value}</div>
-            <div className="text-[9px] text-[#999999] leading-tight">{seg.label}</div>
+            <div className="text-[9px] text-[#6f7988] leading-tight">{seg.label}</div>
           </div>
         ))}
       </div>
@@ -186,17 +186,17 @@ function AttestModal({ objective, onClose, onSave }: AttestModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-        <div className="p-5 border-b border-[#E8E8E8]">
+        <div className="p-5 border-b border-[#e4e7ec]">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center shrink-0">
               <ClipboardCheck className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <span className="text-[11px] font-mono font-bold text-[#0A0A0A]">{objective.objectiveId}</span>
+                <span className="text-[11px] font-mono font-bold text-[#1c1d1f]">{objective.objectiveId}</span>
                 <StandardBadge standard={objective.standard} />
               </div>
-              <p className="text-xs text-[#555555] leading-relaxed">{objective.text}</p>
+              <p className="text-xs text-[#505967] leading-relaxed">{objective.text}</p>
             </div>
           </div>
         </div>
@@ -211,11 +211,11 @@ function AttestModal({ objective, onClose, onSave }: AttestModalProps) {
 
           {/* Status */}
           <div>
-            <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">Objective Status</label>
+            <label className="block text-xs font-semibold text-[#1c1d1f] mb-2">Objective Status</label>
             <select
               value={status}
               onChange={e => setStatus(e.target.value as ObjectiveStatusValue)}
-              className="w-full text-sm border border-[#E8E8E8] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 bg-white text-[#0A0A0A]"
+              className="w-full text-sm border border-[#e4e7ec] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 bg-white text-[#1c1d1f]"
             >
               {statusOptions.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -225,7 +225,7 @@ function AttestModal({ objective, onClose, onSave }: AttestModalProps) {
 
           {/* Attestation text */}
           <div>
-            <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">
+            <label className="block text-xs font-semibold text-[#1c1d1f] mb-2">
               {objective.standard === 'Document' ? 'Policy / Document Description' : 'Attestation / Evidence Notes'}
             </label>
             <textarea
@@ -237,20 +237,20 @@ function AttestModal({ objective, onClose, onSave }: AttestModalProps) {
                   ? 'Describe the policy or document that satisfies this objective…'
                   : 'Describe the evidence or configuration that satisfies this objective…'
               }
-              className="w-full text-sm border border-[#E8E8E8] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 resize-none bg-white text-[#0A0A0A] placeholder-[#D4D4D4]"
+              className="w-full text-sm border border-[#e4e7ec] rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 resize-none bg-white text-[#1c1d1f] placeholder-[#cad0d9]"
             />
           </div>
 
           {/* Document reference */}
           {(objective.standard === 'Document' || objective.standard === 'Artifact') && (
             <div>
-              <label className="block text-xs font-semibold text-[#1A1A1A] mb-2">Document Reference (optional)</label>
+              <label className="block text-xs font-semibold text-[#1c1d1f] mb-2">Document Reference (optional)</label>
               <input
                 type="text"
                 value={docName}
                 onChange={e => setDocName(e.target.value)}
                 placeholder="e.g. System Security Plan v2.1, IR Plan Rev 3…"
-                className="w-full text-sm border border-[#E8E8E8] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0A0A0A]/20 bg-white text-[#0A0A0A] placeholder-[#D4D4D4]"
+                className="w-full text-sm border border-[#e4e7ec] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 bg-white text-[#1c1d1f] placeholder-[#cad0d9]"
               />
             </div>
           )}
@@ -259,14 +259,14 @@ function AttestModal({ objective, onClose, onSave }: AttestModalProps) {
         <div className="p-5 pt-0 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-[#555555] bg-[#FAFAFA] hover:bg-[#F3F3F3] rounded-lg transition border border-[#E8E8E8]"
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-[#505967] bg-[#fafafa] hover:bg-[#eeeff1] rounded-lg transition border border-[#e4e7ec]"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#0A0A0A] hover:bg-[#111111] disabled:opacity-50 rounded-lg transition flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#1c1d1f] hover:bg-[#1c1d1f] disabled:opacity-50 rounded-lg transition flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             Save Attestation
@@ -300,7 +300,7 @@ function ObjectiveRow({
           ? 'bg-blue-50/30 border-blue-100 hover:bg-blue-50/60'
           : obj.status.status === 'met'
             ? 'bg-emerald-50/30 border-emerald-100'
-            : 'bg-white border-[#F3F3F3] hover:bg-[#FAFAFA]'
+            : 'bg-white border-[#eeeff1] hover:bg-[#fafafa]'
     }`}>
       {/* Status icon */}
       <div className="mt-0.5 shrink-0">{STATUS_ICON[obj.status.status]}</div>
@@ -308,22 +308,22 @@ function ObjectiveRow({
       {/* Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap mb-1">
-          <span className="text-[10px] font-mono font-bold text-[#555555]">{obj.objectiveId}</span>
+          <span className="text-[10px] font-mono font-bold text-[#505967]">{obj.objectiveId}</span>
           <StandardBadge standard={obj.standard} />
           <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border ${st.cls}`}>
             {st.label}
           </span>
         </div>
-        <p className="text-[12px] text-[#1A1A1A] leading-snug">{obj.text}</p>
+        <p className="text-[12px] text-[#1c1d1f] leading-snug">{obj.text}</p>
 
         {/* Attestation text / doc ref */}
         {obj.status.attestationText && (
-          <p className="text-[11px] text-[#555555] italic mt-1.5 bg-white/60 rounded px-2 py-1 border border-[#E8E8E8]">
+          <p className="text-[11px] text-[#505967] italic mt-1.5 bg-white/60 rounded px-2 py-1 border border-[#e4e7ec]">
             "{obj.status.attestationText.slice(0, 120)}{obj.status.attestationText.length > 120 ? '…' : ''}"
           </p>
         )}
         {obj.status.documentName && !obj.status.attestationText && (
-          <p className="text-[11px] text-[#555555] mt-1">
+          <p className="text-[11px] text-[#505967] mt-1">
             📄 {obj.status.documentName}
           </p>
         )}
@@ -338,7 +338,7 @@ function ObjectiveRow({
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
               : isPhy
                 ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
-                : 'bg-white text-[#1A1A1A] border-[#E8E8E8] hover:bg-[#FAFAFA]'
+                : 'bg-white text-[#1c1d1f] border-[#e4e7ec] hover:bg-[#fafafa]'
           }`}
         >
           {obj.status.status === 'met' ? 'Edit' : isPhy ? 'Notes' : 'Attest'}
@@ -375,17 +375,17 @@ function DomainSection({
   const physical = objectives.filter(o => o.status.status === 'requires_physical').length
 
   return (
-    <div className="bg-white rounded-xl border border-[#E8E8E8] shadow-card overflow-hidden">
+    <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card overflow-hidden">
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[#FAFAFA] transition text-left"
+        className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-[#fafafa] transition text-left"
       >
-        {open ? <ChevronDown className="w-4 h-4 text-[#999999] shrink-0" /> : <ChevronRight className="w-4 h-4 text-[#999999] shrink-0" />}
+        {open ? <ChevronDown className="w-4 h-4 text-[#6f7988] shrink-0" /> : <ChevronRight className="w-4 h-4 text-[#6f7988] shrink-0" />}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-mono font-bold text-[#999999]">{domain}</span>
-            <span className="text-[13px] font-semibold text-[#0A0A0A]">{domainName}</span>
-            <span className="text-[11px] text-[#BBBBBB]">({objectives.length} objectives)</span>
+            <span className="text-[11px] font-mono font-bold text-[#6f7988]">{domain}</span>
+            <span className="text-[13px] font-semibold text-[#1c1d1f]">{domainName}</span>
+            <span className="text-[11px] text-[#a4adba]">({objectives.length} objectives)</span>
           </div>
         </div>
         {/* mini stats */}
@@ -464,7 +464,7 @@ export function DIBCACObjectives({ reportId }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-5 h-5 animate-spin text-[#BBBBBB]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[#a4adba]" />
       </div>
     )
   }
@@ -503,7 +503,7 @@ export function DIBCACObjectives({ reportId }: Props) {
   const domains = Object.keys(byDomain).sort()
 
   const filterOptions = ([
-    { value: 'all'          as ObjectiveFilter, label: 'All',          count: data.objectives.length,                                                                                         color: 'text-[#0A0A0A]' },
+    { value: 'all'          as ObjectiveFilter, label: 'All',          count: data.objectives.length,                                                                                         color: 'text-[#1c1d1f]' },
     { value: 'needs_action' as ObjectiveFilter, label: 'Needs Action', count: data.summary.requiresManual + data.summary.notAssessed + data.summary.notMet,                                  color: 'text-blue-600' },
     { value: 'met'          as ObjectiveFilter, label: 'Met',          count: data.summary.met + data.summary.partiallyMet,                                                                  color: 'text-emerald-600' },
     { value: 'not_met'      as ObjectiveFilter, label: 'Not Met',      count: data.summary.notMet,                                                                                           color: 'text-red-600' },
@@ -527,20 +527,20 @@ export function DIBCACObjectives({ reportId }: Props) {
       {/* Action bar */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
         {/* Filter pills */}
-        <div className="flex items-center gap-1 bg-white border border-[#E8E8E8] rounded-lg p-1 shadow-card flex-wrap">
+        <div className="flex items-center gap-1 bg-white border border-[#e4e7ec] rounded-lg p-1 shadow-card flex-wrap">
           {filterOptions.map(f => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
               className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition ${
                 filter === f.value
-                  ? 'bg-[#0A0A0A] text-white shadow-sm'
-                  : `${f.color} hover:text-[#0A0A0A]`
+                  ? 'bg-[#1c1d1f] text-white shadow-sm'
+                  : `${f.color} hover:text-[#1c1d1f]`
               }`}
             >
               {f.label}
               <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
-                filter === f.value ? 'bg-white/20 text-white' : 'bg-[#F3F3F3] text-[#999999]'
+                filter === f.value ? 'bg-white/20 text-white' : 'bg-[#eeeff1] text-[#6f7988]'
               }`}>
                 {f.count}
               </span>
@@ -552,7 +552,7 @@ export function DIBCACObjectives({ reportId }: Props) {
         <div className="flex items-center gap-2">
           <button
             onClick={() => exportDIBCACWorksheet(reportId)}
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#555555] bg-white hover:bg-[#FAFAFA] border border-[#E8E8E8] px-3 py-2 rounded-lg transition shadow-card"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#505967] bg-white hover:bg-[#fafafa] border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card"
           >
             <Download className="w-3.5 h-3.5" />
             Export DIBCAC CSV
@@ -560,7 +560,7 @@ export function DIBCACObjectives({ reportId }: Props) {
           <button
             onClick={handleReset}
             disabled={resetting}
-            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#999999] hover:text-[#555555] bg-white hover:bg-[#FAFAFA] border border-[#E8E8E8] px-3 py-2 rounded-lg transition shadow-card disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6f7988] hover:text-[#505967] bg-white hover:bg-[#fafafa] border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card disabled:opacity-50"
           >
             {resetting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
             Reset
@@ -603,7 +603,7 @@ export function DIBCACObjectives({ reportId }: Props) {
 
       {/* Domain sections */}
       {domains.length === 0 ? (
-        <div className="text-center py-12 text-[#BBBBBB] text-sm bg-white rounded-xl border border-[#E8E8E8] shadow-card">
+        <div className="text-center py-12 text-[#a4adba] text-sm bg-white rounded-xl border border-[#e4e7ec] shadow-card">
           No objectives match this filter.
         </div>
       ) : (
