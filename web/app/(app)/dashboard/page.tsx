@@ -4,16 +4,27 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
   Shield, Clock, Play, AlertTriangle, ChevronRight,
-  FileText, Building2, ArrowRight, TrendingUp,
+  FileText, Building2, ArrowRight,
+  TrendingUp, TrendingDown,
+  ShieldCheck, ShieldX, Layers,
   CheckCircle2, XCircle, MinusCircle, HelpCircle,
 } from 'lucide-react'
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { getReports, getClients } from '@/lib/api'
-import { ComplianceDonut } from '@/components/ComplianceDonut'
-import { RiskBadge } from '@/components/RiskBadge'
 import { ScoreTrend } from '@/components/ScoreTrend'
+import { RiskBadge } from '@/components/RiskBadge'
 import type { ReportMeta } from '@/lib/types'
 
-// ─── Stat Card ────────────────────────────────────────────────────────────────
+// ─── Donut colors (Lovable palette) ──────────────────────────────────────────
+
+const DONUT_COLORS = {
+  passed:      '#0eb472',
+  partial:     '#f5a300',
+  failed:      '#f25757',
+  notAssessed: '#a4adba',
+}
+
+// ─── Stat Card — horizontal layout (Lovable style) ───────────────────────────
 
 interface StatCardProps {
   label: string
@@ -26,25 +37,27 @@ interface StatCardProps {
 
 function StatCard({ label, value, icon: Icon, iconColor, iconBg, sub }: StatCardProps) {
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] p-5 shadow-card">
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white rounded-xl border border-[#e4e7ec] p-5 shadow-card hover:shadow-card-hover transition-shadow">
+      <div className="flex items-center gap-4">
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center"
+          className="flex h-11 w-11 items-center justify-center rounded-lg shrink-0"
           style={{ background: iconBg }}
         >
-          <Icon className="w-[15px] h-[15px]" style={{ color: iconColor }} />
+          <Icon className="h-5 w-5" style={{ color: iconColor }} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-[#a4adba]">{label}</p>
+          <p className="text-[26px] font-bold text-[#1c1d1f] tabular-nums leading-tight" style={{ letterSpacing: '-0.02em' }}>
+            {value}
+          </p>
+          {sub && <p className="text-[11px] text-[#6f7988] mt-0.5">{sub}</p>}
         </div>
       </div>
-      <div className="text-[28px] font-bold text-[#1c1d1f] tabular-nums leading-none tracking-tight">
-        {value}
-      </div>
-      <div className="text-[12px] font-medium text-[#6f7988] mt-2">{label}</div>
-      {sub && <div className="text-[11px] text-[#a4adba] mt-0.5">{sub}</div>}
     </div>
   )
 }
 
-// ─── Framework Card ───────────────────────────────────────────────────────────
+// ─── Framework Card — Lovable structure + real data ───────────────────────────
 
 interface FrameworkCardProps {
   report:  ReportMeta
@@ -52,141 +65,132 @@ interface FrameworkCardProps {
 }
 
 function FrameworkCard({ report, history }: FrameworkCardProps) {
-  const ago       = timeAgo(report.generatedAt)
   const pct       = report.summary.compliancePercentage
   const scores    = history.map(r => r.summary.compliancePercentage)
-  const runCount  = history.length
   const prevScore = scores.length >= 2 ? scores[scores.length - 2] : null
   const delta     = prevScore !== null ? pct - prevScore : null
+  const total     = report.summary.passed + report.summary.partial + report.summary.failed + report.summary.notAssessed
 
-  const scoreColor =
-    pct >= 90 ? '#16A34A' :
-    pct >= 70 ? '#D97706' :
-    '#DC2626'
+  const chartData = [
+    { name: 'Passed',  value: report.summary.passed },
+    { name: 'Partial', value: report.summary.partial },
+    { name: 'Failed',  value: report.summary.failed },
+    { name: 'N/A',     value: report.summary.notAssessed },
+  ]
 
-  const scoreBg =
-    pct >= 90 ? '#F0FDF4' :
-    pct >= 70 ? '#FFFBEB' :
-    '#FEF2F2'
-
-  const controls = [
-    { label: 'Passed',       value: report.summary.passed,       icon: CheckCircle2, color: '#16A34A', bg: '#F0FDF4' },
-    { label: 'Partial',      value: report.summary.partial,      icon: MinusCircle,  color: '#D97706', bg: '#FFFBEB' },
-    { label: 'Failed',       value: report.summary.failed,       icon: XCircle,      color: '#DC2626', bg: '#FEF2F2' },
-    { label: 'Not Assessed', value: report.summary.notAssessed,  icon: HelpCircle,   color: '#6f7988', bg: '#F3F4F6' },
+  const statDots = [
+    { label: 'Passed',  count: report.summary.passed,      color: DONUT_COLORS.passed },
+    { label: 'Partial', count: report.summary.partial,     color: DONUT_COLORS.partial },
+    { label: 'Failed',  count: report.summary.failed,      color: DONUT_COLORS.failed },
+    { label: 'N/A',     count: report.summary.notAssessed, color: DONUT_COLORS.notAssessed },
   ]
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden shadow-card hover:shadow-card-hover transition-shadow">
+    <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card hover:shadow-card-hover transition-shadow">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-[#eeeff1]">
+      <div className="flex items-start justify-between px-6 py-5 border-b border-[#eeeff1]">
         <div>
-          <h2 className="text-[15px] font-semibold text-[#1c1d1f] tracking-tight">{report.frameworkName}</h2>
-          <div className="flex items-center gap-3 mt-1">
-            <span className="flex items-center gap-1 text-[11px] text-[#6f7988]">
-              <Clock className="w-3 h-3" />
-              {ago}
-            </span>
-            {runCount > 1 && (
-              <span className="text-[11px] text-[#a4adba]">{runCount} runs</span>
-            )}
-            <span className="flex items-center gap-1 text-[11px] text-[#cad0d9] font-mono">
-              <FileText className="w-3 h-3" />
-              {report.reportId}
-            </span>
+          <div className="flex items-center gap-2.5">
+            <h3 className="text-[15px] font-semibold text-[#1c1d1f]" style={{ letterSpacing: '-0.01em' }}>
+              {report.frameworkName}
+            </h3>
+            <RiskBadge score={report.summary.riskScore} />
           </div>
+          <p className="text-[12px] text-[#6f7988] mt-1">
+            {report.clientName ?? 'All clients'} · {report.frameworkId.toUpperCase()}
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <RiskBadge score={report.summary.riskScore} />
-          <Link
-            href={`/assess/${report.reportId}`}
-            className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#1c1d1f] hover:text-[#1c1d1f] transition"
-          >
-            Full report <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
+
+        {/* Score + delta */}
+        <div className="text-right shrink-0 ml-4">
+          <p className="text-[32px] font-bold text-[#1c1d1f] tabular-nums leading-none" style={{ letterSpacing: '-0.02em' }}>
+            {pct}%
+          </p>
+          {delta !== null && (
+            <div className={`flex items-center justify-end gap-1 text-[12px] font-medium mt-1 ${delta >= 0 ? 'text-[#0eb472]' : 'text-[#f25757]'}`}>
+              {delta >= 0
+                ? <TrendingUp className="h-3.5 w-3.5" />
+                : <TrendingDown className="h-3.5 w-3.5" />
+              }
+              <span>{delta > 0 ? '+' : ''}{delta}%</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Body ── */}
-      <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-5">
+      {/* ── Body: donut + stats ── */}
+      <div className="px-6 py-5 flex gap-6">
 
-        {/* Score panel */}
-        <div
-          className="flex flex-col items-center justify-center rounded-xl p-5 gap-1"
-          style={{ background: scoreBg }}
-        >
-          <div
-            className="tabular-nums font-bold leading-none tracking-tight"
-            style={{ fontSize: 52, color: scoreColor }}
-          >
-            {pct}
-            <span className="text-2xl font-medium" style={{ color: scoreColor, opacity: 0.5 }}>%</span>
-          </div>
-          <p className="text-[11px] font-medium mt-1" style={{ color: scoreColor, opacity: 0.7 }}>
-            Compliance Score
-          </p>
-
-          {/* Progress bar */}
-          <div className="w-full max-w-[120px] bg-white/60 rounded-full h-1.5 mt-3">
-            <div
-              className="h-1.5 rounded-full transition-all"
-              style={{ width: `${pct}%`, background: scoreColor }}
-            />
-          </div>
-
-          {/* Delta indicator */}
-          {delta !== null && (
-            <div className="flex items-center gap-1 mt-3 pt-3 border-t border-white/40 w-full justify-center">
-              <TrendingUp className="w-3 h-3" style={{ color: delta >= 0 ? '#16A34A' : '#DC2626' }} />
-              <span className="text-[11px] font-semibold" style={{ color: delta >= 0 ? '#16A34A' : '#DC2626' }}>
-                {delta >= 0 ? '+' : ''}{delta}% from last run
-              </span>
-            </div>
-          )}
-
-          {/* Trend sparkline */}
-          {scores.length >= 2 && (
-            <div className="mt-2">
-              <ScoreTrend scores={scores} width={100} height={28} />
-            </div>
-          )}
+        {/* Donut */}
+        <div className="w-24 h-24 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={chartData}
+                cx="50%" cy="50%"
+                innerRadius={26} outerRadius={42}
+                dataKey="value"
+                strokeWidth={0}
+              >
+                <Cell fill={DONUT_COLORS.passed} />
+                <Cell fill={DONUT_COLORS.partial} />
+                <Cell fill={DONUT_COLORS.failed} />
+                <Cell fill={DONUT_COLORS.notAssessed} />
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Donut chart */}
-        <div className="flex items-center justify-center">
-          <ComplianceDonut summary={report.summary} />
-        </div>
-
-        {/* Control stats */}
-        <div className="grid grid-cols-2 gap-2.5 content-start">
-          {controls.map(s => (
-            <div key={s.label} className="rounded-lg p-3 border" style={{ background: s.bg, borderColor: s.bg }}>
-              <div className="flex items-center gap-1.5 mb-2">
-                <s.icon className="w-3.5 h-3.5 shrink-0" style={{ color: s.color }} />
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: s.color }}>
-                  {s.label}
-                </span>
-              </div>
-              <div className="text-[22px] font-bold tabular-nums leading-none" style={{ color: s.color }}>
-                {s.value}
-              </div>
+        {/* Stat dots grid */}
+        <div className="flex-1 grid grid-cols-2 gap-2.5 content-center">
+          {statDots.map(s => (
+            <div key={s.label} className="flex items-center gap-2 text-[13px]">
+              <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+              <span className="text-[#6f7988]">{s.label}</span>
+              <span className="font-semibold text-[#1c1d1f] ml-auto tabular-nums">{s.count}</span>
             </div>
           ))}
         </div>
+
+        {/* Trend sparkline (if history) */}
+        {scores.length >= 2 && (
+          <div className="shrink-0 flex items-center">
+            <ScoreTrend scores={scores} width={80} height={40} />
+          </div>
+        )}
       </div>
 
-      {/* ── Key Findings ── */}
-      {report.summary.topFindings.length > 0 && (
+      {/* ── Footer: progress bar + link ── */}
+      <div className="px-6 pb-5 flex items-center gap-4">
+        <div className="flex-1 bg-[#f3f4f6] rounded-full h-1.5">
+          <div
+            className="h-1.5 rounded-full transition-all"
+            style={{
+              width: `${total > 0 ? (report.summary.passed / total) * 100 : 0}%`,
+              background: DONUT_COLORS.passed,
+            }}
+          />
+        </div>
+        <Link
+          href={`/assess/${report.reportId}`}
+          className="text-[12px] font-semibold text-[#1c1d1f] hover:text-[#505967] whitespace-nowrap flex items-center gap-1 transition-colors duration-300 hover:duration-50"
+        >
+          Full Report <ChevronRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+
+      {/* ── Key Findings (if present) ── */}
+      {report.summary.topFindings?.length > 0 && (
         <div className="px-6 pb-5 border-t border-[#eeeff1] pt-4">
           <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
-            <AlertTriangle className="w-3 h-3 text-[#D97706]" />
+            <AlertTriangle className="w-3 h-3 text-[#f5a300]" />
             Key Findings
           </p>
           <ul className="space-y-1.5">
             {report.summary.topFindings.slice(0, 3).map((f, i) => (
               <li key={i} className="text-[12px] text-[#505967] flex items-start gap-2 leading-relaxed">
-                <span className="w-1 h-1 rounded-full bg-[#DC2626] shrink-0 mt-[6px]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[#f25757] shrink-0 mt-[5px]" />
                 {f}
               </li>
             ))}
@@ -200,10 +204,10 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [loading, setLoading]                 = useState(true)
-  const [reports, setReports]                 = useState<ReportMeta[]>([])
-  const [hasClients, setHasClients]           = useState<boolean | null>(null)
-  const [firstClientName, setFirstClientName] = useState<string>('')
+  const [loading,          setLoading]          = useState(true)
+  const [reports,          setReports]          = useState<ReportMeta[]>([])
+  const [hasClients,       setHasClients]       = useState<boolean | null>(null)
+  const [firstClientName,  setFirstClientName]  = useState('')
 
   useEffect(() => {
     Promise.all([getReports(), getClients()])
@@ -220,14 +224,14 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center h-full min-h-[400px]">
         <div className="flex flex-col items-center gap-3">
-          <Shield className="w-8 h-8 text-[#cad0d9] animate-pulse" />
+          <Shield className="w-8 h-8 text-[#e4e7ec] animate-pulse" />
           <span className="text-[13px] text-[#6f7988]">Loading dashboard…</span>
         </div>
       </div>
     )
   }
 
-  // Group reports by framework, sorted ascending by date
+  // Group reports by framework, sort ascending by date
   const historyByFramework: Record<string, ReportMeta[]> = {}
   for (const r of reports) {
     if (!historyByFramework[r.frameworkId]) historyByFramework[r.frameworkId] = []
@@ -256,17 +260,23 @@ export default function DashboardPage() {
     : 0
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
+    <div className="p-8 max-w-5xl mx-auto space-y-8">
 
       {/* ── Page header ── */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-[#1c1d1f] tracking-tight">Dashboard</h1>
-          <p className="text-[13px] text-[#6f7988] mt-1">Compliance posture across all clients</p>
+          <h1 className="text-[22px] font-bold text-[#1c1d1f]" style={{ letterSpacing: '-0.02em' }}>
+            Dashboard
+          </h1>
+          <p className="text-[13px] text-[#6f7988] mt-1">
+            Overview of your compliance posture across all frameworks.
+          </p>
         </div>
         <Link
           href="/assess"
-          className="inline-flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-[13px] font-semibold px-4 py-2.5 rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium
+                     px-4 py-2 rounded-[10px] transition-colors duration-300 hover:duration-50"
+          style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
         >
           <Play className="w-3.5 h-3.5" />
           New Assessment
@@ -274,69 +284,59 @@ export default function DashboardPage() {
       </div>
 
       {latestReports.length === 0 ? (
-        /* ── Empty states ── */
-        !hasClients ? (
-          <EmptyNoClients />
-        ) : (
-          <EmptyNoAssessments firstClientName={firstClientName} />
-        )
+        !hasClients ? <EmptyNoClients /> : <EmptyNoAssessments firstClientName={firstClientName} />
       ) : (
         <>
-          {/* ── KPI stat row ── */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+          {/* ── KPI stats (Lovable horizontal card layout) ── */}
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Avg. Compliance"
               value={`${avgScore}%`}
-              icon={Shield}
-              iconColor="#6366F1"
-              iconBg="#EEF2FF"
+              icon={ShieldCheck}
+              iconColor="#0eb472"
+              iconBg="rgba(14,180,114,0.10)"
               sub={`${latestReports.length} framework${latestReports.length !== 1 ? 's' : ''}`}
             />
             <StatCard
               label="Controls Passing"
               value={totals.passed}
-              icon={CheckCircle2}
-              iconColor="#16A34A"
-              iconBg="#F0FDF4"
+              icon={TrendingUp}
+              iconColor="#0eb472"
+              iconBg="rgba(14,180,114,0.10)"
               sub="across all frameworks"
             />
             <StatCard
               label="Controls Failing"
               value={totals.failed}
-              icon={XCircle}
-              iconColor="#DC2626"
-              iconBg="#FEF2F2"
+              icon={ShieldX}
+              iconColor="#f25757"
+              iconBg="rgba(242,87,87,0.10)"
               sub={totals.partial > 0 ? `+${totals.partial} partial` : undefined}
             />
             <StatCard
-              label="Frameworks"
+              label="Frameworks Assessed"
               value={latestReports.length}
-              icon={FileText}
-              iconColor="#D97706"
-              iconBg="#FFFBEB"
-              sub="assessed"
+              icon={Layers}
+              iconColor="#266df0"
+              iconBg="rgba(38,109,240,0.10)"
             />
           </div>
 
-          {/* ── Framework cards ── */}
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-semibold text-[#1c1d1f]">Framework Posture</h2>
-            <Link
-              href="/history"
-              className="text-[12px] text-[#6f7988] hover:text-[#1c1d1f] font-medium transition flex items-center gap-1"
-            >
-              View history <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-
-          <div className="space-y-5">
-            {latestReports.map(report => (
-              <FrameworkCard
-                key={report.frameworkId}
-                report={report}
-                history={historyByFramework[report.frameworkId] ?? []}
-              />
-            ))}
+          {/* ── Framework posture ── */}
+          <div>
+            <h2 className="text-[13px] font-semibold text-[#1c1d1f] flex items-center gap-2 mb-4">
+              <AlertTriangle className="h-4 w-4 text-[#6f7988]" />
+              Framework Posture
+            </h2>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {latestReports.map(report => (
+                <FrameworkCard
+                  key={report.frameworkId}
+                  report={report}
+                  history={historyByFramework[report.frameworkId] ?? []}
+                />
+              ))}
+            </div>
           </div>
         </>
       )}
@@ -356,37 +356,32 @@ function EmptyNoClients() {
       <p className="text-[13px] text-[#505967] max-w-sm mb-8 leading-relaxed">
         Connect a Microsoft 365 tenant to start running compliance assessments.
       </p>
-
-      <div className="flex items-center gap-3 mb-8 text-[13px] flex-wrap justify-center">
+      <div className="flex items-center gap-3 mb-8 flex-wrap justify-center">
         {[
-          { step: '1', label: 'Add client',       active: true,  done: false, time: '~2 min' },
-          { step: '2', label: 'Run assessment',    active: false, done: false, time: '~5 min' },
-          { step: '3', label: 'View results',      active: false, done: false, time: '' },
+          { n: '1', label: 'Add client',    active: true,  time: '~2 min' },
+          { n: '2', label: 'Run assessment', active: false, time: '~5 min' },
+          { n: '3', label: 'View results',   active: false, time: '' },
         ].map((s, i, arr) => (
-          <>
-            <div key={s.step} className="flex flex-col items-center gap-1">
-              <div className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold border ${
-                s.active
-                  ? 'bg-[#1c1d1f] text-white border-transparent'
-                  : 'bg-white text-[#6f7988] border-[#e4e7ec]'
+          <div key={s.n} className="flex items-center gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <div className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-semibold border ${
+                s.active ? 'bg-[#1c1d1f] text-white border-transparent' : 'bg-white text-[#6f7988] border-[#e4e7ec]'
               }`}>
                 <span className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center justify-center shrink-0 ${
                   s.active ? 'bg-[#C4A96D] text-[#1c1d1f]' : 'bg-[#e4e7ec] text-[#6f7988]'
-                }`}>{s.step}</span>
+                }`}>{s.n}</span>
                 {s.label}
               </div>
-              {s.time && <span className="text-[10px] text-[#6f7988]">{s.time}</span>}
+              {s.time && <span className="text-[10px] text-[#a4adba]">{s.time}</span>}
             </div>
-            {i < arr.length - 1 && (
-              <ArrowRight key={`arrow-${i}`} className="w-4 h-4 text-[#cad0d9] mb-4 shrink-0" />
-            )}
-          </>
+            {i < arr.length - 1 && <ArrowRight className="w-4 h-4 text-[#cad0d9] mb-4 shrink-0" />}
+          </div>
         ))}
       </div>
-
       <Link
         href="/clients"
-        className="inline-flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium px-5 py-2.5 rounded-[10px]"
+        style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
       >
         <Building2 className="w-3.5 h-3.5" />
         Add First Client
@@ -405,54 +400,36 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
       <p className="text-[13px] text-[#505967] max-w-sm mb-8 leading-relaxed">
         {firstClientName
           ? <><strong className="text-[#1c1d1f]">{firstClientName}</strong> is connected. Choose a framework and run a compliance assessment.</>
-          : <>Your client is connected. Choose a framework and run your first compliance assessment.</>
+          : <>Your client is connected. Choose a framework and run your first assessment.</>
         }
       </p>
-
-      <div className="flex items-center gap-3 mb-8 text-[13px] flex-wrap justify-center">
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium border bg-[#F0FDF4] text-[#16A34A] border-[#BBF7D0]">
-            <span className="w-4 h-4 rounded-full bg-[#16A34A] text-white text-[10px] font-bold flex items-center justify-center shrink-0">✓</span>
-            {firstClientName || 'Client added'}
-          </div>
+      <div className="flex items-center gap-3 mb-8 flex-wrap justify-center">
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium border bg-[#f0fdf4] text-[#0eb472] border-[#bbf7d0]">
+          <span className="w-4 h-4 rounded-full bg-[#0eb472] text-white text-[10px] font-bold flex items-center justify-center shrink-0">✓</span>
+          {firstClientName || 'Client added'}
         </div>
         <ArrowRight className="w-4 h-4 text-[#cad0d9] mb-4 shrink-0" />
         <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-semibold border bg-[#1c1d1f] text-white border-transparent">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-semibold border bg-[#1c1d1f] text-white border-transparent">
             <span className="w-4 h-4 rounded-full bg-[#C4A96D] text-[#1c1d1f] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
             Run assessment
           </div>
-          <span className="text-[10px] text-[#6f7988]">~5 min</span>
+          <span className="text-[10px] text-[#a4adba]">~5 min</span>
         </div>
         <ArrowRight className="w-4 h-4 text-[#cad0d9] mb-4 shrink-0" />
-        <div className="flex flex-col items-center gap-1">
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium border bg-white text-[#6f7988] border-[#e4e7ec]">
-            <span className="w-4 h-4 rounded-full bg-[#e4e7ec] text-[#6f7988] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
-            View results
-          </div>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium border bg-white text-[#6f7988] border-[#e4e7ec]">
+          <span className="w-4 h-4 rounded-full bg-[#e4e7ec] text-[#6f7988] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
+          View results
         </div>
       </div>
-
       <Link
         href="/assess"
-        className="inline-flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-[13px] font-semibold px-5 py-2.5 rounded-lg transition-colors"
+        className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium px-5 py-2.5 rounded-[10px]"
+        style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
       >
         <Play className="w-3.5 h-3.5" />
         Run First Assessment
       </Link>
     </div>
   )
-}
-
-// ─── Util ─────────────────────────────────────────────────────────────────────
-
-function timeAgo(iso: string): string {
-  const diff  = Date.now() - new Date(iso).getTime()
-  const mins  = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days  = Math.floor(diff / 86400000)
-  if (mins < 2)   return 'just now'
-  if (mins < 60)  return `${mins}m ago`
-  if (hours < 24) return `${hours}h ago`
-  return `${days}d ago`
 }
