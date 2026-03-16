@@ -143,12 +143,14 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
         </div>
 
         {/* Stat dots grid */}
-        <div className="flex-1 grid grid-cols-2 gap-2.5 content-center">
+        <div className="flex-1 min-w-0 grid grid-cols-2 gap-x-3 gap-y-2 content-center">
           {statDots.map(s => (
-            <div key={s.label} className="flex items-center gap-2 text-[13px]">
-              <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-              <span className="text-[#6f7988]">{s.label}</span>
-              <span className="font-semibold text-[#1c1d1f] ml-auto tabular-nums">{s.count}</span>
+            <div key={s.label} className="flex items-center justify-between gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+                <div className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />
+                <span className="text-[12px] text-[#6f7988] truncate">{s.label}</span>
+              </div>
+              <span className="text-[12px] font-semibold text-[#1c1d1f] tabular-nums shrink-0">{s.count}</span>
             </div>
           ))}
         </div>
