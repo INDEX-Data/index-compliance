@@ -1717,7 +1717,7 @@ app.get("/api/reports/:id/export/opa", async (req: AuthedRequest, res) => {
           new TableCell({
             borders, margins: cellMargins, width: { size: 2500, type: WidthType.DXA },
             shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
-            children: [new Paragraph({ children: [new TextRun({ text: c.controlName ?? c.controlId, size: 18, font: "Arial" })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: c.controlTitle ?? c.controlId, size: 18, font: "Arial" })] })],
           }),
           new TableCell({
             borders, margins: cellMargins, width: { size: 1200, type: WidthType.DXA },
@@ -1733,7 +1733,7 @@ app.get("/api/reports/:id/export/opa", async (req: AuthedRequest, res) => {
           new TableCell({
             borders, margins: cellMargins, width: { size: 3000, type: WidthType.DXA },
             shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
-            children: [new Paragraph({ children: [new TextRun({ text: c.recommendation ?? "Remediation required — see full report.", size: 18, font: "Arial" })] })],
+            children: [new Paragraph({ children: [new TextRun({ text: (c.recommendations?.[0]) ?? "Remediation required — see full report.", size: 18, font: "Arial" })] })],
           }),
           new TableCell({
             borders, margins: cellMargins, width: { size: 900, type: WidthType.DXA },
@@ -1749,7 +1749,8 @@ app.get("/api/reports/:id/export/opa", async (req: AuthedRequest, res) => {
       })
     );
 
-    const openItemsBlock: (Paragraph | Table)[] = failed.length === 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const openItemsBlock: any[] = failed.length === 0
       ? [new Paragraph({ children: [new TextRun({ text: "All controls are satisfied. No open items.", size: 22, font: "Arial", color: "16A34A" })] })]
       : [new Table({
           width: { size: 13680, type: WidthType.DXA },
@@ -1808,7 +1809,7 @@ app.get("/api/reports/:id/export/opa", async (req: AuthedRequest, res) => {
               new TextRun({ text: "   Generated: ", bold: true, size: 22, font: "Arial" }),
               new TextRun({ text: new Date(report.generatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), size: 22, font: "Arial" }),
               new TextRun({ text: "   Score: ", bold: true, size: 22, font: "Arial" }),
-              new TextRun({ text: `${report.summary.overallScore}%`, size: 22, font: "Arial" }),
+              new TextRun({ text: `${report.summary.compliancePercentage}%`, size: 22, font: "Arial" }),
             ],
             spacing: { after: 240 },
           }),
@@ -1874,22 +1875,24 @@ app.get("/api/reports/:id/export/zip", async (req: AuthedRequest, res) => {
       const folder = zip.folder(`${family}/${ctrlId}`)!;
 
       folder.file("assessment_data.json", JSON.stringify({
-        controlId: control.controlId, controlName: control.controlName,
-        family: control.family, status: control.status, score: control.score,
-        recommendation: control.recommendation, evidence: control.evidence ?? [],
+        controlId: control.controlId, controlTitle: control.controlTitle,
+        family: control.family, status: control.status,
+        recommendations: control.recommendations ?? [],
+        findings: control.findings ?? [],
+        evidenceCollected: control.evidenceCollected ?? [],
         assessedAt: report.generatedAt, framework: report.frameworkName,
         tenant: report.tenantDisplayName, reportId: report.reportId,
       }, null, 2));
 
       folder.file("evidence_summary.txt", [
-        `Control:    ${control.controlId} — ${control.controlName ?? ""}`,
+        `Control:    ${control.controlId} — ${control.controlTitle ?? ""}`,
         `Status:     ${control.status.toUpperCase()}`,
         `Framework:  ${report.frameworkName}`,
         `Tenant:     ${report.tenantDisplayName}`,
         `Assessed:   ${new Date(report.generatedAt).toISOString()}`,
         "",
-        "Recommendation:",
-        control.recommendation ?? "No recommendation provided.",
+        "Recommendations:",
+        ...(control.recommendations?.map((r, i) => `  ${i + 1}. ${r}`) ?? ["  No recommendations provided."]),
       ].join("\n"));
     }
 
@@ -1900,7 +1903,7 @@ app.get("/api/reports/:id/export/zip", async (req: AuthedRequest, res) => {
       totalControls: report.controlAssessments.length,
       passed: report.summary.passed, partial: report.summary.partial,
       failed: report.summary.failed, notAssessed: report.summary.notAssessed,
-      overallScore: report.summary.overallScore,
+      compliancePercentage: report.summary.compliancePercentage,
     };
     const manifestStr = JSON.stringify(manifest, null, 2);
     zip.file("manifest.json", manifestStr);
@@ -2159,14 +2162,14 @@ app.get("/api/reports/drift", async (req: AuthedRequest, res) => {
     if (!prev || curr.status === prev.status) continue;
     const improved = (prev.status === "fail" && curr.status !== "fail") || (prev.status === "partial" && curr.status === "pass");
     const degraded = (curr.status === "fail" && prev.status !== "fail") || (curr.status === "partial" && prev.status === "pass");
-    changed.push({ controlId: id, controlName: curr.controlName ?? id, from: prev.status, to: curr.status, direction: improved ? "improved" : degraded ? "degraded" : "changed" });
+    changed.push({ controlId: id, controlName: curr.controlTitle ?? id, from: prev.status, to: curr.status, direction: improved ? "improved" : degraded ? "degraded" : "changed" });
   }
 
   res.json({
     hasDrift: changed.length > 0,
-    latestReport:   { id: latest.reportId,   score: latest.summary.overallScore,   generatedAt: latest.generatedAt },
-    previousReport: { id: previous.reportId, score: previous.summary.overallScore, generatedAt: previous.generatedAt },
-    scoreDelta: latest.summary.overallScore - previous.summary.overallScore,
+    latestReport:   { id: latest.reportId,   score: latest.summary.compliancePercentage,   generatedAt: latest.generatedAt },
+    previousReport: { id: previous.reportId, score: previous.summary.compliancePercentage, generatedAt: previous.generatedAt },
+    scoreDelta: latest.summary.compliancePercentage - previous.summary.compliancePercentage,
     changed, improved: changed.filter(c => c.direction === "improved").length,
     degraded: changed.filter(c => c.direction === "degraded").length,
   });
