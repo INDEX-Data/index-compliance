@@ -2212,7 +2212,7 @@ app.get("/api/clients/:id/ca-exclusions", async (req: AuthedRequest, res: Respon
     if (!client) return void res.status(404).json({ error: "Client not found" });
 
     const gc = makeGraphClient(client);
-    const raw = await gc.rawQuery("/policies/conditionalAccessPolicies?$select=id,displayName,conditions,state&$top=100") as { value: any[] } | null;
+    const raw = await gc.query<any>("/policies/conditionalAccessPolicies", { select: ["id","displayName","conditions","state"], top: 100 });
     const policies = (raw?.value ?? []).filter((p: any) => {
       const u = p.conditions?.users ?? {};
       return (u.excludeUsers?.length ?? 0) > 0 || (u.excludeGroups?.length ?? 0) > 0;
@@ -2299,7 +2299,7 @@ app.get("/api/clients/:id/access-reviews", async (req: AuthedRequest, res: Respo
     const gc = makeGraphClient(client);
     let definitions: any[] = [];
     try {
-      const raw = await gc.rawQuery("/identityGovernance/accessReviews/definitions?$select=id,displayName,scope,schedule,status&$top=50") as { value: any[] } | null;
+      const raw = await gc.query<any>("/identityGovernance/accessReviews/definitions", { select: ["id","displayName","scope","schedule","status"], top: 50 });
       definitions = raw?.value ?? [];
     } catch {
       return void res.json({ supported: false, message: "Access reviews require Entra ID P2 or Governance licensing.", definitions: [] });
@@ -2308,7 +2308,7 @@ app.get("/api/clients/:id/access-reviews", async (req: AuthedRequest, res: Respo
     const enriched = await Promise.all(definitions.map(async (d: any) => {
       let lastInstance: any = null;
       try {
-        const inst = await gc.rawQuery(`/identityGovernance/accessReviews/definitions/${d.id}/instances?$top=1&$select=id,startDateTime,endDateTime,status`) as { value: any[] } | null;
+        const inst = await gc.query<any>(`/identityGovernance/accessReviews/definitions/${d.id}/instances`, { select: ["id","startDateTime","endDateTime","status"], top: 1 });
         lastInstance = inst?.value?.[0] ?? null;
       } catch { /* ignore */ }
 
