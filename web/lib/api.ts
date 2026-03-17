@@ -12,6 +12,14 @@ import type {
 
 const BASE = '/api'
 
+// ── Typed API error ───────────────────────────────────────────────────────
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message)
+    this.name = 'ApiError'
+  }
+}
+
 // ── Clerk token store ──────────────────────────────────────────────────────
 // Updated by <ClerkTokenSync /> in the root layout. All fetch helpers read it.
 let _clerkToken: string | null = null
@@ -39,7 +47,7 @@ async function get<T>(path: string): Promise<T> {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error ?? `HTTP ${res.status}`)
+    throw new ApiError(err.error ?? `HTTP ${res.status}`, res.status)
   }
   return res.json() as Promise<T>
 }
@@ -52,7 +60,7 @@ async function post<T>(path: string, body?: object): Promise<T> {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error ?? `HTTP ${res.status}`)
+    throw new ApiError(err.error ?? `HTTP ${res.status}`, res.status)
   }
   return res.json() as Promise<T>
 }
@@ -65,7 +73,7 @@ async function put<T>(path: string, body?: object): Promise<T> {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error ?? `HTTP ${res.status}`)
+    throw new ApiError(err.error ?? `HTTP ${res.status}`, res.status)
   }
   return res.json() as Promise<T>
 }
@@ -77,7 +85,7 @@ async function del<T>(path: string): Promise<T> {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error ?? `HTTP ${res.status}`)
+    throw new ApiError(err.error ?? `HTTP ${res.status}`, res.status)
   }
   return res.json() as Promise<T>
 }

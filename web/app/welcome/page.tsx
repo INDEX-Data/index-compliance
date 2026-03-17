@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Shield, Building2, Users, ChevronRight, Check, Loader2 } from 'lucide-react'
-import { saveProfile } from '@/lib/api'
+import { Shield, Building2, Users, ChevronRight, Check, Loader2, AlertCircle } from 'lucide-react'
+import { saveProfile, getProfile } from '@/lib/api'
+import { ApiError } from '@/lib/api'
 
 const INDUSTRIES = ['Defense / DIB', 'Healthcare', 'Finance / FinTech', 'Government', 'Education', 'Technology', 'Manufacturing', 'Other']
 const ORG_SIZES  = ['1–10', '11–50', '51–250', '251–1,000', '1,000+']
@@ -11,8 +12,10 @@ const ROLES      = ['CISO / CSO', 'IT Manager / Director', 'Security Analyst', '
 
 export default function WelcomePage() {
   const router = useRouter()
-  const [step, setStep] = useState<1 | 2>(1)
-  const [saving, setSaving] = useState(false)
+  const [step,    setStep]    = useState<1 | 2>(1)
+  const [saving,  setSaving]  = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+  const [checking, setChecking] = useState(true)   // true while we check for existing profile
 
   // Step 1 — company details
   const [companyName, setCompanyName] = useState('')
@@ -23,22 +26,55 @@ export default function WelcomePage() {
   // Step 2 — account type
   const [accountType, setAccountType] = useState<'org' | 'msp' | null>(null)
 
+  // ── On mount: if profile already exists, skip the wizard ─────────────────
+  useEffect(() => {
+    getProfile()
+      .then((profile) => {
+        // Already onboarded — send them to the right place
+        if (profile.accountType === 'msp') {
+          router.replace('/clients')
+        } else {
+          router.replace('/dashboard')
+        }
+      })
+      .catch((err) => {
+        if (err instanceof ApiError && err.status === 404) {
+          // No profile yet — show the wizard
+          setChecking(false)
+        } else {
+          // Transient error — still show the wizard so they're not blocked
+          setChecking(false)
+        }
+      })
+  }, [router])
+
   async function handleFinish() {
     if (!accountType) return
     setSaving(true)
+    setError(null)
     try {
       await saveProfile({ companyName, accountType, role, orgSize, industry })
       if (accountType === 'msp') {
         router.replace('/clients')
       } else {
-        router.replace('/onboarding')
+        router.replace('/dashboard')
       }
     } catch (e) {
       setSaving(false)
+      setError(e instanceof Error ? e.message : 'Something went wrong — please try again.')
     }
   }
 
   const step1Valid = companyName.trim().length > 0
+
+  // Show a loading spinner while we check for an existing profile
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-[#a4adba] animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-6">
@@ -214,9 +250,17 @@ export default function WelcomePage() {
               </button>
             </div>
 
+            {/* Error message */}
+            {error && (
+              <div className="mt-4 flex items-start gap-2.5 p-3.5 rounded-lg bg-red-50 border border-red-200">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-[13px] text-red-700">{error}</p>
+              </div>
+            )}
+
             <div className="flex gap-3 mt-8">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => { setStep(1); setError(null) }}
                 className="px-5 py-3 rounded-xl border border-[#e4e7ec] text-[13px] font-medium text-[#505967] hover:bg-[#f3f4f6] transition-colors"
               >
                 Back
