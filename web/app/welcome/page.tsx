@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { Shield, Building2, Users, ChevronRight, Check, Loader2, AlertCircle } from 'lucide-react'
-import { saveProfile, getProfile } from '@/lib/api'
-import { ApiError } from '@/lib/api'
+import { saveProfile, getProfile, setClerkToken, ApiError } from '@/lib/api'
 
 const INDUSTRIES = ['Defense / DIB', 'Healthcare', 'Finance / FinTech', 'Government', 'Education', 'Technology', 'Manufacturing', 'Other']
 const ORG_SIZES  = ['1–10', '11–50', '51–250', '251–1,000', '1,000+']
@@ -12,6 +12,7 @@ const ROLES      = ['CISO / CSO', 'IT Manager / Director', 'Security Analyst', '
 
 export default function WelcomePage() {
   const router = useRouter()
+  const { isLoaded, isSignedIn, getToken } = useAuth()
   const [step,    setStep]    = useState<1 | 2>(1)
   const [saving,  setSaving]  = useState(false)
   const [error,   setError]   = useState<string | null>(null)
@@ -27,8 +28,20 @@ export default function WelcomePage() {
   const [accountType, setAccountType] = useState<'org' | 'msp' | null>(null)
 
   // ── On mount: if profile already exists, skip the wizard ─────────────────
+  // Wait for Clerk auth before checking — the welcome page is outside the
+  // (app) layout so ClerkTokenSync doesn't run here; use getToken() directly.
   useEffect(() => {
-    getProfile()
+    if (!isLoaded) return  // Clerk still initialising
+    if (!isSignedIn) {
+      setChecking(false)   // Not signed in — just show the wizard (Clerk will handle auth)
+      return
+    }
+
+    getToken()
+      .then((token) => {
+        setClerkToken(token)
+        return getProfile()
+      })
       .then((profile) => {
         // Already onboarded — send them to the right place
         if (profile.accountType === 'msp') {
@@ -38,21 +51,20 @@ export default function WelcomePage() {
         }
       })
       .catch((err) => {
-        if (err instanceof ApiError && err.status === 404) {
-          // No profile yet — show the wizard
-          setChecking(false)
-        } else {
-          // Transient error — still show the wizard so they're not blocked
-          setChecking(false)
-        }
+        // 404 = no profile yet; anything else = transient error
+        // Either way, show the wizard
+        setChecking(false)
       })
-  }, [router])
+  }, [router, isLoaded, isSignedIn, getToken])
 
   async function handleFinish() {
     if (!accountType) return
     setSaving(true)
     setError(null)
     try {
+      // Refresh token before saving — welcome page is outside (app) layout
+      const token = await getToken()
+      setClerkToken(token)
       await saveProfile({ companyName, accountType, role, orgSize, industry })
       if (accountType === 'msp') {
         router.replace('/clients')
