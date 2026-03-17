@@ -45,6 +45,7 @@ export const clients = pgTable("clients", {
   clientSecret: text("client_secret").notNull(),
 
   addedAt: timestamp("added_at").defaultNow(),
+  notes: text("notes"),
 });
 
 export type Client = typeof clients.$inferSelect;
@@ -252,6 +253,23 @@ export const teamMemberships = pgTable(
 
 export type TeamMembership = typeof teamMemberships.$inferSelect;
 export type NewTeamMembership = typeof teamMemberships.$inferInsert;
+
+// ─── User Profiles ─────────────────────────────────────────────────────────
+
+export const userProfiles = pgTable("user_profiles", {
+  id:          uuid("id").defaultRandom().primaryKey(),
+  userId:      text("user_id").notNull().unique(),
+  /** 'org' = single organization, 'msp' = MSP/MSSP managing multiple clients */
+  accountType: text("account_type").notNull().default("msp"), // 'org' | 'msp'
+  companyName: text("company_name").notNull(),
+  role:        text("role"),           // e.g. "CISO", "IT Manager", "Consultant"
+  orgSize:     text("org_size"),       // e.g. "1-10", "11-50", "51-250", "251-1000", "1000+"
+  industry:    text("industry"),       // e.g. "Defense", "Healthcare", "Finance"
+  onboardedAt: timestamp("onboarded_at").defaultNow(),
+});
+
+export type UserProfile    = typeof userProfiles.$inferSelect;
+export type NewUserProfile = typeof userProfiles.$inferInsert;
 
 // ─── Asset Scoping (per-client) ────────────────────────────────────────────
 

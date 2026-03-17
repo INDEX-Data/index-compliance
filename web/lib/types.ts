@@ -79,6 +79,7 @@ export interface Client {
   clientId: string       // Azure app registration client ID
   clientSecret: string   // Masked on API responses (e.g. "abcd••••••••")
   addedAt: string
+  notes?: string
 }
 
 export interface ConfigStatus {
@@ -213,4 +214,19 @@ export interface TeamMember {
   id: string
   memberId: string
   joinedAt: string
+}
+
+// ---------------------------------------------------------------------------
+// User Profile
+// ---------------------------------------------------------------------------
+
+export interface UserProfile {
+  id: string
+  userId: string
+  accountType: 'org' | 'msp'
+  companyName: string
+  role?: string
+  orgSize?: string
+  industry?: string
+  onboardedAt: string
 }

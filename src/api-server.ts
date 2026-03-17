@@ -2176,6 +2176,51 @@ app.get("/api/reports/drift", async (req: AuthedRequest, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
+// USER PROFILE
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.get("/api/profile", async (req: AuthedRequest, res: Response) => {
+  if (db && dbSchema) {
+    const { eq } = drizzleOps!;
+    const rows = await db.select().from(dbSchema.userProfiles)
+      .where(eq(dbSchema.userProfiles.userId, req.userId ?? "dev")).limit(1);
+    if (rows.length > 0) return void res.json(rows[0]);
+  }
+  res.status(404).json({ error: "Profile not found" });
+});
+
+app.put("/api/profile", async (req: AuthedRequest, res: Response) => {
+  const { companyName, accountType, role, orgSize, industry } = req.body as {
+    companyName: string; accountType: string; role?: string; orgSize?: string; industry?: string;
+  };
+  if (!companyName || !accountType) return void res.status(400).json({ error: "companyName and accountType are required" });
+  if (db && dbSchema) {
+    const { eq } = drizzleOps!;
+    const rows = await db.insert(dbSchema.userProfiles)
+      .values({ userId: req.userId ?? "dev", companyName, accountType, role, orgSize, industry })
+      .onConflictDoUpdate({
+        target: dbSchema.userProfiles.userId,
+        set: { companyName, accountType, role, orgSize, industry },
+      })
+      .returning();
+    return void res.json(rows[0]);
+  }
+  res.json({ userId: req.userId, companyName, accountType, role, orgSize, industry });
+});
+
+// Also add notes update to clients
+app.put("/api/clients/:id/notes", async (req: AuthedRequest, res: Response) => {
+  const { notes } = req.body as { notes: string };
+  if (db && dbSchema) {
+    const { eq, and } = drizzleOps!;
+    await db.update(dbSchema.clients)
+      .set({ notes })
+      .where(and(eq(dbSchema.clients.id, req.params.id), eq(dbSchema.clients.userId, req.userId ?? "dev")));
+  }
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
 // ASSET SCOPING
 // ═══════════════════════════════════════════════════════════════════════════
 

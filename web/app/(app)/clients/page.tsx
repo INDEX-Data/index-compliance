@@ -2,16 +2,17 @@
 
 import { useEffect, useState, useRef } from 'react'
 import {
-  Building2, Plus, Trash2, RefreshCw, CheckCircle2,
-  AlertCircle, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, X,
-  HelpCircle, ExternalLink, Link, Copy, Check, Mail, Clock, Layers,
+  Building2, Plus, Trash2, RefreshCw,
+  CheckCircle2, AlertCircle, Loader2, ChevronDown, ChevronUp,
+  Eye, EyeOff, X, HelpCircle, ExternalLink, Link, Copy, Check,
+  Mail, Clock, Search,
 } from 'lucide-react'
+import NextLink from 'next/link'
 import {
   getClients, addClient, deleteClient, testClient, testConfig,
-  createInvitation, getInvitations, revokeInvitation,
+  createInvitation, getInvitations, revokeInvitation, getReports,
 } from '@/lib/api'
-import type { Client, Invitation } from '@/lib/types'
-import { AssetScopingModal } from '@/components/AssetScopingModal'
+import type { Client, Invitation, ReportMeta } from '@/lib/types'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -55,7 +56,6 @@ function InviteModal({ onClose }: { onClose: () => void }) {
       setNewLink(result.link)
       setClientName('')
       setEmail('')
-      // Refresh list
       getInvitations().then(setInvitations).catch(() => {})
     } catch (e) {
       setGenError(e instanceof Error ? e.message : 'Failed to generate link')
@@ -68,7 +68,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
     setRevoking(id)
     try {
       await revokeInvitation(id)
-      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'revoked' } : inv))
+      setInvitations(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'revoked' as const } : inv))
     } catch {} finally {
       setRevoking(null)
     }
@@ -95,7 +95,6 @@ function InviteModal({ onClose }: { onClose: () => void }) {
         </span>
       )
     }
-    // pending
     return (
       <span className="text-[10px] font-semibold text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] px-2 py-0.5 rounded-full">
         {formatExpiry(inv.expiresAt)}
@@ -124,7 +123,6 @@ function InviteModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-          {/* Generate form */}
           <div className="space-y-3">
             <div>
               <label className="block text-xs font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
@@ -178,7 +176,6 @@ function InviteModal({ onClose }: { onClose: () => void }) {
             </button>
           </div>
 
-          {/* Generated link */}
           {newLink && (
             <div className="rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-4">
               <p className="text-xs font-semibold text-[#15803D] mb-2">Link generated — share with your client:</p>
@@ -204,14 +201,12 @@ function InviteModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* Divider */}
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-[#eeeff1]" />
             <span className="text-[10px] font-semibold text-[#a4adba] uppercase tracking-widest">Previous invites</span>
             <div className="flex-1 h-px bg-[#eeeff1]" />
           </div>
 
-          {/* Invitations list */}
           {loadingList ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="w-4 h-4 animate-spin text-[#a4adba]" />
@@ -254,14 +249,15 @@ function InviteModal({ onClose }: { onClose: () => void }) {
   )
 }
 
-// ─── Add Client Form ───────────────────────────────────────────────────────
+// ─── Add Client Modal ──────────────────────────────────────────────────────
 
-interface AddFormProps {
+interface AddClientModalProps {
   onAdded: (client: Client) => void
-  onCancel: () => void
+  onClose: () => void
 }
 
-function AddClientForm({ onAdded, onCancel }: AddFormProps) {
+function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
+  const overlayRef = useRef<HTMLDivElement>(null)
   const [name,         setName]         = useState('')
   const [tenantId,     setTenantId]     = useState('')
   const [clientId,     setClientId]     = useState('')
@@ -280,7 +276,6 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
     try {
       const r = await testConfig({ tenantId, clientId, clientSecret })
       setTestResult(r)
-      // Auto-fill name from tenant if blank
       if (r.ok && r.tenantName && !name) setName(r.tenantName)
     } catch (e) {
       setTestResult({ ok: false, error: e instanceof Error ? e.message : 'Connection failed' })
@@ -307,204 +302,191 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
   const canAdd  = canTest && name.trim()
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#eeeff1]">
-        <div className="flex items-center gap-2">
-          <Plus className="w-4 h-4 text-[#C4A96D]" />
-          <span className="text-[13px] font-semibold text-[#1c1d1f]">Add New Client</span>
-        </div>
-        <button onClick={onCancel} className="text-[#6f7988] hover:text-[#505967] transition">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
+    <div
+      ref={overlayRef}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={e => { if (e.target === overlayRef.current) onClose() }}
+    >
+      <div className="bg-white rounded-2xl border border-[#e4e7ec] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
 
-      <div className="p-5 space-y-4">
-
-        {/* ── Azure guide accordion ── */}
-        <div className="rounded-lg border border-[#e4e7ec] overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setGuideOpen(s => !s)}
-            className="w-full flex items-center justify-between px-4 py-3 bg-[#fafafa] hover:bg-[#eeeff1] text-sm font-medium text-[#1c1d1f] transition text-left"
-          >
-            <span className="flex items-center gap-2">
-              <HelpCircle className="w-3.5 h-3.5 text-[#C4A96D] shrink-0" />
-              How to find your Azure credentials
-            </span>
-            {guideOpen
-              ? <ChevronUp   className="w-3.5 h-3.5 text-[#6f7988] shrink-0" />
-              : <ChevronDown className="w-3.5 h-3.5 text-[#6f7988] shrink-0" />}
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eeeff1]">
+          <div className="flex items-center gap-2">
+            <Plus className="w-4 h-4 text-[#C4A96D]" />
+            <span className="text-[14px] font-bold text-[#1c1d1f]">Add New Client</span>
+          </div>
+          <button onClick={onClose} className="text-[#6f7988] hover:text-[#505967] transition">
+            <X className="w-4 h-4" />
           </button>
-
-          {guideOpen && (
-            <div className="px-4 pt-4 pb-3 border-t border-[#e4e7ec] space-y-3.5">
-              {[
-                {
-                  step: '1',
-                  title: 'Open App Registrations',
-                  desc:  'Go to portal.azure.com → Azure Active Directory → App registrations. Create a new registration or select an existing one.',
-                },
-                {
-                  step: '2',
-                  title: 'Copy Tenant ID & Client ID',
-                  desc:  'On the app Overview page, copy the Directory (Tenant) ID and the Application (Client) ID.',
-                },
-                {
-                  step: '3',
-                  title: 'Create a client secret',
-                  desc:  'Go to Certificates & secrets → New client secret. Copy the secret Value — not the ID. It only shows once.',
-                },
-              ].map(s => (
-                <div key={s.step} className="flex items-start gap-3">
-                  <span className="w-5 h-5 rounded-full bg-[#1c1d1f] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                    {s.step}
-                  </span>
-                  <div>
-                    <div className="text-xs font-semibold text-[#1c1d1f]">{s.title}</div>
-                    <div className="text-xs text-[#505967] mt-0.5 leading-relaxed">{s.desc}</div>
-                  </div>
-                </div>
-              ))}
-              <a
-                href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs text-[#505967] hover:text-[#1c1d1f] transition pt-1"
-              >
-                <ExternalLink className="w-3 h-3" />
-                Open Azure Portal →
-              </a>
-            </div>
-          )}
         </div>
 
-        {/* Client Name */}
-        <div>
-          <label className="block text-xs font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
-            Client Name
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g. Acme Corp"
-            className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm text-[#1c1d1f]
-                       placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
-                       focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
-          />
-        </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
 
-        {/* Tenant ID + Client ID row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">
-              Tenant ID
-            </label>
-            <p className="text-[10px] text-[#6f7988] mb-1.5">Azure AD → Properties</p>
-            <input
-              type="text"
-              value={tenantId}
-              onChange={e => setTenantId(e.target.value)}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
-                         placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
-                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">
-              Client ID
-            </label>
-            <p className="text-[10px] text-[#6f7988] mb-1.5">App Registration → Overview</p>
-            <input
-              type="text"
-              value={clientId}
-              onChange={e => setClientId(e.target.value)}
-              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-              className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
-                         placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
-                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
-            />
-          </div>
-        </div>
-
-        {/* Client Secret */}
-        <div>
-          <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">
-            Client Secret
-          </label>
-          <p className="text-[10px] text-[#6f7988] mb-1.5">Certificates &amp; secrets → secret Value (not ID)</p>
-          <div className="relative" suppressHydrationWarning>
-            <input
-              type={showSecret ? 'text' : 'password'}
-              value={clientSecret}
-              onChange={e => setClientSecret(e.target.value)}
-              placeholder="App registration secret value"
-              className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
-                         placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
-                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
-              suppressHydrationWarning
-            />
+          {/* Azure guide accordion */}
+          <div className="rounded-lg border border-[#e4e7ec] overflow-hidden">
             <button
               type="button"
-              onClick={() => setShowSecret(s => !s)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a4adba] hover:text-[#505967] transition"
+              onClick={() => setGuideOpen(s => !s)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-[#fafafa] hover:bg-[#eeeff1] text-sm font-medium text-[#1c1d1f] transition text-left"
             >
-              {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              <span className="flex items-center gap-2">
+                <HelpCircle className="w-3.5 h-3.5 text-[#C4A96D] shrink-0" />
+                How to find your Azure credentials
+              </span>
+              {guideOpen
+                ? <ChevronUp   className="w-3.5 h-3.5 text-[#6f7988] shrink-0" />
+                : <ChevronDown className="w-3.5 h-3.5 text-[#6f7988] shrink-0" />}
+            </button>
+
+            {guideOpen && (
+              <div className="px-4 pt-4 pb-3 border-t border-[#e4e7ec] space-y-3.5">
+                {[
+                  { step: '1', title: 'Open App Registrations', desc: 'Go to portal.azure.com → Azure Active Directory → App registrations. Create a new registration or select an existing one.' },
+                  { step: '2', title: 'Copy Tenant ID & Client ID', desc: 'On the app Overview page, copy the Directory (Tenant) ID and the Application (Client) ID.' },
+                  { step: '3', title: 'Create a client secret', desc: 'Go to Certificates & secrets → New client secret. Copy the secret Value — not the ID. It only shows once.' },
+                ].map(s => (
+                  <div key={s.step} className="flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-[#1c1d1f] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                      {s.step}
+                    </span>
+                    <div>
+                      <div className="text-xs font-semibold text-[#1c1d1f]">{s.title}</div>
+                      <div className="text-xs text-[#505967] mt-0.5 leading-relaxed">{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+                <a
+                  href="https://portal.azure.com/#blade/Microsoft_AAD_RegisteredApps/ApplicationsListBlade"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 text-xs text-[#505967] hover:text-[#1c1d1f] transition pt-1"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Open Azure Portal →
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Client Name */}
+          <div>
+            <label className="block text-xs font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
+              Client Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Acme Corp"
+              className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm text-[#1c1d1f]
+                         placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
+                         focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+            />
+          </div>
+
+          {/* Tenant ID + Client ID row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">Tenant ID</label>
+              <p className="text-[10px] text-[#6f7988] mb-1.5">Azure AD → Properties</p>
+              <input
+                type="text"
+                value={tenantId}
+                onChange={e => setTenantId(e.target.value)}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
+                           placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
+                           focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">Client ID</label>
+              <p className="text-[10px] text-[#6f7988] mb-1.5">App Registration → Overview</p>
+              <input
+                type="text"
+                value={clientId}
+                onChange={e => setClientId(e.target.value)}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                className="w-full px-3 py-2.5 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
+                           placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
+                           focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+              />
+            </div>
+          </div>
+
+          {/* Client Secret */}
+          <div>
+            <label className="block text-xs font-semibold text-[#1c1d1f] mb-0.5 uppercase tracking-wide">Client Secret</label>
+            <p className="text-[10px] text-[#6f7988] mb-1.5">Certificates &amp; secrets → secret Value (not ID)</p>
+            <div className="relative" suppressHydrationWarning>
+              <input
+                type={showSecret ? 'text' : 'password'}
+                value={clientSecret}
+                onChange={e => setClientSecret(e.target.value)}
+                placeholder="App registration secret value"
+                className="w-full px-3 py-2.5 pr-10 rounded-lg border border-[#e4e7ec] text-sm font-mono text-[#1c1d1f]
+                           placeholder-[#a4adba] bg-white focus:outline-none focus:ring-2
+                           focus:ring-[#C4A96D]/30 focus:border-[#C4A96D] transition"
+                suppressHydrationWarning
+              />
+              <button
+                type="button"
+                onClick={() => setShowSecret(s => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a4adba] hover:text-[#505967] transition"
+              >
+                {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {testResult && (
+            <div className={`flex items-start gap-2 text-xs rounded-lg px-3 py-2.5 ${
+              testResult.ok
+                ? 'bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D]'
+                : 'bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]'
+            }`}>
+              {testResult.ok
+                ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                : <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              }
+              <span>
+                {testResult.ok
+                  ? `Connected — ${testResult.tenantName ?? 'Tenant verified'}`
+                  : testResult.error ?? 'Connection failed'
+                }
+              </span>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-2 text-xs bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-lg px-3 py-2.5">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={handleTest}
+              disabled={!canTest || testing}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#e4e7ec] bg-white
+                         hover:bg-[#fafafa] text-sm font-medium text-[#1c1d1f]
+                         disabled:opacity-40 disabled:cursor-not-allowed transition"
+            >
+              {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+              Test Connection
+            </button>
+            <button
+              onClick={handleAdd}
+              disabled={!canAdd || saving}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
+                         bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-sm font-semibold
+                         disabled:bg-[#F3F4F6] disabled:text-[#6f7988] disabled:cursor-not-allowed transition"
+            >
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              Add Client
             </button>
           </div>
-        </div>
-
-        {/* Test result banner */}
-        {testResult && (
-          <div className={`flex items-start gap-2 text-xs rounded-lg px-3 py-2.5 ${
-            testResult.ok
-              ? 'bg-[#F0FDF4] border border-[#BBF7D0] text-[#15803D]'
-              : 'bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C]'
-          }`}>
-            {testResult.ok
-              ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              : <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            }
-            <span>
-              {testResult.ok
-                ? `Connected — ${testResult.tenantName ?? 'Tenant verified'}`
-                : testResult.error ?? 'Connection failed'
-              }
-            </span>
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center gap-2 text-xs bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-lg px-3 py-2.5">
-            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-            {error}
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={handleTest}
-            disabled={!canTest || testing}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#e4e7ec] bg-white
-                       hover:bg-[#fafafa] text-sm font-medium text-[#1c1d1f]
-                       disabled:opacity-40 disabled:cursor-not-allowed transition"
-          >
-            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-            Test Connection
-          </button>
-          <button
-            onClick={handleAdd}
-            disabled={!canAdd || saving}
-            className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
-                       bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-sm font-semibold
-                       disabled:bg-[#F3F4F6] disabled:text-[#6f7988] disabled:cursor-not-allowed transition"
-          >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-            Add Client
-          </button>
         </div>
       </div>
     </div>
@@ -513,162 +495,90 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
 
 // ─── Client Card ──────────────────────────────────────────────────────────
 
-interface ClientCardProps {
-  client: Client
-  onDelete: (id: string) => void
-  onScope: (client: Client) => void
-}
+function ClientCard({ client, onDelete, lastReport }: { client: Client; onDelete: (id: string) => void; lastReport?: ReportMeta }) {
+  const [testing,    setTesting]    = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [deleting,   setDeleting]   = useState(false)
 
-function ClientCard({ client, onDelete, onScope }: ClientCardProps) {
-  const [testing,     setTesting]     = useState(false)
-  const [testResult,  setTestResult]  = useState<{ ok: boolean; error?: string } | null>(null)
-  const [confirming,  setConfirming]  = useState(false)
-  const [deleting,    setDeleting]    = useState(false)
-  const [expanded,    setExpanded]    = useState(false)
+  const scoreColor = (pct: number) => pct >= 80 ? '#0eb472' : pct >= 50 ? '#f59e0b' : '#f25757'
 
-  async function handleTest() {
-    setTesting(true)
-    setTestResult(null)
-    try {
-      const r = await testClient(client.id)
-      setTestResult(r)
-    } catch (e) {
-      setTestResult({ ok: false, error: e instanceof Error ? e.message : 'Test failed' })
-    } finally {
-      setTesting(false)
+  async function handleTest(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation()
+    setTesting(true); setTestResult(null)
+    try { setTestResult(await testClient(client.id)) }
+    catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Test failed'
+      setTestResult({ ok: false, error: msg })
     }
+    finally { setTesting(false) }
   }
 
-  async function handleDelete() {
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault(); e.stopPropagation()
     setDeleting(true)
-    try {
-      await deleteClient(client.id)
-      onDelete(client.id)
-    } catch {
-      setDeleting(false)
-    }
+    try { await deleteClient(client.id); onDelete(client.id) }
+    catch { setDeleting(false) }
   }
-
-  const added = new Date(client.addedAt).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  })
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card overflow-hidden">
-      {/* Main row */}
+    <NextLink href={`/clients/${client.id}`} className="block bg-white rounded-xl border border-[#e4e7ec] shadow-card hover:shadow-md hover:border-[#c8ccd4] transition-all overflow-hidden">
       <div className="flex items-center gap-4 px-5 py-4">
-        {/* Icon */}
         <div className="w-10 h-10 rounded-xl bg-[#fafafa] border border-[#e4e7ec] flex items-center justify-center shrink-0">
           <Building2 className="w-5 h-5 text-[#505967]" />
         </div>
-
-        {/* Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-[14px] font-semibold text-[#1c1d1f] truncate">{client.name}</h3>
-          </div>
-          <p className="text-xs text-[#6f7988] font-mono truncate mt-0.5">
-            {client.tenantId}
-          </p>
+          <h3 className="text-[14px] font-semibold text-[#1c1d1f] truncate">{client.name}</h3>
+          <p className="text-[11px] text-[#a4adba] font-mono truncate mt-0.5">{client.tenantId}</p>
         </div>
 
-        {/* Test result badge */}
+        {/* Last score */}
+        {lastReport && (
+          <div className="text-right shrink-0">
+            <p className="text-[16px] font-bold tabular-nums" style={{ color: scoreColor(lastReport.summary.compliancePercentage), letterSpacing: '-0.02em' }}>
+              {lastReport.summary.compliancePercentage}%
+            </p>
+            <p className="text-[10px] text-[#a4adba]">{lastReport.frameworkId}</p>
+          </div>
+        )}
+
+        {/* Connection status */}
         {testResult && (
-          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${
-            testResult.ok
-              ? 'text-[#15803D] bg-[#F0FDF4] border border-[#BBF7D0]'
-              : 'text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA]'
-          }`}>
-            {testResult.ok ? '● Connected' : '● Failed'}
+          <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${testResult.ok ? 'text-[#0eb472] bg-[rgba(14,180,114,0.08)]' : 'text-[#f25757] bg-[rgba(242,87,87,0.08)]'}`}>
+            {testResult.ok ? '● OK' : '● Err'}
           </span>
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.preventDefault()}>
           <button
             onClick={handleTest}
             disabled={testing}
-            title="Test connection"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#e4e7ec] bg-white
-                       hover:bg-[#fafafa] text-xs font-medium text-[#1c1d1f]
-                       disabled:opacity-40 transition"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#e4e7ec] text-[11px] font-medium text-[#505967] hover:bg-[#fafafa] transition-colors"
           >
             {testing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
             Test
           </button>
-
           {!confirming ? (
-            <button
-              onClick={() => setConfirming(true)}
-              title="Remove client"
-              className="p-1.5 rounded-lg text-[#a4adba] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition"
-            >
+            <button onClick={e => { e.preventDefault(); e.stopPropagation(); setConfirming(true) }}
+              className="p-1.5 rounded-lg text-[#a4adba] hover:text-[#f25757] hover:bg-[#FEF2F2] transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={handleDelete}
-                disabled={deleting}
-                className="px-2.5 py-1 rounded-lg bg-[#B91C1C] hover:bg-[#991B1B] text-white text-xs font-semibold transition"
-              >
+            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+              <button onClick={handleDelete} disabled={deleting}
+                className="px-2.5 py-1 rounded-lg bg-[#f25757] text-white text-[11px] font-semibold transition-colors">
                 {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Delete'}
               </button>
-              <button
-                onClick={() => setConfirming(false)}
-                className="px-2.5 py-1 rounded-lg border border-[#e4e7ec] text-xs font-medium text-[#505967] hover:bg-[#fafafa] transition"
-              >
+              <button onClick={e => { e.preventDefault(); e.stopPropagation(); setConfirming(false) }}
+                className="px-2.5 py-1 rounded-lg border border-[#e4e7ec] text-[11px] text-[#505967] transition-colors">
                 Cancel
               </button>
             </div>
           )}
-
-          <button
-            onClick={(e) => { e.stopPropagation(); onScope(client) }}
-            className="p-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors"
-            title="Asset Scoping"
-          >
-            <Layers className="w-3.5 h-3.5 text-[#a4adba]" />
-          </button>
-
-          <button
-            onClick={() => setExpanded(s => !s)}
-            className="p-1.5 rounded-lg text-[#a4adba] hover:text-[#505967] hover:bg-[#fafafa] transition"
-          >
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
         </div>
       </div>
-
-      {/* Expanded metadata */}
-      {expanded && (
-        <div className="border-t border-[#eeeff1] px-5 py-4 grid grid-cols-2 gap-x-6 gap-y-3">
-          <div>
-            <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-1">Tenant ID</p>
-            <p className="text-xs font-mono text-[#1c1d1f] break-all">{client.tenantId}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-1">Client ID</p>
-            <p className="text-xs font-mono text-[#1c1d1f] break-all">{client.clientId}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-1">Client Secret</p>
-            <p className="text-xs font-mono text-[#1c1d1f]">{client.clientSecret}</p>
-          </div>
-          <div>
-            <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-1">Added</p>
-            <p className="text-xs text-[#1c1d1f]">{added}</p>
-          </div>
-
-          {testResult && !testResult.ok && testResult.error && (
-            <div className="col-span-2">
-              <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-1">Last Error</p>
-              <p className="text-xs text-[#B91C1C] leading-relaxed">{testResult.error}</p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+    </NextLink>
   )
 }
 
@@ -676,16 +586,27 @@ function ClientCard({ client, onDelete, onScope }: ClientCardProps) {
 
 export default function ClientsPage() {
   const [clients,      setClients]      = useState<Client[]>([])
+  const [reports,      setReports]      = useState<ReportMeta[]>([])
   const [loading,      setLoading]      = useState(true)
   const [showAddForm,  setShowAddForm]  = useState(false)
   const [showInvite,   setShowInvite]   = useState(false)
-  const [scopingClient, setScopingClient] = useState<Client | null>(null)
+  const [search,       setSearch]       = useState('')
 
   useEffect(() => {
-    getClients()
-      .then(setClients)
+    Promise.all([getClients(), getReports()])
+      .then(([c, r]) => { setClients(c); setReports(r) })
       .finally(() => setLoading(false))
   }, [])
+
+  // Build latest report per client
+  const latestReportByClient: Record<string, ReportMeta> = {}
+  for (const r of reports) {
+    if (!r.clientId) continue
+    const existing = latestReportByClient[r.clientId]
+    if (!existing || new Date(r.generatedAt) > new Date(existing.generatedAt)) {
+      latestReportByClient[r.clientId] = r
+    }
+  }
 
   function handleAdded(client: Client) {
     setClients(prev => [...prev, client])
@@ -696,17 +617,16 @@ export default function ClientsPage() {
     setClients(prev => prev.filter(c => c.id !== id))
   }
 
+  const filtered = clients.filter(c =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.tenantId.toLowerCase().includes(search.toLowerCase())
+  )
+
   return (
     <div className="p-8 max-w-3xl mx-auto">
 
       {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
-      {scopingClient && (
-        <AssetScopingModal
-          clientId={scopingClient.id}
-          clientName={scopingClient.name}
-          onClose={() => setScopingClient(null)}
-        />
-      )}
+      {showAddForm && <AddClientModal onAdded={handleAdded} onClose={() => setShowAddForm(false)} />}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -731,23 +651,28 @@ export default function ClientsPage() {
             <Link className="w-4 h-4 text-[#C4A96D]" />
             Invite Client
           </button>
-          {!showAddForm && (
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white
-                         text-sm font-semibold px-4 py-2.5 rounded-lg transition"
-            >
-              <Plus className="w-4 h-4" />
-              Add Client
-            </button>
-          )}
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center gap-2 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white
+                       text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Client
+          </button>
         </div>
       </div>
 
-      {/* Add form */}
-      {showAddForm && (
-        <div className="mb-5">
-          <AddClientForm onAdded={handleAdded} onCancel={() => setShowAddForm(false)} />
+      {/* Search */}
+      {clients.length > 0 && (
+        <div className="relative mb-5">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#a4adba]" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search clients…"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#e4e7ec] bg-white text-[13px] text-[#1c1d1f] placeholder-[#a4adba] focus:outline-none focus:border-[#1c1d1f] transition-colors"
+          />
         </div>
       )}
 
@@ -767,7 +692,6 @@ export default function ClientsPage() {
             Connect a Microsoft 365 tenant to start running compliance assessments.
           </p>
 
-          {/* What you'll need */}
           <div className="bg-[#fafafa] border border-[#e4e7ec] rounded-xl px-5 py-4 mb-6 max-w-sm mx-auto text-left">
             <p className="text-[11px] font-semibold text-[#6f7988] uppercase tracking-widest mb-3">
               Before you start, you&apos;ll need:
@@ -810,11 +734,21 @@ export default function ClientsPage() {
       ) : (
         <div className="space-y-3">
           <p className="text-[11px] font-semibold text-[#6f7988] uppercase tracking-widest mb-4">
-            {clients.length} {clients.length === 1 ? 'Client' : 'Clients'}
+            {filtered.length} {filtered.length === 1 ? 'Client' : 'Clients'}{search && ` matching "${search}"`}
           </p>
-          {clients.map(client => (
-            <ClientCard key={client.id} client={client} onDelete={handleDeleted} onScope={setScopingClient} />
+          {filtered.map(client => (
+            <ClientCard
+              key={client.id}
+              client={client}
+              onDelete={handleDeleted}
+              lastReport={latestReportByClient[client.id]}
+            />
           ))}
+          {filtered.length === 0 && search && (
+            <div className="text-center py-10 text-[#6f7988] text-[13px]">
+              No clients match &ldquo;{search}&rdquo;
+            </div>
+          )}
         </div>
       )}
     </div>

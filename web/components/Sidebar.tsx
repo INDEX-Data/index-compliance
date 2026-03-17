@@ -10,7 +10,8 @@ import {
   UserCog, HelpCircle, Lightbulb,
 } from 'lucide-react'
 import { UserButton, useUser } from '@clerk/nextjs'
-import { getClients, getConfigStatus } from '@/lib/api'
+import { getClients, getConfigStatus, getProfile } from '@/lib/api'
+import type { UserProfile } from '@/lib/types'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -24,25 +25,6 @@ const SHORTCUTS: Record<string, string> = {
   '/integrations': 'I',
   '/settings':     'S',
 }
-
-const NAV_SECTIONS = [
-  {
-    label: 'Overview',
-    items: [
-      { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-      { href: '/assess',       label: 'Assess',       icon: Play },
-      { href: '/history',      label: 'History',      icon: Clock },
-    ],
-  },
-  {
-    label: 'Manage',
-    items: [
-      { href: '/clients',      label: 'Clients',      icon: Building2 },
-      { href: '/integrations', label: 'Integrations', icon: Plug },
-      { href: '/insights',     label: 'Insights',     icon: Lightbulb },
-    ],
-  },
-]
 
 // ─── Tooltip (dark, right-side, collapsed mode only) ─────────────────────────
 
@@ -214,6 +196,7 @@ export function Sidebar() {
   const [wsOpen,      setWsOpen]      = useState(false)
   const [clientCount, setClientCount] = useState<number | null>(null)
   const [orgName,     setOrgName]     = useState('INDEX')
+  const [profile,     setProfile]     = useState<UserProfile | null>(null)
 
   useEffect(() => {
     const saved = localStorage.getItem(COLLAPSED_KEY)
@@ -228,7 +211,38 @@ export function Sidebar() {
     getConfigStatus()
       .then(s => { if (s.tenantName) setOrgName(s.tenantName) })
       .catch(() => {})
+    getProfile().then(setProfile).catch(() => {})
   }, [])
+
+  const isMsp = !profile || profile.accountType === 'msp' // default to msp if unknown
+
+  const NAV_SECTIONS = isMsp ? [
+    {
+      label: 'Overview',
+      items: [
+        { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+        { href: '/assess',       label: 'Assess',       icon: Play },
+        { href: '/history',      label: 'History',      icon: Clock },
+      ],
+    },
+    {
+      label: 'Manage',
+      items: [
+        { href: '/clients',      label: 'Clients',      icon: Building2 },
+        { href: '/integrations', label: 'Integrations', icon: Plug },
+      ],
+    },
+  ] : [
+    {
+      label: 'Overview',
+      items: [
+        { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+        { href: '/assess',       label: 'Assess',       icon: Play },
+        { href: '/history',      label: 'History',      icon: Clock },
+        { href: '/insights',     label: 'Insights',     icon: Lightbulb },
+      ],
+    },
+  ]
 
   const toggleCollapsed = useCallback(() => {
     setWsOpen(false)
@@ -270,7 +284,7 @@ export function Sidebar() {
       {/* ── Workspace switcher ── */}
       <div className="relative px-2 pt-3 pb-2">
         {collapsed ? (
-          <Tip label={orgName}>
+          <Tip label={profile?.companyName ?? orgName}>
             <button
               onClick={() => setWsOpen(s => !s)}
               className="w-7 h-7 rounded-[9px] flex items-center justify-center mx-auto
@@ -295,7 +309,7 @@ export function Sidebar() {
             <div className="flex-1 min-w-0 text-left">
               <p className="text-[13px] font-semibold text-[#1c1d1f] truncate leading-none"
                  style={{ letterSpacing: '-0.01em' }}>
-                {orgName}
+                {profile?.companyName ?? orgName}
               </p>
             </div>
             <ChevronDown
@@ -308,7 +322,7 @@ export function Sidebar() {
           </button>
         )}
 
-        {wsOpen && <WorkspaceMenu orgName={orgName} onClose={() => setWsOpen(false)} />}
+        {wsOpen && <WorkspaceMenu orgName={profile?.companyName ?? orgName} onClose={() => setWsOpen(false)} />}
       </div>
 
       {/* ── New Assessment CTA ── */}

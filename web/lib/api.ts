@@ -7,7 +7,7 @@ import type {
   ObjectivesResponse, ObjectiveStatus, ObjectiveStatusValue,
   DIBCACObjectiveSummary,
   Invitation, ClientIntegration,
-  TeamInvite, TeamMember,
+  TeamInvite, TeamMember, UserProfile,
 } from './types'
 
 const BASE = '/api'
@@ -480,3 +480,12 @@ export function exportDIBCACWorksheet(reportId: string): void {
   a.click()
   document.body.removeChild(a)
 }
+
+// ── User Profile ──────────────────────────────────────────────────────────
+export const getProfile = () => get<UserProfile>('/profile')
+export const saveProfile = (data: { companyName: string; accountType: string; role?: string; orgSize?: string; industry?: string }) =>
+  put<UserProfile>('/profile', data)
+
+// ── Client Notes ─────────────────────────────────────────────────────────
+export const saveClientNotes = (clientId: string, notes: string) =>
+  put<{ ok: boolean }>(`/clients/${clientId}/notes`, { notes })
