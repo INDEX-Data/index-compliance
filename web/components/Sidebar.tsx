@@ -7,9 +7,9 @@ import {
   ShieldCheck, LayoutDashboard, Play, Clock,
   Building2, Plug, Settings, ChevronDown,
   Plus, ChevronsLeft, ChevronsRight,
-  UserCog, HelpCircle, Lightbulb,
+  UserCog, HelpCircle, Lightbulb, LogOut,
 } from 'lucide-react'
-import { UserButton, useUser } from '@clerk/nextjs'
+import { UserButton, useUser, useClerk } from '@clerk/nextjs'
 import { getClients, getConfigStatus, getProfile } from '@/lib/api'
 import type { UserProfile } from '@/lib/types'
 
@@ -124,7 +124,8 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
 // ─── Workspace dropdown ───────────────────────────────────────────────────────
 
 function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => void }) {
-  const ref = useRef<HTMLDivElement>(null)
+  const ref      = useRef<HTMLDivElement>(null)
+  const { signOut } = useClerk()
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -181,6 +182,20 @@ function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => v
           </Link>
         ))}
       </nav>
+
+      {/* Sign out — separated */}
+      <div className="border-t border-[#eeeff1] py-1.5">
+        <button
+          onClick={() => signOut({ redirectUrl: '/sign-in' })}
+          className="w-full flex items-center gap-2 px-3 py-[6px]
+                     text-[13px] font-medium text-[#e5484d]
+                     hover:bg-red-50
+                     transition-colors duration-300 hover:duration-50"
+        >
+          <LogOut className="w-3.5 h-3.5 shrink-0" strokeWidth={1.5} />
+          Sign out
+        </button>
+      </div>
     </div>
   )
 }
@@ -243,6 +258,8 @@ export function Sidebar() {
       ],
     },
   ]
+
+  const { signOut } = useClerk()
 
   const toggleCollapsed = useCallback(() => {
     setWsOpen(false)
@@ -422,18 +439,30 @@ export function Sidebar() {
         />
 
         <div className={[
-          'flex items-center gap-2 mt-1',
+          'group/user flex items-center gap-2 mt-1',
           collapsed ? 'justify-center pt-1' : 'px-2 pt-1',
         ].join(' ')}>
           <UserButton appearance={{ elements: { avatarBox: 'w-[22px] h-[22px]' } }} />
           {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-[12.5px] font-medium text-[#2e3238] truncate leading-none"
-                 style={{ letterSpacing: '-0.01em' }}>
-                {displayName}
-              </p>
-              <p className="text-[11px] text-[#a4adba] mt-[4px] leading-none">MSP Platform</p>
-            </div>
+            <>
+              <div className="flex-1 min-w-0">
+                <p className="text-[12.5px] font-medium text-[#2e3238] truncate leading-none"
+                   style={{ letterSpacing: '-0.01em' }}>
+                  {displayName}
+                </p>
+                <p className="text-[11px] text-[#a4adba] mt-[4px] leading-none">
+                  {profile?.accountType === 'msp' ? 'MSP Platform' : 'Organisation'}
+                </p>
+              </div>
+              <button
+                onClick={() => signOut({ redirectUrl: '/sign-in' })}
+                title="Sign out"
+                className="opacity-0 group-hover/user:opacity-100 transition-opacity duration-150
+                           p-1 rounded-[6px] text-[#a4adba] hover:text-[#e5484d] hover:bg-red-50"
+              >
+                <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
+              </button>
+            </>
           )}
         </div>
       </div>
