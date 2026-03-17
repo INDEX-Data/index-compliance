@@ -16,6 +16,7 @@ import {
   uuid,
   timestamp,
   unique,
+  integer,
 } from "drizzle-orm/pg-core";
 
 // ─── Clients (Azure tenants) ───────────────────────────────────────────────
@@ -251,3 +252,42 @@ export const teamMemberships = pgTable(
 
 export type TeamMembership = typeof teamMemberships.$inferSelect;
 export type NewTeamMembership = typeof teamMemberships.$inferInsert;
+
+// ─── Evidence Files ────────────────────────────────────────────────────────
+// Files uploaded as evidence for a specific assessment objective.
+// Content stored as base64-encoded text (max ~5 MB per file).
+
+export const evidenceFiles = pgTable("evidence_files", {
+  id: uuid("id").defaultRandom().primaryKey(),
+
+  /** FK to reports */
+  reportId: text("report_id")
+    .references(() => reports.id, { onDelete: "cascade" })
+    .notNull(),
+
+  /** Objective ID the file is attached to, e.g. "3.1.1[a]" */
+  objectiveId: text("objective_id").notNull(),
+
+  /** Clerk user ID who uploaded */
+  userId: text("user_id").notNull(),
+
+  /** Sanitised filename stored on server */
+  fileName: text("file_name").notNull(),
+
+  /** Original filename from the user's device */
+  originalName: text("original_name").notNull(),
+
+  /** File size in bytes */
+  fileSize: integer("file_size").notNull(),
+
+  /** MIME type */
+  mimeType: text("mime_type").notNull(),
+
+  /** Base64-encoded file content */
+  content: text("content").notNull(),
+
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+});
+
+export type EvidenceFile = typeof evidenceFiles.$inferSelect;
+export type NewEvidenceFile = typeof evidenceFiles.$inferInsert;

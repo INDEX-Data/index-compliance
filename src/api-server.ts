@@ -1686,6 +1686,492 @@ app.get("/api/reports/:id/objectives/export/csv", async (req: AuthedRequest, res
   res.send(csv);
 });
 
+// =============================================================================
+// OPA EXPORT  (Operational Plan of Action — customer-facing, NOT POA&M)
+// GET /api/reports/:id/export/opa
+// =============================================================================
+
+app.get("/api/reports/:id/export/opa", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
+  if (!report) return void res.status(404).json({ error: "Report not found" });
+
+  try {
+    const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+            AlignmentType, HeadingLevel, BorderStyle, WidthType, ShadingType } = await import("docx");
+
+    const failed = report.controlAssessments.filter(c => c.status === "fail" || c.status === "partial");
+
+    const border = { style: BorderStyle.SINGLE, size: 1, color: "E4E7EC" };
+    const borders = { top: border, bottom: border, left: border, right: border };
+    const headerShading = { fill: "F3F4F6", type: ShadingType.CLEAR, color: "auto" };
+    const cellMargins = { top: 100, bottom: 100, left: 120, right: 120 };
+
+    const controlRows = failed.map((c, idx) =>
+      new TableRow({
+        children: [
+          new TableCell({
+            borders, margins: cellMargins, width: { size: 700, type: WidthType.DXA },
+            shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            children: [new Paragraph({ children: [new TextRun({ text: c.controlId, size: 18, font: "Arial" })] })],
+          }),
+          new TableCell({
+            borders, margins: cellMargins, width: { size: 2500, type: WidthType.DXA },
+            shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            children: [new Paragraph({ children: [new TextRun({ text: c.controlName ?? c.controlId, size: 18, font: "Arial" })] })],
+          }),
+          new TableCell({
+            borders, margins: cellMargins, width: { size: 1200, type: WidthType.DXA },
+            shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            children: [new Paragraph({
+              children: [new TextRun({
+                text: c.status === "fail" ? "Not Satisfied" : "Partially Satisfied",
+                size: 18, font: "Arial",
+                color: c.status === "fail" ? "DC2626" : "D97706",
+              })],
+            })],
+          }),
+          new TableCell({
+            borders, margins: cellMargins, width: { size: 3000, type: WidthType.DXA },
+            shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            children: [new Paragraph({ children: [new TextRun({ text: c.recommendation ?? "Remediation required — see full report.", size: 18, font: "Arial" })] })],
+          }),
+          new TableCell({
+            borders, margins: cellMargins, width: { size: 900, type: WidthType.DXA },
+            shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            children: [new Paragraph({ children: [new TextRun({ text: "Open", size: 18, font: "Arial" })] })],
+          }),
+          new TableCell({
+            borders, margins: cellMargins, width: { size: 1060, type: WidthType.DXA },
+            shading: idx % 2 !== 0 ? { fill: "FAFAFA", type: ShadingType.CLEAR, color: "auto" } : undefined,
+            children: [new Paragraph({ children: [new TextRun({ text: "", size: 18, font: "Arial" })] })],
+          }),
+        ],
+      })
+    );
+
+    const openItemsBlock: (Paragraph | Table)[] = failed.length === 0
+      ? [new Paragraph({ children: [new TextRun({ text: "All controls are satisfied. No open items.", size: 22, font: "Arial", color: "16A34A" })] })]
+      : [new Table({
+          width: { size: 13680, type: WidthType.DXA },
+          columnWidths: [700, 2500, 1200, 3000, 900, 1060],
+          rows: [
+            new TableRow({
+              tableHeader: true,
+              children: (
+                [["Control ID", 700], ["Control Name", 2500], ["Status", 1200],
+                 ["Remediation Action", 3000], ["OPA Status", 900], ["Target Date", 1060]] as [string, number][]
+              ).map(([label, width]) =>
+                new TableCell({
+                  borders, margins: cellMargins, shading: headerShading,
+                  width: { size: width, type: WidthType.DXA },
+                  children: [new Paragraph({
+                    alignment: AlignmentType.LEFT,
+                    children: [new TextRun({ text: label, bold: true, size: 18, font: "Arial" })],
+                  })],
+                })
+              ),
+            }),
+            ...controlRows,
+          ],
+        })];
+
+    const doc = new Document({
+      styles: {
+        default: { document: { run: { font: "Arial", size: 22 } } },
+        paragraphStyles: [
+          { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+            run: { size: 36, bold: true, font: "Arial", color: "1C1D1F" },
+            paragraph: { spacing: { before: 360, after: 120 }, outlineLevel: 0 } },
+          { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+            run: { size: 28, bold: true, font: "Arial", color: "1C1D1F" },
+            paragraph: { spacing: { before: 240, after: 120 }, outlineLevel: 1 } },
+        ],
+      },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 15840, height: 12240 },
+            margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 },
+          },
+        },
+        children: [
+          new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            children: [new TextRun({ text: "Operational Plan of Action (OPA)", bold: true, size: 40, font: "Arial" })],
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Organisation: ", bold: true, size: 22, font: "Arial" }),
+              new TextRun({ text: report.tenantDisplayName ?? "—", size: 22, font: "Arial" }),
+              new TextRun({ text: "   Framework: ", bold: true, size: 22, font: "Arial" }),
+              new TextRun({ text: report.frameworkName, size: 22, font: "Arial" }),
+              new TextRun({ text: "   Generated: ", bold: true, size: 22, font: "Arial" }),
+              new TextRun({ text: new Date(report.generatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }), size: 22, font: "Arial" }),
+              new TextRun({ text: "   Score: ", bold: true, size: 22, font: "Arial" }),
+              new TextRun({ text: `${report.summary.overallScore}%`, size: 22, font: "Arial" }),
+            ],
+            spacing: { after: 240 },
+          }),
+          new Paragraph({
+            children: [new TextRun({
+              text: "This OPA documents controls that are not yet fully satisfied and the planned remediation actions. It is an internal tracking document — NOT a C3PAO-issued POA&M.",
+              size: 20, font: "Arial", italics: true, color: "505967",
+            })],
+            spacing: { after: 360 },
+          }),
+          new Paragraph({
+            heading: HeadingLevel.HEADING_2,
+            children: [new TextRun({ text: "Summary", bold: true, size: 28, font: "Arial" })],
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: `Total: ${report.controlAssessments.length}   `, size: 22, font: "Arial" }),
+              new TextRun({ text: `Passed: ${report.summary.passed}   `, size: 22, font: "Arial", color: "16A34A" }),
+              new TextRun({ text: `Partial: ${report.summary.partial}   `, size: 22, font: "Arial", color: "D97706" }),
+              new TextRun({ text: `Failed: ${report.summary.failed}   `, size: 22, font: "Arial", color: "DC2626" }),
+            ],
+            spacing: { after: 360 },
+          }),
+          new Paragraph({
+            heading: HeadingLevel.HEADING_2,
+            children: [new TextRun({ text: `Open Items (${failed.length})`, bold: true, size: 28, font: "Arial" })],
+          }),
+          ...openItemsBlock,
+        ],
+      }],
+    });
+
+    const buffer = await Packer.toBuffer(doc);
+    const safe   = report.frameworkName.replace(/[^a-z0-9]/gi, "_");
+    const tenant = (report.tenantDisplayName ?? "tenant").replace(/[^a-z0-9]/gi, "_");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    res.setHeader("Content-Disposition", `attachment; filename="OPA_${safe}_${tenant}_${report.reportId}.docx"`);
+    res.end(buffer);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[OPA Export]", msg);
+    if (!res.headersSent) res.status(500).json({ error: msg });
+  }
+});
+
+// =============================================================================
+// STRUCTURED EVIDENCE ZIP EXPORT
+// GET /api/reports/:id/export/zip
+// =============================================================================
+
+app.get("/api/reports/:id/export/zip", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
+  if (!report) return void res.status(404).json({ error: "Report not found" });
+
+  try {
+    const JSZip = (await import("jszip")).default;
+    const { createHash } = await import("crypto");
+    const zip = new JSZip();
+
+    for (const control of report.controlAssessments) {
+      const family = (control.family ?? control.frameworkId ?? "other").replace(/[^a-z0-9_\-]/gi, "_");
+      const ctrlId = control.controlId.replace(/[^a-z0-9_\-\.]/gi, "_");
+      const folder = zip.folder(`${family}/${ctrlId}`)!;
+
+      folder.file("assessment_data.json", JSON.stringify({
+        controlId: control.controlId, controlName: control.controlName,
+        family: control.family, status: control.status, score: control.score,
+        recommendation: control.recommendation, evidence: control.evidence ?? [],
+        assessedAt: report.generatedAt, framework: report.frameworkName,
+        tenant: report.tenantDisplayName, reportId: report.reportId,
+      }, null, 2));
+
+      folder.file("evidence_summary.txt", [
+        `Control:    ${control.controlId} — ${control.controlName ?? ""}`,
+        `Status:     ${control.status.toUpperCase()}`,
+        `Framework:  ${report.frameworkName}`,
+        `Tenant:     ${report.tenantDisplayName}`,
+        `Assessed:   ${new Date(report.generatedAt).toISOString()}`,
+        "",
+        "Recommendation:",
+        control.recommendation ?? "No recommendation provided.",
+      ].join("\n"));
+    }
+
+    const manifest = {
+      reportId: report.reportId, framework: report.frameworkName,
+      tenant: report.tenantDisplayName, generatedAt: report.generatedAt,
+      exportedAt: new Date().toISOString(),
+      totalControls: report.controlAssessments.length,
+      passed: report.summary.passed, partial: report.summary.partial,
+      failed: report.summary.failed, notAssessed: report.summary.notAssessed,
+      overallScore: report.summary.overallScore,
+    };
+    const manifestStr = JSON.stringify(manifest, null, 2);
+    zip.file("manifest.json", manifestStr);
+    zip.file("MANIFEST.sha256", `${createHash("sha256").update(manifestStr).digest("hex")}  manifest.json\n`);
+    zip.file("README.txt", [
+      "INDEX Compliance Platform — Evidence Package",
+      "============================================",
+      `Report:   ${report.reportId}`,
+      `Exported: ${new Date().toISOString()}`,
+      "",
+      "Structure: <family>/<control_id>/assessment_data.json",
+      "           <family>/<control_id>/evidence_summary.txt",
+      "Verify integrity: sha256sum -c MANIFEST.sha256",
+    ].join("\n"));
+
+    const buffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+    const safe   = report.frameworkName.replace(/[^a-z0-9]/gi, "_");
+    const tenant = (report.tenantDisplayName ?? "tenant").replace(/[^a-z0-9]/gi, "_");
+    res.setHeader("Content-Type", "application/zip");
+    res.setHeader("Content-Disposition", `attachment; filename="Evidence_${safe}_${tenant}_${report.reportId}.zip"`);
+    res.end(buffer);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[ZIP Export]", msg);
+    if (!res.headersSent) res.status(500).json({ error: msg });
+  }
+});
+
+// =============================================================================
+// EVIDENCE FILE UPLOAD / LIST / DELETE / DOWNLOAD
+// POST   /api/reports/:id/objectives/:objId/files
+// GET    /api/reports/:id/objectives/:objId/files
+// DELETE /api/reports/:id/objectives/:objId/files/:fileId
+// GET    /api/reports/:id/objectives/:objId/files/:fileId/download
+// =============================================================================
+
+const EVIDENCE_FILES_DIR = join(WEB_DIR, ".evidence-files");
+
+interface EvidenceFileRecord {
+  id: string; reportId: string; objectiveId: string; userId: string;
+  fileName: string; originalName: string; fileSize: number;
+  mimeType: string; content: string; uploadedAt: string;
+}
+
+function evidenceFilesPath(reportId: string) {
+  ensureDir(EVIDENCE_FILES_DIR);
+  return join(EVIDENCE_FILES_DIR, `${reportId}.json`);
+}
+
+async function loadEvidenceFiles(reportId: string, objectiveId?: string): Promise<EvidenceFileRecord[]> {
+  if (db && dbSchema && drizzleOps) {
+    const { evidenceFiles } = dbSchema as any;
+    if (!evidenceFiles) return [];
+    const { eq, and } = drizzleOps;
+    const conds = [eq(evidenceFiles.reportId, reportId)];
+    if (objectiveId) conds.push(eq(evidenceFiles.objectiveId, objectiveId));
+    const rows = await (db as any).select().from(evidenceFiles).where(and(...conds));
+    return rows.map((r: any) => ({
+      id: r.id, reportId: r.reportId, objectiveId: r.objectiveId,
+      userId: r.userId, fileName: r.fileName, originalName: r.originalName,
+      fileSize: r.fileSize, mimeType: r.mimeType, content: r.content,
+      uploadedAt: r.uploadedAt?.toISOString() ?? new Date().toISOString(),
+    }));
+  }
+  const p = evidenceFilesPath(reportId);
+  if (!existsSync(p)) return [];
+  const all: EvidenceFileRecord[] = JSON.parse(readFileSync(p, "utf8"));
+  return objectiveId ? all.filter(f => f.objectiveId === objectiveId) : all;
+}
+
+async function saveEvidenceFile(record: EvidenceFileRecord): Promise<void> {
+  if (db && dbSchema && drizzleOps) {
+    const { evidenceFiles } = dbSchema as any;
+    if (!evidenceFiles) return;
+    await (db as any).insert(evidenceFiles).values({
+      id: record.id, reportId: record.reportId, objectiveId: record.objectiveId,
+      userId: record.userId, fileName: record.fileName, originalName: record.originalName,
+      fileSize: record.fileSize, mimeType: record.mimeType, content: record.content,
+    });
+    return;
+  }
+  const p = evidenceFilesPath(record.reportId);
+  const all = existsSync(p) ? (JSON.parse(readFileSync(p, "utf8")) as EvidenceFileRecord[]) : [];
+  all.push(record);
+  writeFileSync(p, JSON.stringify(all, null, 2), "utf8");
+}
+
+async function deleteEvidenceFile(reportId: string, fileId: string): Promise<boolean> {
+  if (db && dbSchema && drizzleOps) {
+    const { evidenceFiles } = dbSchema as any;
+    if (!evidenceFiles) return false;
+    const { eq, and } = drizzleOps;
+    await (db as any).delete(evidenceFiles).where(and(eq(evidenceFiles.id, fileId), eq(evidenceFiles.reportId, reportId)));
+    return true;
+  }
+  const p = evidenceFilesPath(reportId);
+  if (!existsSync(p)) return false;
+  const all = JSON.parse(readFileSync(p, "utf8")) as EvidenceFileRecord[];
+  const next = all.filter(f => f.id !== fileId);
+  writeFileSync(p, JSON.stringify(next, null, 2), "utf8");
+  return next.length < all.length;
+}
+
+app.post("/api/reports/:id/objectives/:objId/files", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
+  if (!report) return void res.status(404).json({ error: "Report not found" });
+
+  const MAX_BYTES = 5 * 1024 * 1024;
+  const chunks: Buffer[] = [];
+  let totalSize = 0;
+
+  const contentType = req.headers["content-type"] ?? "";
+  if (!contentType.includes("multipart/form-data")) {
+    return void res.status(400).json({ error: "Expected multipart/form-data" });
+  }
+
+  req.on("data", (chunk: Buffer) => {
+    totalSize += chunk.length;
+    chunks.push(chunk);
+  });
+
+  req.on("end", async () => {
+    try {
+      if (totalSize > MAX_BYTES + 8192) return res.status(413).json({ error: "File too large (max 5 MB)" });
+
+      const body = Buffer.concat(chunks);
+      const boundaryMatch = contentType.match(/boundary=([^\s;]+)/);
+      if (!boundaryMatch) return res.status(400).json({ error: "No boundary found" });
+      const boundary = Buffer.from(`--${boundaryMatch[1]}`);
+
+      const parts: Buffer[] = [];
+      let pos = 0;
+      while (pos < body.length) {
+        const idx = body.indexOf(boundary, pos);
+        if (idx === -1) break;
+        const partStart = idx + boundary.length;
+        if (body[partStart] === 0x2d && body[partStart + 1] === 0x2d) break;
+        parts.push(body.slice(partStart));
+        pos = partStart + 1;
+      }
+
+      let fileName = "upload";
+      let mimeType = "application/octet-stream";
+      let fileContent: Buffer | null = null;
+
+      for (const part of parts) {
+        const sep = part.indexOf(Buffer.from("\r\n\r\n"));
+        if (sep === -1) continue;
+        const header = part.slice(0, sep).toString("utf8");
+        const bodyPart = part.slice(sep + 4);
+        const endIdx = bodyPart.lastIndexOf("\r\n");
+        const content = endIdx > 0 ? bodyPart.slice(0, endIdx) : bodyPart;
+        if (header.includes("filename=")) {
+          const nameMatch = header.match(/filename="?([^"\r\n]+)"?/);
+          if (nameMatch) fileName = nameMatch[1];
+          const ctMatch = header.match(/Content-Type:\s*([^\r\n]+)/i);
+          if (ctMatch) mimeType = ctMatch[1].trim();
+          fileContent = content;
+        }
+      }
+
+      if (!fileContent) return res.status(400).json({ error: "No file found in upload" });
+
+      const { randomUUID } = await import("crypto");
+      const id = randomUUID();
+      const safeFileName = fileName.replace(/[^a-zA-Z0-9._\-]/g, "_");
+
+      const record: EvidenceFileRecord = {
+        id, reportId: req.params.id,
+        objectiveId: decodeURIComponent(req.params.objId),
+        userId: req.userId ?? "unknown",
+        fileName: safeFileName, originalName: fileName,
+        fileSize: fileContent.length, mimeType,
+        content: fileContent.toString("base64"),
+        uploadedAt: new Date().toISOString(),
+      };
+
+      await saveEvidenceFile(record);
+      res.json({ ok: true, file: { id, fileName: safeFileName, originalName: fileName, fileSize: fileContent.length, mimeType, uploadedAt: record.uploadedAt } });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!res.headersSent) res.status(500).json({ error: msg });
+    }
+  });
+});
+
+app.get("/api/reports/:id/objectives/:objId/files", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
+  if (!report) return void res.status(404).json({ error: "Report not found" });
+  const files = await loadEvidenceFiles(req.params.id, decodeURIComponent(req.params.objId));
+  res.json(files.map(f => ({ id: f.id, fileName: f.fileName, originalName: f.originalName, fileSize: f.fileSize, mimeType: f.mimeType, uploadedAt: f.uploadedAt })));
+});
+
+app.delete("/api/reports/:id/objectives/:objId/files/:fileId", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
+  if (!report) return void res.status(404).json({ error: "Report not found" });
+  const deleted = await deleteEvidenceFile(req.params.id, req.params.fileId);
+  res.json({ ok: deleted });
+});
+
+app.get("/api/reports/:id/objectives/:objId/files/:fileId/download", async (req: AuthedRequest, res) => {
+  const report = await loadReport(req.params.id, req.userId);
+  if (!report) return void res.status(404).json({ error: "Report not found" });
+  const files = await loadEvidenceFiles(req.params.id);
+  const file = files.find(f => f.id === req.params.fileId);
+  if (!file) return void res.status(404).json({ error: "File not found" });
+  const buffer = Buffer.from(file.content, "base64");
+  res.setHeader("Content-Type", file.mimeType);
+  res.setHeader("Content-Disposition", `attachment; filename="${file.originalName}"`);
+  res.end(buffer);
+});
+
+// =============================================================================
+// CONFIGURATION DRIFT DETECTION
+// GET /api/reports/drift?frameworkId=CMMC_L2&clientId=xxx
+// =============================================================================
+
+app.get("/api/reports/drift", async (req: AuthedRequest, res) => {
+  const { frameworkId, clientId } = req.query as { frameworkId?: string; clientId?: string };
+
+  const allReports = await (async () => {
+    if (db && dbSchema && drizzleOps) {
+      const { reports: reportsTable } = dbSchema;
+      const { eq, and, desc } = drizzleOps;
+      const conds = [eq((reportsTable as any).userId, req.userId ?? "")];
+      if (frameworkId) conds.push(eq((reportsTable as any).frameworkId, frameworkId));
+      if (clientId)    conds.push(eq((reportsTable as any).clientId, clientId));
+      const rows = await (db as any).select().from(reportsTable).where(and(...conds)).orderBy(desc((reportsTable as any).generatedAt)).limit(2);
+      return rows.map((r: any) => r.data as ComplianceReport);
+    }
+    try {
+      const { readdir } = await import("fs/promises");
+      const files = (await readdir(REPORTS_DIR)).filter((f: string) => f.endsWith(".json"));
+      const loaded = files.map((f: string) => {
+        try { return JSON.parse(readFileSync(join(REPORTS_DIR, f), "utf8")) as ComplianceReport; } catch { return null; }
+      }).filter((r: ComplianceReport | null): r is ComplianceReport => r !== null && (r as any).userId === req.userId);
+      return loaded
+        .filter((r: ComplianceReport) => (!frameworkId || r.frameworkId === frameworkId) && (!clientId || (r as any).clientId === clientId))
+        .sort((a: ComplianceReport, b: ComplianceReport) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())
+        .slice(0, 2);
+    } catch { return []; }
+  })();
+
+  if (allReports.length < 2) {
+    return void res.json({ hasDrift: false, message: "Need at least two assessments to detect drift.", reports: allReports.length });
+  }
+
+  const [latest, previous] = allReports as [ComplianceReport, ComplianceReport];
+  const latestMap   = new Map(latest.controlAssessments.map(c => [c.controlId, c]));
+  const previousMap = new Map(previous.controlAssessments.map(c => [c.controlId, c]));
+
+  const changed: { controlId: string; controlName: string; from: string; to: string; direction: "improved" | "degraded" | "changed" }[] = [];
+
+  for (const [id, curr] of latestMap) {
+    const prev = previousMap.get(id);
+    if (!prev || curr.status === prev.status) continue;
+    const improved = (prev.status === "fail" && curr.status !== "fail") || (prev.status === "partial" && curr.status === "pass");
+    const degraded = (curr.status === "fail" && prev.status !== "fail") || (curr.status === "partial" && prev.status === "pass");
+    changed.push({ controlId: id, controlName: curr.controlName ?? id, from: prev.status, to: curr.status, direction: improved ? "improved" : degraded ? "degraded" : "changed" });
+  }
+
+  res.json({
+    hasDrift: changed.length > 0,
+    latestReport:   { id: latest.reportId,   score: latest.summary.overallScore,   generatedAt: latest.generatedAt },
+    previousReport: { id: previous.reportId, score: previous.summary.overallScore, generatedAt: previous.generatedAt },
+    scoreDelta: latest.summary.overallScore - previous.summary.overallScore,
+    changed, improved: changed.filter(c => c.direction === "improved").length,
+    degraded: changed.filter(c => c.direction === "degraded").length,
+  });
+});
+
 // ─── Start ─────────────────────────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT ?? process.env.API_PORT ?? "3001");

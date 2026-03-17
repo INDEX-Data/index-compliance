@@ -322,6 +322,106 @@ export async function acceptTeamInvite(token: string, authToken?: string | null)
   return res.json() as Promise<{ ok: boolean; alreadyAccepted?: boolean }>
 }
 
+// ── OPA export ────────────────────────────────────────────────────────────────
+export async function exportOPAReport(reportId: string): Promise<string | null> {
+  const res = await fetch(`${BASE}/reports/${reportId}/export/opa`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    return (err as { error?: string }).error ?? `HTTP ${res.status}`
+  }
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const nameMatch   = disposition.match(/filename="?([^"]+)"?/)
+  const filename    = nameMatch?.[1] ?? `OPA_${reportId}.docx`
+  const blob = await res.blob()
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click()
+  document.body.removeChild(a); URL.revokeObjectURL(url)
+  return null
+}
+
+// ── ZIP evidence export ───────────────────────────────────────────────────────
+export async function exportEvidenceZip(reportId: string): Promise<string | null> {
+  const res = await fetch(`${BASE}/reports/${reportId}/export/zip`, {
+    cache: 'no-store',
+    headers: authHeaders(),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    return (err as { error?: string }).error ?? `HTTP ${res.status}`
+  }
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const nameMatch   = disposition.match(/filename="?([^"]+)"?/)
+  const filename    = nameMatch?.[1] ?? `Evidence_${reportId}.zip`
+  const blob = await res.blob()
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = filename
+  document.body.appendChild(a); a.click()
+  document.body.removeChild(a); URL.revokeObjectURL(url)
+  return null
+}
+
+// ── Evidence file upload ──────────────────────────────────────────────────────
+export interface EvidenceFileMeta {
+  id: string; fileName: string; originalName: string
+  fileSize: number; mimeType: string; uploadedAt: string
+}
+
+export const getEvidenceFiles = (reportId: string, objectiveId: string) =>
+  get<EvidenceFileMeta[]>(`/reports/${reportId}/objectives/${encodeURIComponent(objectiveId)}/files`)
+
+export async function uploadEvidenceFile(reportId: string, objectiveId: string, file: File): Promise<EvidenceFileMeta> {
+  const form = new FormData()
+  form.append('file', file)
+  const res = await fetch(`${BASE}/reports/${reportId}/objectives/${encodeURIComponent(objectiveId)}/files`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+    throw new Error((err as { error?: string }).error ?? `HTTP ${res.status}`)
+  }
+  const json = await res.json() as { ok: boolean; file: EvidenceFileMeta }
+  return json.file
+}
+
+export const deleteEvidenceFile = (reportId: string, objectiveId: string, fileId: string) =>
+  del<{ ok: boolean }>(`/reports/${reportId}/objectives/${encodeURIComponent(objectiveId)}/files/${fileId}`)
+
+export function downloadEvidenceFile(reportId: string, objectiveId: string, fileId: string, fileName: string): void {
+  const tokenQs = _clerkToken ? `?token=${encodeURIComponent(_clerkToken)}` : ''
+  const a = document.createElement('a')
+  a.href = `${BASE}/reports/${reportId}/objectives/${encodeURIComponent(objectiveId)}/files/${fileId}/download${tokenQs}`
+  a.download = fileName
+  document.body.appendChild(a); a.click(); document.body.removeChild(a)
+}
+
+// ── Drift detection ───────────────────────────────────────────────────────────
+export interface DriftResult {
+  hasDrift: boolean
+  message?: string
+  reports?: number
+  scoreDelta?: number
+  improved?: number
+  degraded?: number
+  latestReport?:   { id: string; score: number; generatedAt: string }
+  previousReport?: { id: string; score: number; generatedAt: string }
+  changed?: { controlId: string; controlName: string; from: string; to: string; direction: 'improved' | 'degraded' | 'changed' }[]
+}
+
+export const getReportDrift = (frameworkId?: string, clientId?: string) => {
+  const qs = new URLSearchParams()
+  if (frameworkId) qs.set('frameworkId', frameworkId)
+  if (clientId)    qs.set('clientId', clientId)
+  return get<DriftResult>(`/reports/drift${qs.toString() ? `?${qs}` : ''}`)
+}
+
 /** Download DIBCAC worksheet CSV */
 export function exportDIBCACWorksheet(reportId: string): void {
   // Append token as query param since we're triggering a navigation (not a fetch)

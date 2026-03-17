@@ -8,12 +8,358 @@ import {
   TrendingUp, TrendingDown,
   ShieldCheck, ShieldX, Layers,
   CheckCircle2, XCircle, MinusCircle, HelpCircle,
+  Activity, Users, X, ChevronDown,
 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
-import { getReports, getClients } from '@/lib/api'
+import { getReports, getClients, getReportDrift } from '@/lib/api'
+import type { DriftResult } from '@/lib/api'
 import { ScoreTrend } from '@/components/ScoreTrend'
 import { RiskBadge } from '@/components/RiskBadge'
 import type { ReportMeta } from '@/lib/types'
+
+// ─── Drift Widget ─────────────────────────────────────────────────────────────
+
+function DriftWidget() {
+  const [drift, setDrift]     = useState<DriftResult | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [expanded, setExpanded] = useState(false)
+
+  useEffect(() => {
+    getReportDrift()
+      .then(d  => setDrift(d))
+      .catch(() => setDrift(null))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card p-5 flex items-center gap-3">
+        <Activity className="w-4 h-4 text-[#a4adba] animate-pulse" />
+        <span className="text-[12px] text-[#a4adba]">Checking for drift…</span>
+      </div>
+    )
+  }
+
+  if (!drift || !drift.hasDrift) {
+    return (
+      <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card p-5 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-[rgba(14,180,114,0.10)] flex items-center justify-center shrink-0">
+          <Activity className="w-4 h-4 text-[#0eb472]" />
+        </div>
+        <div>
+          <p className="text-[13px] font-semibold text-[#1c1d1f]">No configuration drift</p>
+          <p className="text-[11px] text-[#6f7988] mt-0.5">
+            {drift?.message ?? 'Not enough reports to compare yet.'}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  const deltaPos = (drift.scoreDelta ?? 0) >= 0
+  const changed  = drift.changed ?? []
+
+  return (
+    <div className="bg-white rounded-xl border border-[#e4e7ec] shadow-card overflow-hidden">
+      {/* Header */}
+      <div
+        className="flex items-center gap-3 px-5 py-4 cursor-pointer select-none hover:bg-[#fafafa] transition-colors"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+          deltaPos ? 'bg-[rgba(14,180,114,0.10)]' : 'bg-[rgba(242,87,87,0.10)]'
+        }`}>
+          <Activity className={`w-4 h-4 ${deltaPos ? 'text-[#0eb472]' : 'text-[#f25757]'}`} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-[#1c1d1f]">
+            Configuration Drift Detected
+          </p>
+          <p className="text-[11px] text-[#6f7988] mt-0.5">
+            {drift.improved ?? 0} improved · {drift.degraded ?? 0} degraded since last scan
+            {drift.scoreDelta !== undefined && (
+              <span className={`ml-2 font-semibold ${deltaPos ? 'text-[#0eb472]' : 'text-[#f25757]'}`}>
+                {deltaPos ? '+' : ''}{drift.scoreDelta}% overall
+              </span>
+            )}
+          </p>
+        </div>
+        <ChevronDown className={`w-4 h-4 text-[#a4adba] transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </div>
+
+      {/* Expanded: changed controls list */}
+      {expanded && changed.length > 0 && (
+        <div className="border-t border-[#eeeff1] divide-y divide-[#f3f4f6]">
+          {changed.slice(0, 10).map((c, i) => (
+            <div key={i} className="flex items-center gap-3 px-5 py-3">
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                c.direction === 'improved' ? 'bg-[#0eb472]' : 'bg-[#f25757]'
+              }`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{c.controlName}</p>
+                <p className="text-[11px] text-[#6f7988]">
+                  <span className="capitalize">{c.from}</span>
+                  {' → '}
+                  <span className={`font-medium ${c.direction === 'improved' ? 'text-[#0eb472]' : 'text-[#f25757]'}`}>
+                    {c.to}
+                  </span>
+                </p>
+              </div>
+              <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                c.direction === 'improved'
+                  ? 'bg-[rgba(14,180,114,0.10)] text-[#0eb472]'
+                  : 'bg-[rgba(242,87,87,0.10)] text-[#f25757]'
+              }`}>
+                {c.direction === 'improved' ? '▲ Improved' : '▼ Degraded'}
+              </div>
+            </div>
+          ))}
+          {changed.length > 10 && (
+            <div className="px-5 py-3 text-[11px] text-[#a4adba]">
+              +{changed.length - 10} more controls changed
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Staffing / Timeline Estimator Modal ─────────────────────────────────────
+
+const QUESTIONS = [
+  {
+    id: 'size',
+    label: 'How many employees does the organisation have?',
+    options: [
+      { value: 'micro',  label: '1–10 employees' },
+      { value: 'small',  label: '11–50 employees' },
+      { value: 'medium', label: '51–250 employees' },
+      { value: 'large',  label: '251–1,000 employees' },
+      { value: 'xlarge', label: '1,000+ employees' },
+    ],
+  },
+  {
+    id: 'scope',
+    label: 'How many CUI / controlled systems are in scope?',
+    options: [
+      { value: 'low',    label: 'Fewer than 10 systems' },
+      { value: 'medium', label: '10–50 systems' },
+      { value: 'high',   label: '50–200 systems' },
+      { value: 'very_high', label: '200+ systems' },
+    ],
+  },
+  {
+    id: 'maturity',
+    label: 'What is the current security programme maturity?',
+    options: [
+      { value: 'none',     label: 'No formal programme' },
+      { value: 'basic',    label: 'Basic (policies exist, inconsistently applied)' },
+      { value: 'managed',  label: 'Managed (documented, mostly enforced)' },
+      { value: 'advanced', label: 'Advanced (continuous monitoring in place)' },
+    ],
+  },
+  {
+    id: 'gaps',
+    label: 'Roughly how many controls are currently failing or partial?',
+    options: [
+      { value: 'few',    label: 'Fewer than 10' },
+      { value: 'some',   label: '10–30' },
+      { value: 'many',   label: '30–80' },
+      { value: 'most',   label: '80+' },
+    ],
+  },
+  {
+    id: 'resources',
+    label: 'Do you have dedicated security staff available for remediation?',
+    options: [
+      { value: 'none',     label: 'No — would need to hire / contract' },
+      { value: 'part',     label: 'Part-time (< 50% bandwidth)' },
+      { value: 'fulltime', label: 'Full-time security engineer' },
+      { value: 'team',     label: 'Dedicated security team (2+ people)' },
+    ],
+  },
+]
+
+// Simple heuristic scoring → weeks & FTE
+function estimateTimeline(answers: Record<string, string>) {
+  let weeks = 8
+  let fte   = 0.5
+
+  // Size
+  if (answers.size === 'medium') { weeks += 4; fte += 0.5 }
+  if (answers.size === 'large')  { weeks += 8; fte += 1 }
+  if (answers.size === 'xlarge') { weeks += 16; fte += 2 }
+
+  // Scope
+  if (answers.scope === 'medium')    { weeks += 2; fte += 0.25 }
+  if (answers.scope === 'high')      { weeks += 6; fte += 0.5 }
+  if (answers.scope === 'very_high') { weeks += 12; fte += 1 }
+
+  // Maturity (inverse)
+  if (answers.maturity === 'none')    { weeks += 8; fte += 0.5 }
+  if (answers.maturity === 'basic')   { weeks += 4 }
+  if (answers.maturity === 'advanced') { weeks -= 4; fte -= 0.25 }
+
+  // Gaps
+  if (answers.gaps === 'some') { weeks += 4; fte += 0.25 }
+  if (answers.gaps === 'many') { weeks += 8; fte += 0.5 }
+  if (answers.gaps === 'most') { weeks += 16; fte += 1 }
+
+  // Resources (inverse)
+  if (answers.resources === 'none')     { weeks += 4; fte += 1 }
+  if (answers.resources === 'fulltime') { weeks -= 2 }
+  if (answers.resources === 'team')     { weeks -= 4; fte -= 0.5 }
+
+  return {
+    weeks:  Math.max(4,  Math.round(weeks)),
+    fte:    Math.max(0.25, Math.round(fte * 4) / 4),
+  }
+}
+
+function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
+  const [step,    setStep]    = useState(0)
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [result,  setResult]  = useState<{ weeks: number; fte: number } | null>(null)
+
+  function pick(value: string) {
+    const q    = QUESTIONS[step]
+    const next = { ...answers, [q.id]: value }
+    setAnswers(next)
+    if (step < QUESTIONS.length - 1) {
+      setStep(s => s + 1)
+    } else {
+      setResult(estimateTimeline(next))
+    }
+  }
+
+  const q = QUESTIONS[step]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(28,29,31,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#eeeff1]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[rgba(196,169,109,0.15)] flex items-center justify-center">
+              <Users className="w-4 h-4 text-[#C4A96D]" />
+            </div>
+            <div>
+              <h2 className="text-[14px] font-semibold text-[#1c1d1f]">Staffing & Timeline Estimator</h2>
+              {!result && (
+                <p className="text-[11px] text-[#6f7988]">
+                  Question {step + 1} of {QUESTIONS.length}
+                </p>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[#a4adba] hover:text-[#505967] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Progress bar */}
+        {!result && (
+          <div className="h-0.5 bg-[#f3f4f6]">
+            <div
+              className="h-0.5 bg-[#C4A96D] transition-all duration-500"
+              style={{ width: `${((step) / QUESTIONS.length) * 100}%` }}
+            />
+          </div>
+        )}
+
+        <div className="px-6 py-6">
+          {result ? (
+            /* Results */
+            <div className="space-y-5">
+              <div className="text-center">
+                <div className="w-14 h-14 rounded-2xl bg-[rgba(196,169,109,0.15)] flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-6 h-6 text-[#C4A96D]" />
+                </div>
+                <h3 className="text-[17px] font-bold text-[#1c1d1f] mb-1" style={{ letterSpacing: '-0.01em' }}>
+                  Your CMMC Remediation Estimate
+                </h3>
+                <p className="text-[12px] text-[#6f7988]">Based on your inputs — for planning purposes only</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#fafafa] rounded-xl p-4 border border-[#e4e7ec] text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a4adba] mb-1">Timeline</p>
+                  <p className="text-[28px] font-bold text-[#1c1d1f] tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                    {result.weeks}
+                  </p>
+                  <p className="text-[11px] text-[#6f7988]">weeks to CMMC-ready</p>
+                </div>
+                <div className="bg-[#fafafa] rounded-xl p-4 border border-[#e4e7ec] text-center">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a4adba] mb-1">Staffing</p>
+                  <p className="text-[28px] font-bold text-[#1c1d1f] tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                    {result.fte}
+                  </p>
+                  <p className="text-[11px] text-[#6f7988]">FTE equiv. needed</p>
+                </div>
+              </div>
+
+              <div className="bg-[rgba(196,169,109,0.08)] border border-[rgba(196,169,109,0.3)] rounded-xl p-4 text-[12px] text-[#505967] leading-relaxed">
+                <p className="font-semibold text-[#1c1d1f] mb-1">What this means:</p>
+                <p>
+                  Based on your profile, plan for a <strong>{result.weeks}-week remediation sprint</strong> with approximately{' '}
+                  <strong>{result.fte} FTE</strong> dedicated to security improvements.
+                  Engage a C3PAO at least 60 days before your target assessment date.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setStep(0); setAnswers({}); setResult(null) }}
+                  className="flex-1 text-[13px] font-medium text-[#505967] bg-[#f3f4f6] hover:bg-[#e9ebee] px-4 py-2.5 rounded-lg transition-colors"
+                >
+                  Start Over
+                </button>
+                <button
+                  onClick={onClose}
+                  className="flex-1 text-[13px] font-medium text-white px-4 py-2.5 rounded-lg transition-colors"
+                  style={{ background: '#202124' }}
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Question */
+            <div className="space-y-4">
+              <h3 className="text-[15px] font-semibold text-[#1c1d1f] leading-snug" style={{ letterSpacing: '-0.01em' }}>
+                {q.label}
+              </h3>
+              <div className="space-y-2">
+                {q.options.map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => pick(opt.value)}
+                    className="w-full text-left px-4 py-3 rounded-lg border border-[#e4e7ec] text-[13px] text-[#1c1d1f] hover:border-[#C4A96D] hover:bg-[rgba(196,169,109,0.04)] transition-all duration-150"
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {step > 0 && (
+                <button
+                  onClick={() => setStep(s => s - 1)}
+                  className="text-[12px] text-[#a4adba] hover:text-[#6f7988] transition-colors"
+                >
+                  ← Back
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ─── Donut colors (Lovable palette) ──────────────────────────────────────────
 
@@ -210,6 +556,7 @@ export default function DashboardPage() {
   const [reports,          setReports]          = useState<ReportMeta[]>([])
   const [hasClients,       setHasClients]       = useState<boolean | null>(null)
   const [firstClientName,  setFirstClientName]  = useState('')
+  const [showEstimator,    setShowEstimator]    = useState(false)
 
   useEffect(() => {
     Promise.all([getReports(), getClients()])
@@ -264,6 +611,8 @@ export default function DashboardPage() {
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-8">
 
+      {showEstimator && <StaffingEstimatorModal onClose={() => setShowEstimator(false)} />}
+
       {/* ── Page header ── */}
       <div className="flex items-start justify-between">
         <div>
@@ -274,15 +623,26 @@ export default function DashboardPage() {
             Overview of your compliance posture across all frameworks.
           </p>
         </div>
-        <Link
-          href="/assess"
-          className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium
-                     px-4 py-2 rounded-[10px] transition-colors duration-300 hover:duration-50"
-          style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
-        >
-          <Play className="w-3.5 h-3.5" />
-          New Assessment
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowEstimator(true)}
+            className="inline-flex items-center gap-2 text-[13px] font-medium text-[#505967]
+                       bg-white hover:bg-[#fafafa] px-4 py-2 rounded-[10px] border border-[#e4e7ec]
+                       transition-colors shadow-card"
+          >
+            <Users className="w-3.5 h-3.5" />
+            Timeline Estimator
+          </button>
+          <Link
+            href="/assess"
+            className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium
+                       px-4 py-2 rounded-[10px] transition-colors duration-300 hover:duration-50"
+            style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
+          >
+            <Play className="w-3.5 h-3.5" />
+            New Assessment
+          </Link>
+        </div>
       </div>
 
       {latestReports.length === 0 ? (
@@ -322,6 +682,15 @@ export default function DashboardPage() {
               iconColor="#266df0"
               iconBg="rgba(38,109,240,0.10)"
             />
+          </div>
+
+          {/* ── Configuration drift ── */}
+          <div>
+            <h2 className="text-[13px] font-semibold text-[#1c1d1f] flex items-center gap-2 mb-4">
+              <Activity className="h-4 w-4 text-[#6f7988]" />
+              Configuration Drift
+            </h2>
+            <DriftWidget />
           </div>
 
           {/* ── Framework posture ── */}

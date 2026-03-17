@@ -3,8 +3,8 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Shield, Calendar, Building2, Loader2, Download, Play, FileText, AlertCircle, Key, ClipboardList } from 'lucide-react'
-import { getReport, exportWordReport, getConfigStatus } from '@/lib/api'
+import { ArrowLeft, Shield, Calendar, Building2, Loader2, Download, Play, FileText, AlertCircle, Key, ClipboardList, PackageOpen, Archive } from 'lucide-react'
+import { getReport, exportWordReport, exportOPAReport, exportEvidenceZip, getConfigStatus } from '@/lib/api'
 import { ComplianceSummaryCards } from '@/components/ComplianceSummaryCards'
 import { ComplianceDonut } from '@/components/ComplianceDonut'
 import { ControlCard } from '@/components/ControlCard'
@@ -25,6 +25,8 @@ export default function ReportPage() {
   const [wordExporting, setWordExporting] = useState(false)
   const [wordError, setWordError]         = useState<string | null>(null)
   const [wordElapsed, setWordElapsed]     = useState(0)
+  const [opaExporting,  setOpaExporting]  = useState(false)
+  const [zipExporting,  setZipExporting]  = useState(false)
   const [anthropicReady, setAnthropicReady]     = useState<boolean | null>(null)
   const [showKeyModal, setShowKeyModal]         = useState(false)
   const [evidenceControl, setEvidenceControl]   = useState<ControlAssessment | null>(null)
@@ -101,6 +103,7 @@ export default function ReportPage() {
       <EvidenceDrawer
         assessment={evidenceControl}
         onClose={() => setEvidenceControl(null)}
+        reportId={reportId}
       />
 
       {/* Back + actions */}
@@ -119,6 +122,28 @@ export default function ReportPage() {
           >
             <Download className="w-3.5 h-3.5" />
             Export JSON
+          </button>
+
+          {/* OPA export */}
+          <button
+            onClick={async () => { setOpaExporting(true); await exportOPAReport(reportId); setOpaExporting(false) }}
+            disabled={opaExporting}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1c1d1f] bg-white hover:bg-[#f3f4f6] disabled:opacity-60 disabled:cursor-wait border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card"
+            title="Export Operational Plan of Action (OPA) — failed controls with remediation steps"
+          >
+            {opaExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageOpen className="w-3.5 h-3.5" />}
+            Export OPA
+          </button>
+
+          {/* Evidence ZIP */}
+          <button
+            onClick={async () => { setZipExporting(true); await exportEvidenceZip(reportId); setZipExporting(false) }}
+            disabled={zipExporting}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1c1d1f] bg-white hover:bg-[#f3f4f6] disabled:opacity-60 disabled:cursor-wait border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card"
+            title="Download structured evidence ZIP with folder hierarchy + SHA-256 hash"
+          >
+            {zipExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />}
+            Evidence ZIP
           </button>
 
           {/* Word report button */}
