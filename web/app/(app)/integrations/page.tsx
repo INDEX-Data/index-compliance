@@ -8,6 +8,7 @@ import {
   Globe, Lock, Zap, Bell, Database, FolderOpen,
   ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
+import type { TicketNomination } from '@/lib/api'
 import {
   getConfigStatus, testConfig, getClients, getClientIntegrations,
   saveClientIntegration, testClientIntegration,
@@ -130,6 +131,151 @@ const PLATFORM_META: Record<string, {
     description: 'Multi-cloud compliance posture data',
     category: 'Cloud', categoryIcon: Database, soon: true, fields: [],
   },
+}
+
+// ─── Ticket Nominations Panel ──────────────────────────────────────────────
+
+function TicketNominationsPanel({ clientId, platform }: { clientId: string; platform: 'jira' | 'servicenow' }) {
+  const [scanning,     setScanning]     = useState(false)
+  const [nominations,  setNominations]  = useState<TicketNomination[]>([])
+  const [scanResult,   setScanResult]   = useState<{ scanned: number; nominated: number } | null>(null)
+  const [projectKey,   setProjectKey]   = useState('')
+  const [updating,     setUpdating]     = useState<string | null>(null)
+
+  useEffect(() => {
+    import('@/lib/api').then(({ getTicketNominations }) =>
+      getTicketNominations(clientId).then(setNominations).catch(console.error)
+    )
+  }, [clientId])
+
+  async function scan() {
+    setScanning(true)
+    try {
+      const { scanTicketNominations, getTicketNominations } = await import('@/lib/api')
+      const result = await scanTicketNominations(clientId, platform, 'CMMC_L2', projectKey || undefined)
+      setScanResult({ scanned: result.scanned, nominated: result.nominated })
+      const fresh = await getTicketNominations(clientId)
+      setNominations(fresh)
+    } catch (err: any) {
+      alert('Scan failed: ' + err.message)
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  async function updateStatus(nomId: string, status: 'accepted' | 'rejected') {
+    setUpdating(nomId)
+    const { updateNominationStatus } = await import('@/lib/api')
+    await updateNominationStatus(clientId, nomId, status)
+    setNominations(prev => prev.map(n => n.id === nomId ? { ...n, status } : n))
+    setUpdating(null)
+  }
+
+  const pending  = nominations.filter(n => n.status === 'pending')
+  const accepted = nominations.filter(n => n.status === 'accepted')
+
+  const confidenceColor = (c: number) => c >= 60 ? '#0eb472' : c >= 35 ? '#f59e0b' : '#a4adba'
+
+  return (
+    <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#eeeff1]">
+        <p className="text-[13px] font-semibold text-[#1c1d1f] mb-1">Ticket Nomination Engine</p>
+        <p className="text-[11px] text-[#6f7988]">
+          Scan {platform === 'jira' ? 'Jira' : 'ServiceNow'} tickets and map them to compliance controls
+        </p>
+      </div>
+
+      <div className="px-5 py-4 flex items-end gap-3 border-b border-[#f3f4f6]">
+        {platform === 'jira' && (
+          <div className="flex-1">
+            <label className="block text-[11px] font-medium text-[#6f7988] mb-1.5 uppercase tracking-wide">Project Key (optional)</label>
+            <input
+              type="text"
+              value={projectKey}
+              onChange={e => setProjectKey(e.target.value)}
+              placeholder="e.g. SEC"
+              className="w-full text-[13px] text-[#1c1d1f] bg-[#fafafa] border border-[#e4e7ec] rounded-lg px-3 py-2 focus:outline-none focus:border-[#1c1d1f] transition-colors"
+            />
+          </div>
+        )}
+        <button
+          onClick={scan}
+          disabled={scanning}
+          className="flex items-center gap-2 text-[13px] font-medium text-white px-4 py-2 rounded-lg transition-colors shrink-0"
+          style={{ background: '#202124' }}
+        >
+          {scanning ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Scanning…</> : 'Scan Tickets'}
+        </button>
+      </div>
+
+      {scanResult && (
+        <div className="px-5 py-3 bg-[rgba(14,180,114,0.05)] border-b border-[rgba(14,180,114,0.15)] text-[12px] text-[#505967]">
+          Scanned <strong>{scanResult.scanned}</strong> tickets · found <strong>{scanResult.nominated}</strong> nominations
+        </div>
+      )}
+
+      {nominations.length === 0 ? (
+        <div className="px-5 py-6 text-[12px] text-[#a4adba] text-center">
+          No nominations yet — run a scan to map tickets to controls.
+        </div>
+      ) : (
+        <div>
+          {pending.length > 0 && (
+            <>
+              <div className="px-5 py-2.5 bg-[#fafafa] border-b border-[#f3f4f6]">
+                <p className="text-[10px] font-semibold text-[#a4adba] uppercase tracking-wide">{pending.length} Pending Review</p>
+              </div>
+              <div className="divide-y divide-[#f3f4f6]">
+                {pending.map(n => (
+                  <div key={n.id} className="flex items-center gap-3 px-5 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{n.ticketTitle}</p>
+                      <p className="text-[11px] text-[#6f7988]">
+                        <span className="font-mono">{n.ticketId}</span> → {n.controlId} · {n.controlTitle}
+                      </p>
+                    </div>
+                    <span className="text-[11px] font-semibold shrink-0 tabular-nums" style={{ color: confidenceColor(n.confidence) }}>
+                      {n.confidence}%
+                    </span>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button
+                        onClick={() => updateStatus(n.id, 'accepted')}
+                        disabled={updating === n.id}
+                        className="text-[11px] font-medium text-[#0eb472] bg-[rgba(14,180,114,0.08)] hover:bg-[rgba(14,180,114,0.15)] px-2.5 py-1 rounded-lg transition-colors"
+                      >Accept</button>
+                      <button
+                        onClick={() => updateStatus(n.id, 'rejected')}
+                        disabled={updating === n.id}
+                        className="text-[11px] font-medium text-[#f25757] bg-[rgba(242,87,87,0.08)] hover:bg-[rgba(242,87,87,0.15)] px-2.5 py-1 rounded-lg transition-colors"
+                      >Reject</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {accepted.length > 0 && (
+            <>
+              <div className="px-5 py-2.5 bg-[#fafafa] border-y border-[#f3f4f6]">
+                <p className="text-[10px] font-semibold text-[#a4adba] uppercase tracking-wide">{accepted.length} Accepted</p>
+              </div>
+              <div className="divide-y divide-[#f3f4f6]">
+                {accepted.slice(0, 5).map(n => (
+                  <div key={n.id} className="flex items-center gap-3 px-5 py-3 opacity-70">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{n.ticketTitle}</p>
+                      <p className="text-[11px] text-[#6f7988]">{n.ticketId} → {n.controlId}</p>
+                    </div>
+                    <span className="text-[10px] font-semibold text-[#0eb472]">✓</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 // ─── Configure Integration Modal ─────────────────────────────────────────────
@@ -730,6 +876,28 @@ export default function IntegrationsPage() {
           </>
         )}
       </div>
+
+      {/* Ticket Nominations */}
+      {selectedClient && getIntegration('jira')?.status === 'connected' && (
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <h2 className="text-[11px] font-bold text-[#6f7988] uppercase tracking-widest">Ticket Intelligence</h2>
+            <div className="flex-1 h-px bg-[#eeeff1]" />
+          </div>
+          <TicketNominationsPanel key={`jira-${selectedClient.id}`} clientId={selectedClient.id} platform="jira" />
+        </div>
+      )}
+      {selectedClient && getIntegration('servicenow')?.status === 'connected' && (
+        <div className="mt-6">
+          {getIntegration('jira')?.status !== 'connected' && (
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-[11px] font-bold text-[#6f7988] uppercase tracking-widest">Ticket Intelligence</h2>
+              <div className="flex-1 h-px bg-[#eeeff1]" />
+            </div>
+          )}
+          <TicketNominationsPanel key={`sn-${selectedClient.id}`} clientId={selectedClient.id} platform="servicenow" />
+        </div>
+      )}
 
       {/* Configure Modal */}
       {configuringPlatform && selectedClient && (

@@ -422,6 +422,53 @@ export const getReportDrift = (frameworkId?: string, clientId?: string) => {
   return get<DriftResult>(`/reports/drift${qs.toString() ? `?${qs}` : ''}`)
 }
 
+// ── Asset Scoping ─────────────────────────────────────────────────────────
+export const getClientScoping  = (clientId: string) => get<Record<string, boolean>>(`/clients/${clientId}/scoping`)
+export const saveClientScoping = (clientId: string, scoping: Record<string, boolean>) =>
+  put<{ ok: boolean; scoping: Record<string, boolean> }>(`/clients/${clientId}/scoping`, scoping)
+
+// ── CA Exclusion Nudge ────────────────────────────────────────────────────
+export interface CAPolicy {
+  policyId: string; policyName: string; state: string
+  excludedUsers: string[]; excludedGroups: string[]
+  justification: string | null; changed: boolean; scannedAt: string | null
+}
+export interface CAExclusionsResult { policies: CAPolicy[]; total: number; withChanges: number }
+export const getCAExclusions = (clientId: string) =>
+  get<CAExclusionsResult>(`/clients/${clientId}/ca-exclusions`)
+export const justifyCAExclusion = (clientId: string, policyId: string, justification: string) =>
+  put<{ ok: boolean }>(`/clients/${clientId}/ca-exclusions/${policyId}/justify`, { justification })
+
+// ── Access Reviews ────────────────────────────────────────────────────────
+export interface AccessReviewDef {
+  id: string; displayName: string; status: string
+  recurrenceType: string; intervalDays: number | null
+  lastInstance: { status: string; start: string; end: string } | null
+  daysSinceLast: number | null; overdue: boolean; onSchedule: boolean | null
+}
+export interface AccessReviewsResult {
+  supported: boolean; message?: string
+  configured: number; onSchedule: number; overdue: number
+  definitions: AccessReviewDef[]
+}
+export const getAccessReviews = (clientId: string) =>
+  get<AccessReviewsResult>(`/clients/${clientId}/access-reviews`)
+
+// ── Ticket Nominations ────────────────────────────────────────────────────
+export interface TicketNomination {
+  id: string; platform: string; ticketId: string; ticketTitle: string
+  ticketUrl: string | null; controlId: string; controlTitle: string
+  frameworkId: string; confidence: number; status: string; createdAt: string
+}
+export const scanTicketNominations = (clientId: string, platform: string, frameworkId?: string, projectKey?: string) =>
+  post<{ scanned: number; nominated: number; nominations: TicketNomination[] }>(
+    `/clients/${clientId}/tickets/scan`, { platform, frameworkId, projectKey }
+  )
+export const getTicketNominations = (clientId: string) =>
+  get<TicketNomination[]>(`/clients/${clientId}/tickets/nominations`)
+export const updateNominationStatus = (clientId: string, nomId: string, status: 'accepted' | 'rejected') =>
+  put<{ ok: boolean }>(`/clients/${clientId}/tickets/nominations/${nomId}`, { status })
+
 /** Download DIBCAC worksheet CSV */
 export function exportDIBCACWorksheet(reportId: string): void {
   // Append token as query param since we're triggering a navigation (not a fetch)

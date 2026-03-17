@@ -2175,6 +2175,318 @@ app.get("/api/reports/drift", async (req: AuthedRequest, res) => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ASSET SCOPING
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.get("/api/clients/:id/scoping", async (req: AuthedRequest, res: Response) => {
+  const { id } = req.params;
+  if (db && dbSchema) {
+    const { eq } = drizzleOps!;
+    const rows = await db.select().from(dbSchema.clientScoping)
+      .where(eq(dbSchema.clientScoping.clientId, id)).limit(1);
+    if (rows.length > 0) return void res.json(rows[0].scoping);
+  }
+  res.json({ cui: true, spa: true, iot: false, ot_scada: false });
+});
+
+app.put("/api/clients/:id/scoping", async (req: AuthedRequest, res: Response) => {
+  const { id } = req.params;
+  const scoping = req.body;
+  if (db && dbSchema) {
+    const { eq } = drizzleOps!;
+    await db.insert(dbSchema.clientScoping)
+      .values({ clientId: id, userId: req.userId ?? "dev", scoping })
+      .onConflictDoUpdate({ target: dbSchema.clientScoping.clientId, set: { scoping, updatedAt: new Date() } });
+  }
+  res.json({ ok: true, scoping });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CA EXCLUSION NUDGE
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.get("/api/clients/:id/ca-exclusions", async (req: AuthedRequest, res: Response) => {
+  try {
+    const client = await getClient(req.params.id, req.userId ?? "dev");
+    if (!client) return void res.status(404).json({ error: "Client not found" });
+
+    const gc = makeGraphClient(client);
+    const raw = await gc.rawQuery("/policies/conditionalAccessPolicies?$select=id,displayName,conditions,state&$top=100") as { value: any[] } | null;
+    const policies = (raw?.value ?? []).filter((p: any) => {
+      const u = p.conditions?.users ?? {};
+      return (u.excludeUsers?.length ?? 0) > 0 || (u.excludeGroups?.length ?? 0) > 0;
+    });
+
+    // Load stored snapshots for diff
+    let stored: Record<string, any> = {};
+    if (db && dbSchema) {
+      const { eq } = drizzleOps!;
+      const rows = await db.select().from(dbSchema.caExclusionSnapshots)
+        .where(eq(dbSchema.caExclusionSnapshots.clientId, req.params.id));
+      for (const row of rows) stored[row.policyId] = row;
+    }
+
+    const results = policies.map((p: any) => {
+      const u = p.conditions?.users ?? {};
+      const excludedUsers  = u.excludeUsers  ?? [];
+      const excludedGroups = u.excludeGroups ?? [];
+      const prev = stored[p.id];
+      const prevUsers  = prev?.excludedUsers  ?? [];
+      const prevGroups = prev?.excludedGroups ?? [];
+      const changed = JSON.stringify([...excludedUsers].sort()) !== JSON.stringify([...prevUsers].sort())
+                   || JSON.stringify([...excludedGroups].sort()) !== JSON.stringify([...prevGroups].sort());
+      return {
+        policyId:      p.id,
+        policyName:    p.displayName,
+        state:         p.state,
+        excludedUsers,
+        excludedGroups,
+        justification: prev?.justification ?? null,
+        changed:       prev ? changed : false,
+        scannedAt:     prev?.scannedAt ?? null,
+      };
+    });
+
+    // Upsert snapshots
+    if (db && dbSchema) {
+      for (const r of results) {
+        await db.insert(dbSchema.caExclusionSnapshots)
+          .values({
+            clientId: req.params.id, userId: req.userId ?? "dev",
+            policyId: r.policyId, policyName: r.policyName,
+            excludedUsers: r.excludedUsers, excludedGroups: r.excludedGroups,
+            justification: stored[r.policyId]?.justification ?? null,
+            changed: r.changed ? "yes" : "no", scannedAt: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [dbSchema.caExclusionSnapshots.clientId, dbSchema.caExclusionSnapshots.policyId],
+            set: {
+              policyName: r.policyName, excludedUsers: r.excludedUsers, excludedGroups: r.excludedGroups,
+              changed: r.changed ? "yes" : "no", scannedAt: new Date(),
+            },
+          });
+      }
+    }
+
+    res.json({ policies: results, total: results.length, withChanges: results.filter((r: any) => r.changed).length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/clients/:id/ca-exclusions/:policyId/justify", async (req: AuthedRequest, res: Response) => {
+  const { id, policyId } = req.params;
+  const { justification } = req.body as { justification: string };
+  if (db && dbSchema) {
+    const { eq, and } = drizzleOps!;
+    await db.update(dbSchema.caExclusionSnapshots)
+      .set({ justification })
+      .where(and(eq(dbSchema.caExclusionSnapshots.clientId, id), eq(dbSchema.caExclusionSnapshots.policyId, policyId)));
+  }
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ACCESS REVIEW PULL
+// ═══════════════════════════════════════════════════════════════════════════
+
+app.get("/api/clients/:id/access-reviews", async (req: AuthedRequest, res: Response) => {
+  try {
+    const client = await getClient(req.params.id, req.userId ?? "dev");
+    if (!client) return void res.status(404).json({ error: "Client not found" });
+
+    const gc = makeGraphClient(client);
+    let definitions: any[] = [];
+    try {
+      const raw = await gc.rawQuery("/identityGovernance/accessReviews/definitions?$select=id,displayName,scope,schedule,status&$top=50") as { value: any[] } | null;
+      definitions = raw?.value ?? [];
+    } catch {
+      return void res.json({ supported: false, message: "Access reviews require Entra ID P2 or Governance licensing.", definitions: [] });
+    }
+
+    const enriched = await Promise.all(definitions.map(async (d: any) => {
+      let lastInstance: any = null;
+      try {
+        const inst = await gc.rawQuery(`/identityGovernance/accessReviews/definitions/${d.id}/instances?$top=1&$select=id,startDateTime,endDateTime,status`) as { value: any[] } | null;
+        lastInstance = inst?.value?.[0] ?? null;
+      } catch { /* ignore */ }
+
+      const schedule     = d.schedule ?? {};
+      const recurrenceType = schedule.recurrence?.pattern?.type ?? "none";
+      const intervalDays = recurrenceType === "weekly" ? 7
+                         : recurrenceType === "absoluteMonthly" ? 30
+                         : recurrenceType === "absoluteYearly" ? 365 : null;
+
+      const lastCompleted = lastInstance?.endDateTime ? new Date(lastInstance.endDateTime) : null;
+      const daysSinceLast = lastCompleted ? Math.floor((Date.now() - lastCompleted.getTime()) / 86400000) : null;
+      const overdue = intervalDays && daysSinceLast !== null ? daysSinceLast > intervalDays * 1.1 : false;
+
+      return {
+        id:             d.id,
+        displayName:    d.displayName,
+        status:         d.status,
+        recurrenceType,
+        intervalDays,
+        lastInstance:   lastInstance ? { status: lastInstance.status, start: lastInstance.startDateTime, end: lastInstance.endDateTime } : null,
+        daysSinceLast,
+        overdue,
+        onSchedule:     intervalDays ? !overdue : null,
+      };
+    }));
+
+    const configured = enriched.length;
+    const onSchedule = enriched.filter(d => d.onSchedule === true).length;
+    const overdue    = enriched.filter(d => d.overdue).length;
+    res.json({ supported: true, configured, onSchedule, overdue, definitions: enriched });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TICKET NOMINATION ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+
+// NLP helper — simple token overlap → 0–100 confidence
+function scoreTicketVsControl(ticketText: string, controlText: string): number {
+  const STOP = new Set(["the","a","an","and","or","in","of","to","for","with","that","this","is","are","be","been","by","on","at","from","as","was","were","has","have","had","not","but","if","it","its","will","can","do","does","did","he","she","we","they","you","i","no","so","any","all","when","where","which","who","what","how","each","per","should","must","shall","may","then","than","about","into","over","under","more","also","only","after","before","during","since","while","other","new","up","out","off"]);
+  const tokenize = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter(w => w.length > 2 && !STOP.has(w));
+  const tSet = new Set(tokenize(ticketText));
+  const cSet = new Set(tokenize(controlText));
+  if (tSet.size === 0 || cSet.size === 0) return 0;
+  let intersection = 0;
+  for (const w of tSet) if (cSet.has(w)) intersection++;
+  const union = new Set([...tSet, ...cSet]).size;
+  return Math.round((intersection / union) * 100);
+}
+
+app.post("/api/clients/:id/tickets/scan", async (req: AuthedRequest, res: Response) => {
+  const { id } = req.params;
+  const { platform, frameworkId = "CMMC_L2", projectKey } = req.body as { platform: string; frameworkId?: string; projectKey?: string };
+
+  try {
+    // Get integration credentials
+    let integConfig: any = null;
+    if (db && dbSchema) {
+      const { eq, and } = drizzleOps!;
+      const rows = await db.select().from(dbSchema.clientIntegrations)
+        .where(and(eq(dbSchema.clientIntegrations.clientId, id), eq(dbSchema.clientIntegrations.platform, platform)));
+      integConfig = rows[0]?.config ?? null;
+    }
+    if (!integConfig) return void res.status(400).json({ error: `No ${platform} integration configured` });
+
+    // Fetch tickets
+    let tickets: Array<{ id: string; title: string; description: string; url: string }> = [];
+
+    if (platform === "jira") {
+      const { domain, email, apiToken } = integConfig as any;
+      const jql = projectKey ? `project=${projectKey} ORDER BY created DESC` : "ORDER BY created DESC";
+      const jiraRes = await fetch(`https://${domain}/rest/api/3/search?jql=${encodeURIComponent(jql)}&maxResults=50&fields=summary,description`, {
+        headers: { Authorization: `Basic ${Buffer.from(`${email}:${apiToken}`).toString("base64")}`, Accept: "application/json" },
+      });
+      if (!jiraRes.ok) return void res.status(400).json({ error: "Jira API error: " + await jiraRes.text() });
+      const jiraData = await jiraRes.json() as any;
+      tickets = (jiraData.issues ?? []).map((issue: any) => ({
+        id:          issue.key,
+        title:       issue.fields.summary ?? "",
+        description: issue.fields.description?.content?.map((b: any) => b.content?.map((c: any) => c.text ?? "").join(" ")).join(" ") ?? "",
+        url:         `https://${domain}/browse/${issue.key}`,
+      }));
+    } else if (platform === "servicenow") {
+      const { instanceUrl, username, password } = integConfig as any;
+      const snRes = await fetch(`${instanceUrl}/api/now/table/incident?sysparm_limit=50&sysparm_fields=number,short_description,description,sys_id`, {
+        headers: { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`, Accept: "application/json" },
+      });
+      if (!snRes.ok) return void res.status(400).json({ error: "ServiceNow API error: " + await snRes.text() });
+      const snData = await snRes.json() as any;
+      tickets = (snData.result ?? []).map((inc: any) => ({
+        id:          inc.number,
+        title:       inc.short_description ?? "",
+        description: inc.description ?? "",
+        url:         `${instanceUrl}/nav_to.do?uri=incident.do?sys_id=${inc.sys_id}`,
+      }));
+    } else {
+      return void res.status(400).json({ error: "Unsupported platform" });
+    }
+
+    // Score each ticket against each control
+    const controls = getFrameworkControls(frameworkId as any) ?? [];
+    const nominations: any[] = [];
+    const MIN_CONFIDENCE = 15;
+
+    for (const ticket of tickets) {
+      const ticketText = `${ticket.title} ${ticket.description}`;
+      const scored = controls
+        .map(ctrl => ({ ctrl, confidence: scoreTicketVsControl(ticketText, `${ctrl.title} ${ctrl.description}`) }))
+        .filter(x => x.confidence >= MIN_CONFIDENCE)
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 3);
+
+      for (const { ctrl, confidence } of scored) {
+        nominations.push({
+          platform,
+          ticketId:    ticket.id,
+          ticketTitle: ticket.title,
+          ticketUrl:   ticket.url,
+          controlId:   ctrl.controlId,
+          controlTitle: ctrl.title,
+          frameworkId,
+          confidence,
+        });
+      }
+    }
+
+    // Persist new nominations (skip duplicates)
+    if (db && dbSchema) {
+      const { eq, and } = drizzleOps!;
+      for (const nom of nominations) {
+        // Check if already exists
+        const existing = await db.select({ id: dbSchema.ticketNominations.id })
+          .from(dbSchema.ticketNominations)
+          .where(and(
+            eq(dbSchema.ticketNominations.clientId, id),
+            eq(dbSchema.ticketNominations.ticketId, nom.ticketId),
+            eq(dbSchema.ticketNominations.controlId, nom.controlId),
+          )).limit(1);
+        if (existing.length === 0) {
+          await db.insert(dbSchema.ticketNominations).values({
+            clientId: id, userId: req.userId ?? "dev", ...nom, status: "pending",
+          });
+        }
+      }
+    }
+
+    res.json({ scanned: tickets.length, nominated: nominations.length, nominations });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/clients/:id/tickets/nominations", async (req: AuthedRequest, res: Response) => {
+  const { id } = req.params;
+  if (db && dbSchema) {
+    const { eq } = drizzleOps!;
+    const rows = await db.select().from(dbSchema.ticketNominations)
+      .where(eq(dbSchema.ticketNominations.clientId, id))
+      .orderBy(dbSchema.ticketNominations.createdAt);
+    return void res.json(rows);
+  }
+  res.json([]);
+});
+
+app.put("/api/clients/:id/tickets/nominations/:nomId", async (req: AuthedRequest, res: Response) => {
+  const { id, nomId } = req.params;
+  const { status } = req.body as { status: "accepted" | "rejected" };
+  if (db && dbSchema) {
+    const { eq, and } = drizzleOps!;
+    await db.update(dbSchema.ticketNominations)
+      .set({ status })
+      .where(and(eq(dbSchema.ticketNominations.id, nomId), eq(dbSchema.ticketNominations.clientId, id)));
+  }
+  res.json({ ok: true });
+});
+
 // ─── Start ─────────────────────────────────────────────────────────────────
 
 const PORT = parseInt(process.env.PORT ?? process.env.API_PORT ?? "3001");

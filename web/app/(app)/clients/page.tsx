@@ -4,13 +4,14 @@ import { useEffect, useState, useRef } from 'react'
 import {
   Building2, Plus, Trash2, RefreshCw, CheckCircle2,
   AlertCircle, Loader2, ChevronDown, ChevronUp, Eye, EyeOff, X,
-  HelpCircle, ExternalLink, Link, Copy, Check, Mail, Clock,
+  HelpCircle, ExternalLink, Link, Copy, Check, Mail, Clock, Layers,
 } from 'lucide-react'
 import {
   getClients, addClient, deleteClient, testClient, testConfig,
   createInvitation, getInvitations, revokeInvitation,
 } from '@/lib/api'
 import type { Client, Invitation } from '@/lib/types'
+import { AssetScopingModal } from '@/components/AssetScopingModal'
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
 
@@ -515,9 +516,10 @@ function AddClientForm({ onAdded, onCancel }: AddFormProps) {
 interface ClientCardProps {
   client: Client
   onDelete: (id: string) => void
+  onScope: (client: Client) => void
 }
 
-function ClientCard({ client, onDelete }: ClientCardProps) {
+function ClientCard({ client, onDelete, onScope }: ClientCardProps) {
   const [testing,     setTesting]     = useState(false)
   const [testResult,  setTestResult]  = useState<{ ok: boolean; error?: string } | null>(null)
   const [confirming,  setConfirming]  = useState(false)
@@ -622,6 +624,14 @@ function ClientCard({ client, onDelete }: ClientCardProps) {
           )}
 
           <button
+            onClick={(e) => { e.stopPropagation(); onScope(client) }}
+            className="p-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors"
+            title="Asset Scoping"
+          >
+            <Layers className="w-3.5 h-3.5 text-[#a4adba]" />
+          </button>
+
+          <button
             onClick={() => setExpanded(s => !s)}
             className="p-1.5 rounded-lg text-[#a4adba] hover:text-[#505967] hover:bg-[#fafafa] transition"
           >
@@ -669,6 +679,7 @@ export default function ClientsPage() {
   const [loading,      setLoading]      = useState(true)
   const [showAddForm,  setShowAddForm]  = useState(false)
   const [showInvite,   setShowInvite]   = useState(false)
+  const [scopingClient, setScopingClient] = useState<Client | null>(null)
 
   useEffect(() => {
     getClients()
@@ -689,6 +700,13 @@ export default function ClientsPage() {
     <div className="p-8 max-w-3xl mx-auto">
 
       {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+      {scopingClient && (
+        <AssetScopingModal
+          clientId={scopingClient.id}
+          clientName={scopingClient.name}
+          onClose={() => setScopingClient(null)}
+        />
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
@@ -795,7 +813,7 @@ export default function ClientsPage() {
             {clients.length} {clients.length === 1 ? 'Client' : 'Clients'}
           </p>
           {clients.map(client => (
-            <ClientCard key={client.id} client={client} onDelete={handleDeleted} />
+            <ClientCard key={client.id} client={client} onDelete={handleDeleted} onScope={setScopingClient} />
           ))}
         </div>
       )}

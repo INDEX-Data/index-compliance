@@ -253,6 +253,64 @@ export const teamMemberships = pgTable(
 export type TeamMembership = typeof teamMemberships.$inferSelect;
 export type NewTeamMembership = typeof teamMemberships.$inferInsert;
 
+// ─── Asset Scoping (per-client) ────────────────────────────────────────────
+
+export const clientScoping = pgTable("client_scoping", {
+  id:       uuid("id").defaultRandom().primaryKey(),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "cascade" }).notNull().unique(),
+  userId:   text("user_id").notNull(),
+  /** JSONB: { cui: bool, spa: bool, iot: bool, ot_scada: bool } */
+  scoping:  jsonb("scoping").notNull().default({ cui: true, spa: true, iot: false, ot_scada: false }),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type ClientScoping    = typeof clientScoping.$inferSelect;
+export type NewClientScoping = typeof clientScoping.$inferInsert;
+
+// ─── CA Exclusion Snapshots ────────────────────────────────────────────────
+
+export const caExclusionSnapshots = pgTable(
+  "ca_exclusion_snapshots",
+  {
+    id:              uuid("id").defaultRandom().primaryKey(),
+    clientId:        uuid("client_id").references(() => clients.id, { onDelete: "cascade" }).notNull(),
+    userId:          text("user_id").notNull(),
+    policyId:        text("policy_id").notNull(),
+    policyName:      text("policy_name").notNull(),
+    excludedUsers:   jsonb("excluded_users").notNull().default([]),
+    excludedGroups:  jsonb("excluded_groups").notNull().default([]),
+    justification:   text("justification"),
+    changed:         text("changed").notNull().default("no"), // "yes" | "no"
+    scannedAt:       timestamp("scanned_at").defaultNow(),
+  },
+  (t) => ({ uniq: unique().on(t.clientId, t.policyId) })
+);
+
+export type CaExclusionSnapshot    = typeof caExclusionSnapshots.$inferSelect;
+export type NewCaExclusionSnapshot = typeof caExclusionSnapshots.$inferInsert;
+
+// ─── Ticket Nominations ────────────────────────────────────────────────────
+
+export const ticketNominations = pgTable("ticket_nominations", {
+  id:           uuid("id").defaultRandom().primaryKey(),
+  clientId:     uuid("client_id").references(() => clients.id, { onDelete: "cascade" }).notNull(),
+  userId:       text("user_id").notNull(),
+  platform:     text("platform").notNull(),   // "jira" | "servicenow"
+  ticketId:     text("ticket_id").notNull(),
+  ticketTitle:  text("ticket_title").notNull(),
+  ticketUrl:    text("ticket_url"),
+  controlId:    text("control_id").notNull(),
+  controlTitle: text("control_title").notNull(),
+  frameworkId:  text("framework_id").notNull(),
+  confidence:   integer("confidence").notNull(), // 0–100
+  /** pending | accepted | rejected */
+  status:       text("status").notNull().default("pending"),
+  createdAt:    timestamp("created_at").defaultNow(),
+});
+
+export type TicketNomination    = typeof ticketNominations.$inferSelect;
+export type NewTicketNomination = typeof ticketNominations.$inferInsert;
+
 // ─── Evidence Files ────────────────────────────────────────────────────────
 // Files uploaded as evidence for a specific assessment objective.
 // Content stored as base64-encoded text (max ~5 MB per file).

@@ -7,7 +7,7 @@ import {
   ShieldCheck, LayoutDashboard, Play, Clock,
   Building2, Plug, Settings, ChevronDown,
   Plus, ChevronsLeft, ChevronsRight,
-  UserCog, HelpCircle,
+  UserCog, HelpCircle, Lightbulb,
 } from 'lucide-react'
 import { UserButton, useUser } from '@clerk/nextjs'
 import { getClients, getConfigStatus } from '@/lib/api'
@@ -39,6 +39,7 @@ const NAV_SECTIONS = [
     items: [
       { href: '/clients',      label: 'Clients',      icon: Building2 },
       { href: '/integrations', label: 'Integrations', icon: Plug },
+      { href: '/insights',     label: 'Insights',     icon: Lightbulb },
     ],
   },
 ]
