@@ -8,8 +8,9 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/onboard(.*)',
   '/join(.*)',
-  '/api/team/join(.*)',   // public team-invite accept flow
-  '/api/onboard(.*)',    // public client onboarding flow
+  '/api/team/join(.*)',      // public team-invite accept flow
+  '/api/onboard(.*)',        // public client onboarding flow
+  '/api/webhooks/(.*)',      // Clerk + future webhooks — verified by Svix, not JWT
   '/api/health',
 ])
 

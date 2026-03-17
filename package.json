@@ -47,6 +47,7 @@
     "jszip": "^3.10.1",
     "multer": "^2.1.1",
     "resend": "^6.9.3",
+    "svix": "^1.88.0",
     "zod": "^3.22.0"
   },
   "devDependencies": {

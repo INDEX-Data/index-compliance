@@ -44,6 +44,7 @@ import type {
   DIBCACObjectiveSummary,
 } from "./types.js";
 import { initEmail, sendTeamInviteEmail } from "./services/email.js";
+import { Webhook } from "svix";
 
 // ── Optional DB (Neon + Drizzle) — only loaded when DATABASE_URL is set ────
 // When DATABASE_URL is absent the server falls back to file-based storage.
@@ -277,7 +278,11 @@ async function resolveClient(clientIdParam?: string, userId?: string): Promise<C
 // ─── Express app ──────────────────────────────────────────────────────────
 
 const app = express();
-app.use(express.json());
+// Capture raw body on every request so the Clerk webhook handler can verify
+// the Svix signature. The `verify` callback runs before JSON.parse.
+app.use(express.json({
+  verify: (req: any, _res, buf) => { req.rawBody = buf; },
+}));
 
 // CORS — allowed origins read from env var so the same binary works in dev and prod
 // Dev default: http://localhost:3000
@@ -2530,6 +2535,85 @@ app.put("/api/clients/:id/tickets/nominations/:nomId", async (req: AuthedRequest
       .where(and(eq(dbSchema.ticketNominations.id, nomId), eq(dbSchema.ticketNominations.clientId, id)));
   }
   res.json({ ok: true });
+});
+
+// ─── Clerk Webhook — user.deleted ─────────────────────────────────────────
+// Registered BEFORE requireAuth so Clerk can POST to it without a Bearer token.
+// Svix signature verification is used instead of Clerk JWT auth.
+//
+// Setup:
+//  1. Go to Clerk Dashboard → Webhooks → Add endpoint
+//  2. URL: https://your-app.vercel.app/api/webhooks/clerk
+//  3. Events: select "user.deleted"
+//  4. Copy the Signing Secret → set CLERK_WEBHOOK_SECRET in Railway env vars
+
+app.post("/api/webhooks/clerk", async (req: any, res) => {
+  const secret = process.env.CLERK_WEBHOOK_SECRET;
+  if (!secret) {
+    console.warn("[webhook] CLERK_WEBHOOK_SECRET not set — skipping verification");
+    return void res.status(400).json({ error: "Webhook secret not configured" });
+  }
+
+  // Verify Svix signature
+  const wh = new Webhook(secret);
+  let evt: { type: string; data: Record<string, unknown> };
+  try {
+    evt = wh.verify(req.rawBody as Buffer, {
+      "svix-id":        req.headers["svix-id"]        as string,
+      "svix-timestamp": req.headers["svix-timestamp"] as string,
+      "svix-signature": req.headers["svix-signature"] as string,
+    }) as typeof evt;
+  } catch (err) {
+    console.warn("[webhook] Invalid Svix signature:", (err as Error).message);
+    return void res.status(400).json({ error: "Invalid signature" });
+  }
+
+  if (evt.type !== "user.deleted") {
+    return void res.json({ received: true }); // ignore other events
+  }
+
+  const userId = evt.data.id as string | undefined;
+  if (!userId) return void res.status(400).json({ error: "Missing user id in payload" });
+
+  if (!db || !dbSchema || !drizzleOps) {
+    console.warn("[webhook] DB not ready — cannot delete user data for", userId);
+    return void res.status(503).json({ error: "Database not available" });
+  }
+
+  const { eq, or } = drizzleOps;
+  const s = dbSchema;
+
+  try {
+    // Delete in dependency order so FK constraints are satisfied.
+    // Most child tables have ON DELETE CASCADE from clients/reports, so
+    // deleting the parent rows handles them automatically.
+
+    // 1. Team memberships (bidirectional — user may be owner or member)
+    await db.delete(s.teamMemberships)
+      .where(or(eq(s.teamMemberships.ownerId, userId), eq(s.teamMemberships.memberId, userId)));
+
+    // 2. Team invitations sent by this user
+    await db.delete(s.teamInvitations).where(eq(s.teamInvitations.ownerId, userId));
+
+    // 3. Client invitations created by this user
+    await db.delete(s.clientInvitations).where(eq(s.clientInvitations.userId, userId));
+
+    // 4. Reports (cascades → objective_statuses, evidence_files)
+    await db.delete(s.reports).where(eq(s.reports.userId, userId));
+
+    // 5. Clients (cascades → client_integrations, client_scoping,
+    //             ca_exclusion_snapshots, ticket_nominations)
+    await db.delete(s.clients).where(eq(s.clients.userId, userId));
+
+    // 6. User profile
+    await db.delete(s.userProfiles).where(eq(s.userProfiles.userId, userId));
+
+    console.log(`[webhook] Deleted all platform data for user ${userId}`);
+    res.json({ deleted: true, userId });
+  } catch (err) {
+    console.error("[webhook] Failed to delete user data:", err);
+    res.status(500).json({ error: "Deletion failed" });
+  }
 });
 
 // ─── Start ─────────────────────────────────────────────────────────────────
