@@ -229,7 +229,7 @@ export function Sidebar() {
     getProfile().then(setProfile).catch(() => {})
   }, [])
 
-  const isMsp = !profile || profile.accountType === 'msp' // default to msp if unknown
+  const isMsp = profile?.accountType === 'msp' // default to org nav while profile loads
 
   const NAV_SECTIONS = isMsp ? [
     {
