@@ -8,6 +8,7 @@ import {
   Loader2, AlertCircle, BarChart3, FileCheck,
 } from 'lucide-react'
 import { saveProfile, getProfile, setClerkToken } from '@/lib/api'
+import { completeOnboarding } from './actions'
 
 const INDUSTRIES = [
   'Defense / DIB', 'Healthcare', 'Finance / FinTech', 'Government',
@@ -92,14 +93,12 @@ export default function OnboardingPage() {
       setClerkToken(token)
       await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
 
-      // Set publicMetadata.onboarded=true via Next.js API route (runs on Vercel,
-      // same CLERK_SECRET_KEY as middleware — reliable, no Railway dependency).
-      // The response also sets an idx_onboarded HttpOnly cookie so middleware
-      // lets the user through immediately, without waiting for JWT reissue.
-      const flagRes = await fetch('/api/complete-onboarding', { method: 'POST' })
-      if (!flagRes.ok) {
-        const body = await flagRes.json().catch(() => ({}))
-        throw new Error((body as any).error ?? 'Failed to complete workspace setup')
+      // Set publicMetadata.onboarded=true + idx_onboarded cookie via Server Action.
+      // Server Actions POST to the current page URL (not /api/*), so they are
+      // never caught by the next.config.ts rewrite that proxies /api/* to Railway.
+      const result = await completeOnboarding()
+      if ('error' in result) {
+        throw new Error(result.error)
       }
 
       // Hard navigation so the browser sends the fresh idx_onboarded cookie and
