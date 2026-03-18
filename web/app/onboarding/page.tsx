@@ -94,16 +94,17 @@ export default function OnboardingPage() {
 
       // Set publicMetadata.onboarded=true via Next.js API route (runs on Vercel,
       // same CLERK_SECRET_KEY as middleware — reliable, no Railway dependency).
+      // The response also sets an idx_onboarded HttpOnly cookie so middleware
+      // lets the user through immediately, without waiting for JWT reissue.
       const flagRes = await fetch('/api/complete-onboarding', { method: 'POST' })
       if (!flagRes.ok) {
         const body = await flagRes.json().catch(() => ({}))
         throw new Error((body as any).error ?? 'Failed to complete workspace setup')
       }
 
-      // Force Clerk to issue a fresh JWT with the new publicMetadata.onboarded=true.
-      // Without this, middleware sees the old cached token and redirects back to /onboarding.
-      await getToken({ skipCache: true })
-      router.replace(accountType === 'msp' ? '/clients' : '/dashboard')
+      // Hard navigation so the browser sends the fresh idx_onboarded cookie and
+      // avoids the Clerk SDK's session-sync PUT (which would 405 on page.tsx).
+      window.location.href = accountType === 'msp' ? '/clients' : '/dashboard'
     } catch (e) {
       setSaving(false)
       setError(e instanceof Error ? e.message : 'Something went wrong — please try again.')

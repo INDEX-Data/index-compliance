@@ -8,10 +8,11 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up(.*)',
   '/onboard(.*)',
   '/join(.*)',
-  '/api/team/join(.*)',      // public team-invite accept flow
-  '/api/onboard(.*)',        // public client onboarding flow
-  '/api/webhooks/(.*)',      // Clerk + future webhooks — verified by Svix, not JWT
+  '/api/team/join(.*)',           // public team-invite accept flow
+  '/api/onboard(.*)',             // public client onboarding flow
+  '/api/webhooks/(.*)',           // Clerk + future webhooks — verified by Svix, not JWT
   '/api/health',
+  '/api/complete-onboarding',    // self-authenticates via auth(); must not be blocked by the onboarding gate
 ])
 
 export default clerkMiddleware(async (auth, req) => {
@@ -29,13 +30,24 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Onboarding gate: signed-in users who haven't completed onboarding always
   // get redirected to /onboarding — regardless of refresh or re-login.
-  // Reads publicMetadata from the JWT (sessionClaims) — no DB call, Edge-safe,
-  // persists permanently across sessions.
+  //
+  // Two-signal check (either is sufficient to pass):
+  //   • JWT signal  — publicMetadata.onboarded = true (permanent, set by Clerk
+  //                   updateUserMetadata; takes effect after next token refresh)
+  //   • Cookie signal — idx_onboarded = userId  (instant; set by the
+  //                   /api/complete-onboarding route in the same response that
+  //                   calls updateUserMetadata, so the user is let through on
+  //                   the very next navigation without waiting for JWT reissue)
+  //
   // /onboard(.*)  is already in isPublicRoute so this never loops.
+  const jwtOnboarded    = !!(sessionClaims?.publicMetadata as any)?.onboarded
+  const cookieOnboarded = req.cookies.get('idx_onboarded')?.value === userId
+
   if (
     userId &&
     !isPublicRoute(req) &&
-    !(sessionClaims?.publicMetadata as any)?.onboarded
+    !jwtOnboarded &&
+    !cookieOnboarded
   ) {
     return NextResponse.redirect(new URL('/onboarding', req.url))
   }
