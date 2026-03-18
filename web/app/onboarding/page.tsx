@@ -8,7 +8,6 @@ import {
   Loader2, AlertCircle, BarChart3, FileCheck,
 } from 'lucide-react'
 import { saveProfile, getProfile, setClerkToken } from '@/lib/api'
-import { completeOnboarding } from './actions'
 
 const INDUSTRIES = [
   'Defense / DIB', 'Healthcare', 'Finance / FinTech', 'Government',
@@ -93,12 +92,14 @@ export default function OnboardingPage() {
       setClerkToken(token)
       await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
 
-      // Set publicMetadata.onboarded=true + idx_onboarded cookie via Server Action.
-      // Server Actions POST to the current page URL (not /api/*), so they are
-      // never caught by the next.config.ts rewrite that proxies /api/* to Railway.
-      const result = await completeOnboarding()
-      if ('error' in result) {
-        throw new Error(result.error)
+      // Complete onboarding: update Clerk metadata + set idx_onboarded cookie.
+      // Uses /onboard-finish (not /api/*) so next.config.ts never rewrites it
+      // to Railway. The path matches /onboard(.*)  in middleware's isPublicRoute,
+      // so the onboarding gate is bypassed while the route self-authenticates.
+      const flagRes = await fetch('/onboard-finish', { method: 'POST' })
+      if (!flagRes.ok) {
+        const body = await flagRes.json().catch(() => ({}))
+        throw new Error((body as any).error ?? 'Failed to complete workspace setup')
       }
 
       // Hard navigation so the browser sends the fresh idx_onboarded cookie and
