@@ -76,7 +76,7 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        <SignUp forceRedirectUrl="/welcome" />
+        <SignUp forceRedirectUrl="/dashboard" />
       </div>
 
     </div>
