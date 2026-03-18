@@ -1184,6 +1184,13 @@ app.get("/api/onboard/:token/integrations", async (req, res) => {
   })));
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// ALL ROUTES BELOW THIS LINE REQUIRE CLERK JWT AUTHENTICATION
+// requireAuth is applied here (not in start()) so Express processes it
+// before any protected route handler — registration order matters.
+// ═══════════════════════════════════════════════════════════════════════════
+app.use(requireAuth as any);
+
 // ── Frameworks: list ───────────────────────────────────────────────────────
 
 app.get("/api/frameworks", (_req, res) => {
@@ -2627,9 +2634,6 @@ async function start() {
   // Initialize optional services before accepting requests
   await Promise.all([initDB(), initClerk()]);
   initEmail();
-
-  // Apply Clerk JWT middleware globally (after DB/Clerk are ready)
-  app.use(requireAuth as any);
 
   app.listen(PORT, () => {
     void (async () => {
