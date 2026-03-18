@@ -37,26 +37,20 @@ export default function WelcomePage() {
       return
     }
 
-    getToken()
-      .then((token) => {
+    async function checkExistingProfile() {
+      try {
+        const token = await getToken()
         setClerkToken(token)
-        return getProfile()
-      })
-      .then((profile) => {
-        // Already onboarded — set cookie (handles new device / cleared cookies)
-        // then send them to the right place
-        fetch('/api/set-onboarded', { method: 'POST' }).catch(() => {})
-        if (profile.accountType === 'msp') {
-          router.replace('/clients')
-        } else {
-          router.replace('/dashboard')
-        }
-      })
-      .catch((err) => {
-        // 404 = no profile yet; anything else = transient error
-        // Either way, show the wizard
+        const profile = await getProfile()
+        // Profile exists — set cookie BEFORE navigating so middleware lets us through
+        await fetch('/api/set-onboarded', { method: 'POST' }).catch(() => {})
+        router.replace(profile.accountType === 'msp' ? '/clients' : '/dashboard')
+      } catch {
+        // 404 = no profile yet; anything else = transient error — show the wizard
         setChecking(false)
-      })
+      }
+    }
+    checkExistingProfile()
   }, [router, isLoaded, isSignedIn, getToken])
 
   async function handleFinish() {
