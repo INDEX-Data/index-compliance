@@ -43,7 +43,9 @@ export default function WelcomePage() {
         return getProfile()
       })
       .then((profile) => {
-        // Already onboarded — send them to the right place
+        // Already onboarded — set cookie (handles new device / cleared cookies)
+        // then send them to the right place
+        fetch('/api/set-onboarded', { method: 'POST' }).catch(() => {})
         if (profile.accountType === 'msp') {
           router.replace('/clients')
         } else {
@@ -66,6 +68,8 @@ export default function WelcomePage() {
       const token = await getToken()
       setClerkToken(token)
       await saveProfile({ companyName, accountType, role, orgSize, industry })
+      // Set the onboarded cookie so middleware lets them through on all future requests
+      await fetch('/api/set-onboarded', { method: 'POST' })
       if (accountType === 'msp') {
         router.replace('/clients')
       } else {

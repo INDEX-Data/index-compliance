@@ -14,6 +14,13 @@ const isPublicRoute = createRouteMatcher([
   '/api/health',
 ])
 
+// Welcome page and the cookie-setter are exempt from the onboarding gate
+// (they ARE the onboarding flow, gating them would cause an infinite redirect)
+const isOnboardingRoute = createRouteMatcher([
+  '/welcome',
+  '/api/set-onboarded',
+])
+
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth()
 
@@ -24,6 +31,23 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (!isPublicRoute(req)) {
     await auth.protect()
+  }
+
+  // ── Onboarding gate ────────────────────────────────────────────────────────
+  // Signed-in users who haven't completed the welcome wizard are redirected
+  // to /welcome. We use a cookie (set server-side by /api/set-onboarded) rather
+  // than a DB fetch so the check is zero-latency on every request.
+  // Only applies to page routes — API routes are called by the frontend after
+  // the page loads, so gating them here would break client-side fetches.
+  const isPageRoute = !req.nextUrl.pathname.startsWith('/api/')
+  if (
+    userId &&
+    isPageRoute &&
+    !isPublicRoute(req) &&
+    !isOnboardingRoute(req) &&
+    !req.cookies.has('idx_onboarded')
+  ) {
+    return NextResponse.redirect(new URL('/welcome', req.url))
   }
 })
 
