@@ -45,7 +45,7 @@ export default clerkMiddleware(async (auth, req) => {
     isPageRoute &&
     !isPublicRoute(req) &&
     !isOnboardingRoute(req) &&
-    !req.cookies.has('idx_onboarded')
+    req.cookies.get('idx_onboarded')?.value !== userId
   ) {
     return NextResponse.redirect(new URL('/welcome', req.url))
   }

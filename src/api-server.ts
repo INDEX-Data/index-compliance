@@ -95,8 +95,11 @@ async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction
   // Health check is always public
   if (req.path === "/api/health") return next();
 
-  // No Clerk configured → dev mode, use a placeholder user
+  // No Clerk configured → dev mode only (never in production)
   if (!clerkClient) {
+    if (process.env.NODE_ENV === 'production') {
+      return void res.status(503).json({ error: "Auth not configured" });
+    }
     req.userId = DEV_USER_ID;
     return next();
   }
