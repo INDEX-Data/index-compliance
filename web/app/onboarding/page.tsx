@@ -21,7 +21,7 @@ const ROLES = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { getToken } = useAuth()
+  const { isLoaded, getToken } = useAuth()
 
   // Phase: loading = checking for existing profile; wizard = show the form
   const [phase,        setPhase]        = useState<'loading' | 'wizard'>('loading')
@@ -41,11 +41,15 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false)
   const [error,  setError]  = useState<string | null>(null)
 
-  // On mount: check if profile already exists (returning user)
+  // On mount: check if profile already exists (returning user).
+  // Guard on isLoaded so getToken() isn't called before Clerk has parsed
+  // the session cookie — on a fresh sign-up redirect it returns null otherwise.
   useEffect(() => {
+    if (!isLoaded) return
     async function check() {
       try {
         const token = await getToken()
+        if (!token) { setPhase('wizard'); return }  // No active session
         setClerkToken(token)
         const profile = await getProfile()
         // Profile exists — send returning user to the right dashboard
@@ -56,7 +60,7 @@ export default function OnboardingPage() {
       }
     }
     check()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function goToStep(n: 1 | 2) {
     setTransitioning(true)
@@ -72,8 +76,12 @@ export default function OnboardingPage() {
     setSaving(true)
     setError(null)
     try {
-      // Refresh token just before saving (may have been a while since mount)
       const token = await getToken()
+      if (!token) {
+        setSaving(false)
+        setError('Session expired — please refresh the page and try again.')
+        return
+      }
       setClerkToken(token)
       await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
       router.replace(accountType === 'msp' ? '/clients' : '/dashboard')
