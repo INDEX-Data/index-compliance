@@ -75,19 +75,16 @@ async function initDB() {
 // the ClerkClient instance. We store it as verifyFn so all callsites use it.
 let clerkClient: {
   verifyFn: (token: string) => Promise<{ sub: string }>;
-  users: { updateUserMetadata: (...args: any[]) => Promise<any> };
 } | null = null;
 
 async function initClerk() {
   if (!process.env.CLERK_SECRET_KEY) return;
   try {
-    const { createClerkClient, verifyToken } = await import("@clerk/backend");
-    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const { verifyToken } = await import("@clerk/backend");
     const secretKey = process.env.CLERK_SECRET_KEY;
     clerkClient = {
       verifyFn: (token: string) =>
         (verifyToken as any)(token, { secretKey, clockSkewInMs: 5000 }) as Promise<{ sub: string }>,
-      users: (clerk as any).users,
     };
     console.log("[INDEX] Auth         →  Clerk ✓");
   } catch (err) {
@@ -2248,20 +2245,8 @@ app.put("/api/profile", async (req: AuthedRequest, res: Response) => {
     savedProfile = { userId: req.userId, companyName, accountType, role, orgSize, industry };
   }
 
-  // Mark onboarding complete in Clerk publicMetadata.
-  // Blocking (not fire-and-forget) so the metadata is written before the frontend
-  // calls getToken({ skipCache: true }) to refresh the JWT.
-  if (clerkClient && req.userId && req.userId !== DEV_USER_ID) {
-    try {
-      await (clerkClient as any).users.updateUserMetadata(req.userId, {
-        publicMetadata: { onboarded: true },
-      });
-    } catch (err) {
-      console.error("[AUTH] updateUserMetadata failed:", (err as Error).message);
-      // Non-fatal — profile is saved; user can still proceed
-    }
-  }
-
+  // Clerk publicMetadata (onboarded: true) is now set via the Next.js
+  // /api/complete-onboarding route on Vercel — not here. Railway just saves to DB.
   return void res.json(savedProfile);
 });
 

@@ -91,9 +91,17 @@ export default function OnboardingPage() {
       }
       setClerkToken(token)
       await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
+
+      // Set publicMetadata.onboarded=true via Next.js API route (runs on Vercel,
+      // same CLERK_SECRET_KEY as middleware — reliable, no Railway dependency).
+      const flagRes = await fetch('/api/complete-onboarding', { method: 'POST' })
+      if (!flagRes.ok) {
+        const body = await flagRes.json().catch(() => ({}))
+        throw new Error((body as any).error ?? 'Failed to complete workspace setup')
+      }
+
       // Force Clerk to issue a fresh JWT with the new publicMetadata.onboarded=true.
-      // Without this, middleware sees the old cached token (no onboarded flag) on
-      // the next navigation and redirects back to /onboarding — infinite loop.
+      // Without this, middleware sees the old cached token and redirects back to /onboarding.
       await getToken({ skipCache: true })
       router.replace(accountType === 'msp' ? '/clients' : '/dashboard')
     } catch (e) {
