@@ -44,12 +44,19 @@ export default function OnboardingPage() {
   // On mount: check if profile already exists (returning user).
   // Guard on isLoaded so getToken() isn't called before Clerk has parsed
   // the session cookie — on a fresh sign-up redirect it returns null otherwise.
+  // Retry loop: fresh sign-ups may need 1-3s for Clerk to issue the JWT.
   useEffect(() => {
     if (!isLoaded) return
     async function check() {
+      // Poll for token up to 5 times (max ~4s) to handle fresh sign-up JWT delay
+      let token: string | null = null
+      for (let i = 0; i < 5; i++) {
+        token = await getToken()
+        if (token) break
+        await new Promise(r => setTimeout(r, 800))
+      }
+      if (!token) { setPhase('wizard'); return }  // No active session after retries
       try {
-        const token = await getToken()
-        if (!token) { setPhase('wizard'); return }  // No active session
         setClerkToken(token)
         const profile = await getProfile()
         // Profile exists — send returning user to the right dashboard

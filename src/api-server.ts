@@ -71,13 +71,24 @@ async function initDB() {
 }
 
 // ── Optional Clerk auth — only loaded when CLERK_SECRET_KEY is set ─────────
-let clerkClient: { verifyToken: (token: string) => Promise<{ sub: string }> } | null = null;
+// verifyToken is a standalone export in @clerk/backend v3 — NOT a method on
+// the ClerkClient instance. We store it as verifyFn so all callsites use it.
+let clerkClient: {
+  verifyFn: (token: string) => Promise<{ sub: string }>;
+  users: { updateUserMetadata: (...args: any[]) => Promise<any> };
+} | null = null;
 
 async function initClerk() {
   if (!process.env.CLERK_SECRET_KEY) return;
   try {
-    const { createClerkClient } = await import("@clerk/backend");
-    clerkClient = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY }) as any;
+    const { createClerkClient, verifyToken } = await import("@clerk/backend");
+    const clerk = createClerkClient({ secretKey: process.env.CLERK_SECRET_KEY });
+    const secretKey = process.env.CLERK_SECRET_KEY;
+    clerkClient = {
+      verifyFn: (token: string) =>
+        (verifyToken as any)(token, { secretKey, clockSkewInMs: 5000 }) as Promise<{ sub: string }>,
+      users: (clerk as any).users,
+    };
     console.log("[INDEX] Auth         →  Clerk ✓");
   } catch (err) {
     console.warn("[INDEX] Auth         →  ⚠ Clerk failed to load:", (err as Error).message);
@@ -109,7 +120,7 @@ async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction
     ?? (req.query.token as string | undefined);
   if (!token) return void res.status(401).json({ error: "Unauthorized — no token" });
 
-  const doVerify = () => (clerkClient as any).verifyToken(token, { clockSkewInMs: 5000 });
+  const doVerify = () => clerkClient!.verifyFn(token);
 
   try {
     const payload = await doVerify();
@@ -883,7 +894,7 @@ app.post("/api/team/join/:token/accept", async (req: AuthedRequest, res) => {
   if (clerkClient) {
     if (!bearerToken) return void res.status(401).json({ error: "Sign in to accept this invite" });
     try {
-      const payload = await clerkClient.verifyToken(bearerToken);
+      const payload = await clerkClient.verifyFn(bearerToken);
       memberId = payload.sub;
     } catch {
       return void res.status(401).json({ error: "Unauthorized — invalid token" });
