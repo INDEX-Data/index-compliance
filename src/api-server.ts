@@ -109,12 +109,24 @@ async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction
     ?? (req.query.token as string | undefined);
   if (!token) return void res.status(401).json({ error: "Unauthorized — no token" });
 
+  const doVerify = () => (clerkClient as any).verifyToken(token, { clockSkewInMs: 5000 });
+
   try {
-    const payload = await clerkClient.verifyToken(token);
+    const payload = await doVerify();
     req.userId = payload.sub;
-    next();
-  } catch {
-    res.status(401).json({ error: "Unauthorized — invalid token" });
+    return next();
+  } catch (firstErr) {
+    // Retry once — Railway cold start / JWKS fetch latency can fail the first attempt
+    console.warn("[AUTH] verifyToken attempt 1 failed:", (firstErr as Error).message, "— retrying in 500ms");
+    await new Promise(r => setTimeout(r, 500));
+    try {
+      const payload = await doVerify();
+      req.userId = payload.sub;
+      return next();
+    } catch (secondErr) {
+      console.error("[AUTH] verifyToken failed after retry:", (secondErr as Error).message);
+      return void res.status(401).json({ error: "Unauthorized — invalid token" });
+    }
   }
 }
 
@@ -2209,6 +2221,8 @@ app.put("/api/profile", async (req: AuthedRequest, res: Response) => {
     companyName: string; accountType: string; role?: string; orgSize?: string; industry?: string;
   };
   if (!companyName || !accountType) return void res.status(400).json({ error: "companyName and accountType are required" });
+
+  let savedProfile: Record<string, unknown>;
   if (db && dbSchema) {
     const { eq } = drizzleOps!;
     const rows = await db.insert(dbSchema.userProfiles)
@@ -2218,9 +2232,26 @@ app.put("/api/profile", async (req: AuthedRequest, res: Response) => {
         set: { companyName, accountType, role, orgSize, industry },
       })
       .returning();
-    return void res.json(rows[0]);
+    savedProfile = rows[0] as Record<string, unknown>;
+  } else {
+    savedProfile = { userId: req.userId, companyName, accountType, role, orgSize, industry };
   }
-  res.json({ userId: req.userId, companyName, accountType, role, orgSize, industry });
+
+  // Mark onboarding complete in Clerk publicMetadata.
+  // Blocking (not fire-and-forget) so the metadata is written before the frontend
+  // calls getToken({ skipCache: true }) to refresh the JWT.
+  if (clerkClient && req.userId && req.userId !== DEV_USER_ID) {
+    try {
+      await (clerkClient as any).users.updateUserMetadata(req.userId, {
+        publicMetadata: { onboarded: true },
+      });
+    } catch (err) {
+      console.error("[AUTH] updateUserMetadata failed:", (err as Error).message);
+      // Non-fatal — profile is saved; user can still proceed
+    }
+  }
+
+  return void res.json(savedProfile);
 });
 
 // Also add notes update to clients

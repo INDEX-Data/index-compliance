@@ -84,6 +84,10 @@ export default function OnboardingPage() {
       }
       setClerkToken(token)
       await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
+      // Force Clerk to issue a fresh JWT with the new publicMetadata.onboarded=true.
+      // Without this, middleware sees the old cached token (no onboarded flag) on
+      // the next navigation and redirects back to /onboarding — infinite loop.
+      await getToken({ skipCache: true })
       router.replace(accountType === 'msp' ? '/clients' : '/dashboard')
     } catch (e) {
       setSaving(false)

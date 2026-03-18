@@ -15,15 +15,29 @@ const isPublicRoute = createRouteMatcher([
 ])
 
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth()
+  const { userId, sessionClaims } = await auth()
 
   // Authenticated users hitting the landing page → send to dashboard
   if (userId && req.nextUrl.pathname === '/') {
     return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
+  // Enforce Clerk auth on all protected routes first
   if (!isPublicRoute(req)) {
     await auth.protect()
+  }
+
+  // Onboarding gate: signed-in users who haven't completed onboarding always
+  // get redirected to /onboarding — regardless of refresh or re-login.
+  // Reads publicMetadata from the JWT (sessionClaims) — no DB call, Edge-safe,
+  // persists permanently across sessions.
+  // /onboard(.*)  is already in isPublicRoute so this never loops.
+  if (
+    userId &&
+    !isPublicRoute(req) &&
+    !(sessionClaims?.publicMetadata as any)?.onboarded
+  ) {
+    return NextResponse.redirect(new URL('/onboarding', req.url))
   }
 })
 
