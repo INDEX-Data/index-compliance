@@ -28,59 +28,80 @@ function RunningInner() {
   const [done, setDone]                   = useState(false)
   const [error, setError]                 = useState('')
   const [reportId, setReportId]           = useState('')
-  const listRef = useRef<HTMLDivElement>(null)
+  const [warmingUp, setWarmingUp]         = useState(false)
+  const [retryCount, setRetryCount]       = useState(0)
+  const listRef    = useRef<HTMLDivElement>(null)
+  const retryRef   = useRef(0)
+  const esRef      = useRef<EventSource | null>(null)
+  const MAX_RETRIES = 4
 
   useEffect(() => {
     if (!frameworkId) { router.replace('/assess'); return }
 
-    const es = new EventSource(getAssessStreamUrl(frameworkId, clientId))
+    function connect() {
+      const es = new EventSource(getAssessStreamUrl(frameworkId, clientId))
+      esRef.current = es
 
-    es.onmessage = (e) => {
-      try {
-        const evt: SSEEvent = JSON.parse(e.data)
+      es.onmessage = (e) => {
+        // Got a real message — server is awake, clear warming state
+        retryRef.current = 0
+        setWarmingUp(false)
+        try {
+          const evt: SSEEvent = JSON.parse(e.data)
 
-        if (evt.type === 'start') {
-          setFrameworkName(evt.frameworkName)
-          setTotal(evt.total)
+          if (evt.type === 'start') {
+            setFrameworkName(evt.frameworkName)
+            setTotal(evt.total)
+          }
+
+          if (evt.type === 'progress') {
+            setCurrent(evt.index)
+            setCurrentTitle(evt.title)
+            setItems(prev => {
+              if (prev.find(i => i.controlId === evt.controlId)) return prev
+              return [...prev, { controlId: evt.controlId, title: evt.title, done: false }]
+            })
+            setTimeout(() => listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
+          }
+
+          if (evt.type === 'result') {
+            const a = evt.assessment
+            setItems(prev => prev.map(i =>
+              i.controlId === a.controlId ? { ...i, status: a.status, done: true } : i
+            ))
+          }
+
+          if (evt.type === 'complete') {
+            const rpt: ComplianceReport = evt.report
+            setReportId(rpt.reportId)
+            setDone(true)
+            es.close()
+          }
+
+          if (evt.type === 'error') {
+            setError(evt.message)
+            es.close()
+          }
+        } catch { /* ignore parse errors */ }
+      }
+
+      es.onerror = () => {
+        es.close()
+        if (retryRef.current < MAX_RETRIES) {
+          retryRef.current += 1
+          setRetryCount(retryRef.current)
+          setWarmingUp(true)
+          // Railway cold-start can take 5–10 s — retry with back-off
+          setTimeout(connect, retryRef.current === 1 ? 3000 : 5000)
+        } else {
+          setWarmingUp(false)
+          setError('Unable to reach the assessment server. Please try again in a moment.')
         }
-
-        if (evt.type === 'progress') {
-          setCurrent(evt.index)
-          setCurrentTitle(evt.title)
-          setItems(prev => {
-            if (prev.find(i => i.controlId === evt.controlId)) return prev
-            return [...prev, { controlId: evt.controlId, title: evt.title, done: false }]
-          })
-          setTimeout(() => listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
-        }
-
-        if (evt.type === 'result') {
-          const a = evt.assessment
-          setItems(prev => prev.map(i =>
-            i.controlId === a.controlId ? { ...i, status: a.status, done: true } : i
-          ))
-        }
-
-        if (evt.type === 'complete') {
-          const rpt: ComplianceReport = evt.report
-          setReportId(rpt.reportId)
-          setDone(true)
-          es.close()
-        }
-
-        if (evt.type === 'error') {
-          setError(evt.message)
-          es.close()
-        }
-      } catch { /* ignore parse errors */ }
+      }
     }
 
-    es.onerror = () => {
-      setError('Connection lost. The API server may have restarted.')
-      es.close()
-    }
-
-    return () => es.close()
+    connect()
+    return () => { esRef.current?.close() }
   }, [frameworkId, clientId, router])
 
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
@@ -157,7 +178,11 @@ function RunningInner() {
           {items.length === 0 && (
             <div className="py-10 text-center">
               <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#a4adba]" />
-              <p className="text-xs text-[#6f7988]">Starting…</p>
+              <p className="text-xs text-[#6f7988]">
+                {warmingUp
+                  ? `Connecting to assessment server… (attempt ${retryCount}/${MAX_RETRIES})`
+                  : 'Starting…'}
+              </p>
             </div>
           )}
           {items.map(item => (
