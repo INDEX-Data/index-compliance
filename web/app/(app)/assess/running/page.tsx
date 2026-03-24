@@ -14,38 +14,93 @@ interface ProgressItem {
   done: boolean
 }
 
+// ─── Health poll ───────────────────────────────────────────────────────────────
+// Railway (hobby tier) sleeps after inactivity and takes 30–60 s to cold-start.
+// EventSource.onerror fires the instant Vercel returns a 502 from the sleeping
+// Railway server, so simple retry-on-error only buys ~18 s before giving up.
+//
+// Solution: poll GET /api/health (bypasses auth, returns {ok:true}) until Railway
+// responds, THEN open EventSource. Any HTTP status < 500 means the server is
+// alive. Timeout each individual fetch after 5 s; retry every 3 s; give up
+// after 60 s total.
+
+const HEALTH_INTERVAL_MS = 3_000
+const HEALTH_TIMEOUT_MS  = 5_000
+const HEALTH_MAX_POLLS   = 20   // 20 × 3 s = 60 s max
+
+async function awaitServer(signal: AbortSignal): Promise<boolean> {
+  for (let i = 0; i < HEALTH_MAX_POLLS; i++) {
+    if (signal.aborted) return false
+    try {
+      const ctrl = new AbortController()
+      const tid  = setTimeout(() => ctrl.abort(), HEALTH_TIMEOUT_MS)
+      const r    = await fetch('/api/health', { signal: ctrl.signal })
+      clearTimeout(tid)
+      if (r.status < 500) return true   // 200 OK or even 404 = server is alive
+    } catch { /* fetch timeout or network error — still starting up */ }
+    // Wait before next attempt (honour abort)
+    await new Promise<void>(res => {
+      const t = setTimeout(res, HEALTH_INTERVAL_MS)
+      signal.addEventListener('abort', () => { clearTimeout(t); res() }, { once: true })
+    })
+  }
+  return false
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
+
 function RunningInner() {
   const router      = useRouter()
   const params      = useSearchParams()
   const frameworkId = params.get('framework') ?? ''
   const clientId    = params.get('clientId') ?? undefined
 
-  const [frameworkName, setFrameworkName] = useState('')
-  const [total, setTotal]                 = useState(0)
-  const [current, setCurrent]             = useState(0)
-  const [currentTitle, setCurrentTitle]   = useState('')
-  const [items, setItems]                 = useState<ProgressItem[]>([])
-  const [done, setDone]                   = useState(false)
-  const [error, setError]                 = useState('')
-  const [reportId, setReportId]           = useState('')
-  const [warmingUp, setWarmingUp]         = useState(false)
-  const [retryCount, setRetryCount]       = useState(0)
-  const listRef    = useRef<HTMLDivElement>(null)
-  const retryRef   = useRef(0)
-  const esRef      = useRef<EventSource | null>(null)
-  const MAX_RETRIES = 4
+  const [frameworkName,   setFrameworkName]   = useState('')
+  const [total,           setTotal]           = useState(0)
+  const [current,         setCurrent]         = useState(0)
+  const [currentTitle,    setCurrentTitle]    = useState('')
+  const [items,           setItems]           = useState<ProgressItem[]>([])
+  const [done,            setDone]            = useState(false)
+  const [error,           setError]           = useState('')
+  const [reportId,        setReportId]        = useState('')
+  const [warmingUp,       setWarmingUp]       = useState(false)
+  const [warmingSeconds,  setWarmingSeconds]  = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
+  const esRef   = useRef<EventSource | null>(null)
+
+  // Tick elapsed seconds while warming up
+  useEffect(() => {
+    if (!warmingUp) { setWarmingSeconds(0); return }
+    const id = setInterval(() => setWarmingSeconds(s => s + 1), 1_000)
+    return () => clearInterval(id)
+  }, [warmingUp])
 
   useEffect(() => {
     if (!frameworkId) { router.replace('/assess'); return }
 
-    function connect() {
+    const abort = new AbortController()
+
+    // ── Phase 1: wait for Railway to wake up ──
+    async function run() {
+      setWarmingUp(true)
+      const ok = await awaitServer(abort.signal)
+      if (abort.signal.aborted) return    // component unmounted — bail
+      setWarmingUp(false)
+
+      if (!ok) {
+        setError('Assessment server could not be reached after 60 s. Please try again in a moment.')
+        return
+      }
+
+      // ── Phase 2: open the SSE stream ──
+      openStream()
+    }
+
+    function openStream(isRetry = false) {
       const es = new EventSource(getAssessStreamUrl(frameworkId, clientId))
       esRef.current = es
 
       es.onmessage = (e) => {
-        // Got a real message — server is awake, clear warming state
-        retryRef.current = 0
-        setWarmingUp(false)
         try {
           const evt: SSEEvent = JSON.parse(e.data)
 
@@ -87,21 +142,17 @@ function RunningInner() {
 
       es.onerror = () => {
         es.close()
-        if (retryRef.current < MAX_RETRIES) {
-          retryRef.current += 1
-          setRetryCount(retryRef.current)
-          setWarmingUp(true)
-          // Railway cold-start can take 5–10 s — retry with back-off
-          setTimeout(connect, retryRef.current === 1 ? 3000 : 5000)
+        if (!isRetry) {
+          // One silent retry after 3 s for transient mid-stream blips
+          setTimeout(() => openStream(true), 3_000)
         } else {
-          setWarmingUp(false)
-          setError('Unable to reach the assessment server. Please try again in a moment.')
+          setError('Connection lost during assessment. Please try again.')
         }
       }
     }
 
-    connect()
-    return () => { esRef.current?.close() }
+    run()
+    return () => { abort.abort(); esRef.current?.close() }
   }, [frameworkId, clientId, router])
 
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
@@ -117,7 +168,7 @@ function RunningInner() {
           <p className="text-sm text-[#505967] mb-6 leading-relaxed">{error}</p>
           <button
             onClick={() => router.push('/assess')}
-            className="bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            className="bg-[#1c1d1f] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             Back to Frameworks
           </button>
@@ -137,7 +188,7 @@ function RunningInner() {
             : <Loader2 className="w-5 h-5 text-[#6f7988] animate-spin" />
           }
           <h1 className="text-[20px] font-bold text-[#1c1d1f] tracking-tight">
-            {done ? 'Assessment Complete' : 'Running Assessment'}
+            {done ? 'Assessment Complete' : warmingUp ? 'Warming up…' : 'Running Assessment'}
           </h1>
         </div>
         {frameworkName && (
@@ -149,7 +200,7 @@ function RunningInner() {
       <div className="bg-white rounded-xl border border-[#e4e7ec] p-5 mb-5 shadow-card">
         <div className="flex items-center justify-between text-sm mb-3">
           <span className="text-[#1c1d1f] font-medium truncate mr-4">
-            {done ? 'All controls assessed' : currentTitle || 'Preparing…'}
+            {done ? 'All controls assessed' : currentTitle || (warmingUp ? 'Waiting for server…' : 'Preparing…')}
           </span>
           <span className="text-[#6f7988] font-mono text-xs shrink-0">{current}/{total}</span>
         </div>
@@ -164,7 +215,8 @@ function RunningInner() {
         </div>
         <div className="flex items-center justify-between mt-2 text-[11px] text-[#a4adba]">
           <span>{done ? '100' : pct}% complete</span>
-          {!done && <span className="animate-pulse text-[#6f7988]">Querying Microsoft Graph…</span>}
+          {!done && !warmingUp && <span className="animate-pulse text-[#6f7988]">Querying Microsoft Graph…</span>}
+          {warmingUp && <span className="text-[#a4adba]">Server starting up…</span>}
         </div>
       </div>
 
@@ -178,11 +230,20 @@ function RunningInner() {
           {items.length === 0 && (
             <div className="py-10 text-center">
               <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#a4adba]" />
-              <p className="text-xs text-[#6f7988]">
-                {warmingUp
-                  ? `Connecting to assessment server… (attempt ${retryCount}/${MAX_RETRIES})`
-                  : 'Starting…'}
-              </p>
+              {warmingUp ? (
+                <>
+                  <p className="text-xs text-[#6f7988] font-medium">Waking up assessment server…</p>
+                  <p className="text-[11px] text-[#a4adba] mt-1">
+                    {warmingSeconds < 10
+                      ? 'Starting up…'
+                      : warmingSeconds < 30
+                      ? `${warmingSeconds}s — this can take ~30 seconds`
+                      : `${warmingSeconds}s — almost ready…`}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-[#6f7988]">Starting…</p>
+              )}
             </div>
           )}
           {items.map(item => (
@@ -215,7 +276,7 @@ function RunningInner() {
         <div className="flex gap-3">
           <button
             onClick={() => router.push(`/assess/${reportId}`)}
-            className="flex-1 bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white text-sm font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+            className="flex-1 bg-[#1c1d1f] text-white text-sm font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
           >
             <CheckCircle2 className="w-4 h-4" />
             View Full Report
