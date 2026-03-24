@@ -11,7 +11,7 @@ import {
   Activity, Users, X, ChevronDown,
 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
-import { getReports, getClients, getReportDrift } from '@/lib/api'
+import { getReports, getClients, getReportDrift, getProfile } from '@/lib/api'
 import type { DriftResult } from '@/lib/api'
 import { ScoreTrend } from '@/components/ScoreTrend'
 import { RiskBadge } from '@/components/RiskBadge'
@@ -557,13 +557,15 @@ export default function DashboardPage() {
   const [hasClients,       setHasClients]       = useState<boolean | null>(null)
   const [firstClientName,  setFirstClientName]  = useState('')
   const [showEstimator,    setShowEstimator]    = useState(false)
+  const [accountType,      setAccountType]      = useState<'org' | 'msp'>('org')
 
   useEffect(() => {
-    Promise.all([getReports(), getClients()])
-      .then(([rpts, clients]) => {
+    Promise.all([getReports(), getClients(), getProfile()])
+      .then(([rpts, clients, profile]) => {
         setReports(rpts)
         setHasClients(clients.length > 0)
         setFirstClientName(clients[0]?.name ?? '')
+        setAccountType(profile.accountType as 'org' | 'msp')
       })
       .catch(() => { setReports([]); setHasClients(false) })
       .finally(() => setLoading(false))
@@ -646,7 +648,11 @@ export default function DashboardPage() {
       </div>
 
       {latestReports.length === 0 ? (
-        !hasClients ? <EmptyNoClients /> : <EmptyNoAssessments firstClientName={firstClientName} />
+        !hasClients
+          ? (accountType === 'msp' ? <EmptyNoClients /> : <EmptyOrgNoTenant />)
+          : (accountType === 'msp'
+              ? <EmptyNoAssessments firstClientName={firstClientName} />
+              : <EmptyOrgNoAssessments />)
       ) : (
         <>
           {/* ── KPI stats (Lovable horizontal card layout) ── */}
@@ -800,6 +806,96 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
       >
         <Play className="w-3.5 h-3.5" />
         Run First Assessment
+      </Link>
+    </div>
+  )
+}
+
+// ─── Org-specific empty states ─────────────────────────────────────────────────
+
+function EmptyOrgNoTenant() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-white border border-[#e4e7ec] flex items-center
+                      justify-center mb-5 shadow-card">
+        <ShieldCheck className="w-6 h-6 text-[#C4A96D]" strokeWidth={1.5} />
+      </div>
+      <h3 className="text-[15px] font-semibold text-[#1c1d1f] mb-2">
+        Set up your compliance monitoring
+      </h3>
+      <p className="text-[13px] text-[#505967] max-w-sm mb-8 leading-relaxed">
+        Connect your Microsoft 365 environment to run automated assessments
+        against CMMC, NIST, HIPAA, and more.
+      </p>
+      <div className="flex items-center gap-3 mb-8 flex-wrap justify-center">
+        {[
+          { n: '1', label: 'Connect M365',      active: true,  time: '~3 min' },
+          { n: '2', label: 'Choose framework',   active: false, time: '~1 min' },
+          { n: '3', label: 'View your posture',  active: false, time: '' },
+        ].map((s, i, arr) => (
+          <div key={s.n} className="flex items-center gap-3">
+            <div className="flex flex-col items-center gap-1">
+              <div className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px]
+                               font-semibold border ${
+                s.active
+                  ? 'bg-[#1c1d1f] text-white border-transparent'
+                  : 'bg-white text-[#6f7988] border-[#e4e7ec]'
+              }`}>
+                <span className={`w-4 h-4 rounded-full text-[10px] font-bold flex items-center
+                                  justify-center shrink-0 ${
+                  s.active ? 'bg-[#C4A96D] text-[#1c1d1f]' : 'bg-[#e4e7ec] text-[#6f7988]'
+                }`}>{s.n}</span>
+                {s.label}
+              </div>
+              {s.time && <span className="text-[10px] text-[#a4adba]">{s.time}</span>}
+            </div>
+            {i < arr.length - 1 && (
+              <ArrowRight className="w-4 h-4 text-[#cad0d9] mb-4 shrink-0" />
+            )}
+          </div>
+        ))}
+      </div>
+      <Link
+        href="/connect"
+        className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium
+                   px-5 py-2.5 rounded-[10px]"
+        style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
+      >
+        <ShieldCheck className="w-3.5 h-3.5" />
+        Connect Microsoft 365
+      </Link>
+    </div>
+  )
+}
+
+function EmptyOrgNoAssessments() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-white border border-[#e4e7ec] flex items-center
+                      justify-center mb-5 shadow-card">
+        <Play className="w-6 h-6 text-[#C4A96D]" strokeWidth={1.5} />
+      </div>
+      <div className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#0eb472]
+                      bg-[rgba(14,180,114,0.08)] border border-[rgba(14,180,114,0.2)]
+                      px-3 py-1 rounded-full mb-4">
+        <CheckCircle2 className="w-3.5 h-3.5" />
+        Microsoft 365 connected
+      </div>
+      <h3 className="text-[15px] font-semibold text-[#1c1d1f] mb-2">
+        Run your first assessment
+      </h3>
+      <p className="text-[13px] text-[#505967] max-w-sm mb-8 leading-relaxed">
+        Your environment is ready. Choose a compliance framework and get a
+        full gap analysis in minutes.
+      </p>
+      <Link
+        href="/assess"
+        className="inline-flex items-center gap-2 text-[#f3f4f6] text-[13px] font-medium
+                   px-5 py-2.5 rounded-[10px]"
+        style={{ background: '#202124', border: '0.667px solid rgba(80,89,103,0.4)' }}
+      >
+        <Play className="w-3.5 h-3.5" />
+        Start Assessment
       </Link>
     </div>
   )
