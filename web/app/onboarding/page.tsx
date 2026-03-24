@@ -89,21 +89,28 @@ export default function OnboardingPage() {
         setError('Session expired — please refresh the page and try again.')
         return
       }
-      setClerkToken(token)
-      await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
-
-      // Complete onboarding: update Clerk metadata + set idx_onboarded cookie.
-      // Uses /onboard-finish (not /api/*) so next.config.ts never rewrites it
-      // to Railway. The path matches /onboard(.*)  in middleware's isPublicRoute,
-      // so the onboarding gate is bypassed while the route self-authenticates.
+      // STEP 1: Complete onboarding gate — MUST succeed before navigating.
+      // /onboard-finish sets the idx_onboarded cookie unconditionally (even if
+      // the Clerk metadata update inside fails). Only returns non-200 if the
+      // session is completely invalid — impossible for an authenticated user.
       const flagRes = await fetch('/onboard-finish', { method: 'POST' })
       if (!flagRes.ok) {
         const body = await flagRes.json().catch(() => ({}))
         throw new Error((body as any).error ?? 'Failed to complete workspace setup')
       }
 
-      // Hard navigation so the browser sends the fresh idx_onboarded cookie and
-      // avoids the Clerk SDK's session-sync PUT (which would 405 on page.tsx).
+      // STEP 2: Save profile to Railway — best-effort.
+      // If Railway is unavailable or rejects the token, the user still gets
+      // through because the cookie is already set above. Profile is editable
+      // in Settings once they're in the app.
+      setClerkToken(token)
+      try {
+        await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
+      } catch (profileErr) {
+        console.warn('[onboarding] profile save failed (non-fatal):', profileErr)
+      }
+
+      // Hard navigation so the browser sends the fresh idx_onboarded cookie.
       window.location.href = accountType === 'msp' ? '/clients' : '/dashboard'
     } catch (e) {
       setSaving(false)
@@ -325,6 +332,15 @@ export default function OnboardingPage() {
                   A few quick details to personalise your experience.
                 </p>
 
+                {/* Error — shown at top so it cannot be missed */}
+                {error && (
+                  <div className="mb-6 flex items-start gap-3 p-4 rounded-xl
+                                  bg-red-50 border border-red-200">
+                    <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-[14px] font-medium text-red-700">{error}</p>
+                  </div>
+                )}
+
                 <div className="space-y-6">
 
                   {/* Company Name */}
@@ -407,15 +423,6 @@ export default function OnboardingPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Error */}
-                {error && (
-                  <div className="mt-5 flex items-start gap-2.5 p-3.5 rounded-lg
-                                  bg-red-50 border border-red-200">
-                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                    <p className="text-[13px] text-red-700">{error}</p>
-                  </div>
-                )}
 
                 {/* Buttons */}
                 <div className="flex gap-3 mt-8">
