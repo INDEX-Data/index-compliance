@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircle2, XCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
 import { StatusBadge } from '@/components/StatusBadge'
-import { getAssessStreamUrl } from '@/lib/api'
+import { getAssessStreamUrl, getClerkToken } from '@/lib/api'
 import type { ControlAssessment, ComplianceReport, SSEEvent } from '@/lib/types'
 
 interface ProgressItem {
@@ -45,6 +45,37 @@ async function awaitServer(signal: AbortSignal): Promise<boolean> {
     })
   }
   return false
+}
+
+// ─── Diagnostic: why did the stream fail? ─────────────────────────────────────
+// EventSource.onerror gives us NOTHING — no status code, no body. After both
+// attempts fail, do a targeted REST fetch to surface the real Railway error.
+
+async function diagnoseStreamError(): Promise<string> {
+  const tok = getClerkToken()
+  if (!tok) {
+    return 'Your session has expired. Please refresh the page and try again.'
+  }
+
+  try {
+    const ctrl = new AbortController()
+    setTimeout(() => ctrl.abort(), 8_000)
+    const r = await fetch('/api/clients', {
+      headers: { Authorization: `Bearer ${tok}` },
+      signal: ctrl.signal,
+    })
+    if (r.status === 401) {
+      return 'Authentication failed. Please sign out and sign back in.'
+    }
+    if (r.ok) {
+      const clients: unknown[] = await r.json().catch(() => [])
+      if (!Array.isArray(clients) || clients.length === 0) {
+        return 'No Microsoft 365 tenant connected. Please connect your M365 environment before running an assessment.'
+      }
+    }
+  } catch { /* network / timeout */ }
+
+  return 'Assessment server connection failed. Please try again in a moment.'
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -146,7 +177,8 @@ function RunningInner() {
           // One silent retry after 3 s for transient mid-stream blips
           setTimeout(() => openStream(true), 3_000)
         } else {
-          setError('Connection lost during assessment. Please try again.')
+          // Diagnose the real failure — EventSource gives us no status/body
+          diagnoseStreamError().then(setError)
         }
       }
     }
@@ -158,20 +190,38 @@ function RunningInner() {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
 
   if (error) {
+    const noTenant = error.toLowerCase().includes('no microsoft 365') ||
+                     error.toLowerCase().includes('no clients')
     return (
       <div className="flex items-center justify-center h-full p-8">
         <div className="max-w-md text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center mx-auto mb-5">
             <XCircle className="w-7 h-7 text-[#B91C1C]" />
           </div>
-          <h2 className="text-base font-bold text-[#1c1d1f] mb-2">Assessment failed</h2>
+          <h2 className="text-base font-bold text-[#1c1d1f] mb-2">
+            {noTenant ? 'M365 tenant not connected' : 'Assessment failed'}
+          </h2>
           <p className="text-sm text-[#505967] mb-6 leading-relaxed">{error}</p>
-          <button
-            onClick={() => router.push('/assess')}
-            className="bg-[#1c1d1f] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
-          >
-            Back to Frameworks
-          </button>
+          <div className="flex flex-col gap-2 items-center">
+            {noTenant && (
+              <button
+                onClick={() => router.push('/connect')}
+                className="w-full bg-[#1c1d1f] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+              >
+                Connect Microsoft 365
+              </button>
+            )}
+            <button
+              onClick={() => router.push('/assess')}
+              className={`w-full text-sm font-semibold px-5 py-2.5 rounded-lg transition border ${
+                noTenant
+                  ? 'bg-white text-[#505967] border-[#e4e7ec]'
+                  : 'bg-[#1c1d1f] text-white border-transparent'
+              }`}
+            >
+              Back to Frameworks
+            </button>
+          </div>
         </div>
       </div>
     )
