@@ -319,7 +319,10 @@ const allowedOrigins = new Set(
 
 app.use((req, res, next) => {
   const origin = req.headers.origin ?? "";
-  const allowed = allowedOrigins.has(origin) ? origin : [...allowedOrigins][0];
+  // Auto-allow any Vercel deployment so ALLOWED_ORIGINS doesn't need to be
+  // updated for every preview deploy. Auth (Clerk JWT) is still enforced.
+  const isVercel = /^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/.test(origin);
+  const allowed  = (allowedOrigins.has(origin) || isVercel) ? origin : [...allowedOrigins][0];
   res.setHeader("Access-Control-Allow-Origin", allowed);
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -1260,9 +1263,10 @@ app.get("/api/assess/stream/:frameworkId", async (req: AuthedRequest, res) => {
     return;
   }
 
-  res.setHeader("Content-Type",  "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection",    "keep-alive");
+  res.setHeader("Content-Type",      "text/event-stream");
+  res.setHeader("Cache-Control",     "no-cache");
+  res.setHeader("Connection",        "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");  // disable proxy buffering (Nginx/Vercel/CloudFront)
   res.flushHeaders();
 
   const send = (data: object) => res.write(`data: ${JSON.stringify(data)}\n\n`);

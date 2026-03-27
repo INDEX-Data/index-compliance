@@ -174,15 +174,23 @@ export async function exportWordReport(reportId: string): Promise<string | null>
 // ── SSE URL builder ──────────────────────────────────────────────────────────
 // EventSource doesn't support custom headers, so the Clerk token is passed
 // as a query parameter (?token=...) which the API server also accepts.
+//
+// When NEXT_PUBLIC_RAILWAY_PUBLIC_URL is set the browser connects directly to
+// Railway, bypassing the Vercel proxy entirely. This is critical for long-running
+// assessments (CMMC L2 = 3-5 min) which would otherwise hit Vercel's proxy timeout.
+// Set NEXT_PUBLIC_RAILWAY_PUBLIC_URL=https://your-app.railway.app in Vercel.
 
 export const getAssessStreamUrl = (frameworkId: string, clientId?: string) => {
+  const directBase = process.env.NEXT_PUBLIC_RAILWAY_PUBLIC_URL
+  const base = directBase ? `${directBase}/api` : BASE
+
   const params = new URLSearchParams()
   if (clientId) params.set('clientId', clientId)
   if (_clerkToken) params.set('token', _clerkToken)
   const qs = params.toString()
   return qs
-    ? `${BASE}/assess/stream/${frameworkId}?${qs}`
-    : `${BASE}/assess/stream/${frameworkId}`
+    ? `${base}/assess/stream/${frameworkId}?${qs}`
+    : `${base}/assess/stream/${frameworkId}`
 }
 
 // ── DIBCAC 320 Objectives ─────────────────────────────────────────────────────
