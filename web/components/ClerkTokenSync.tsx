@@ -8,12 +8,16 @@
 
 import { useEffect } from 'react'
 import { useAuth } from '@clerk/nextjs'
-import { setClerkToken } from '@/lib/api'
+import { setClerkToken, registerGetToken } from '@/lib/api'
 
 export function ClerkTokenSync() {
   const { getToken } = useAuth()
 
   useEffect(() => {
+    // Register getToken immediately (sync) so every API call can fetch a fresh
+    // token directly from Clerk instead of waiting for the async first refresh.
+    registerGetToken(getToken)
+
     let cancelled = false
 
     const refresh = async () => {

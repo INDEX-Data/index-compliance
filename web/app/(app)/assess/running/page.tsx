@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@clerk/nextjs'
 import { CheckCircle2, XCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
 import { StatusBadge } from '@/components/StatusBadge'
-import { getAssessStreamUrl, getClerkToken, setClerkToken } from '@/lib/api'
+import { getAssessStreamUrl, getClerkToken } from '@/lib/api'
 import type { ControlAssessment, ComplianceReport, SSEEvent } from '@/lib/types'
 
 interface ProgressItem {
@@ -17,13 +17,8 @@ interface ProgressItem {
 
 // ─── Health poll ───────────────────────────────────────────────────────────────
 // Railway (hobby tier) sleeps after inactivity and takes 30–60 s to cold-start.
-// EventSource.onerror fires the instant Vercel returns a 502 from the sleeping
-// Railway server, so simple retry-on-error only buys ~18 s before giving up.
-//
-// Solution: poll GET /api/health (bypasses auth, returns {ok:true}) until Railway
-// responds, THEN open EventSource. Any HTTP status < 500 means the server is
-// alive. Timeout each individual fetch after 5 s; retry every 3 s; give up
-// after 60 s total.
+// Poll GET /api/health (bypasses auth, returns {ok:true}) until Railway responds,
+// THEN open the SSE stream. Any HTTP status < 500 means the server is alive.
 
 const HEALTH_INTERVAL_MS = 3_000
 const HEALTH_TIMEOUT_MS  = 5_000
@@ -37,9 +32,8 @@ async function awaitServer(signal: AbortSignal): Promise<boolean> {
       const tid  = setTimeout(() => ctrl.abort(), HEALTH_TIMEOUT_MS)
       const r    = await fetch('/api/health', { signal: ctrl.signal })
       clearTimeout(tid)
-      if (r.status < 500) return true   // 200 OK or even 404 = server is alive
-    } catch { /* fetch timeout or network error — still starting up */ }
-    // Wait before next attempt (honour abort)
+      if (r.status < 500) return true
+    } catch { /* still starting up */ }
     await new Promise<void>(res => {
       const t = setTimeout(res, HEALTH_INTERVAL_MS)
       signal.addEventListener('abort', () => { clearTimeout(t); res() }, { once: true })
@@ -49,15 +43,9 @@ async function awaitServer(signal: AbortSignal): Promise<boolean> {
 }
 
 // ─── Diagnostic: why did the stream fail? ─────────────────────────────────────
-// EventSource.onerror gives us NOTHING — no status code, no body. After both
-// attempts fail, do a targeted REST fetch to surface the real Railway error.
-
 async function diagnoseStreamError(): Promise<string> {
   const tok = getClerkToken()
-  if (!tok) {
-    return 'Your session has expired. Please refresh the page and try again.'
-  }
-
+  if (!tok) return 'Your session has expired. Please refresh the page and try again.'
   try {
     const ctrl = new AbortController()
     setTimeout(() => ctrl.abort(), 8_000)
@@ -65,17 +53,13 @@ async function diagnoseStreamError(): Promise<string> {
       headers: { Authorization: `Bearer ${tok}` },
       signal: ctrl.signal,
     })
-    if (r.status === 401) {
-      return 'Authentication failed. Please sign out and sign back in.'
-    }
+    if (r.status === 401) return 'Authentication failed. Please sign out and sign back in.'
     if (r.ok) {
       const clients: unknown[] = await r.json().catch(() => [])
-      if (!Array.isArray(clients) || clients.length === 0) {
+      if (!Array.isArray(clients) || clients.length === 0)
         return 'No Microsoft 365 tenant connected. Please connect your M365 environment before running an assessment.'
-      }
     }
   } catch { /* network / timeout */ }
-
   return 'Assessment server connection failed. Please try again in a moment.'
 }
 
@@ -97,8 +81,9 @@ function RunningInner() {
   const [reportId,        setReportId]        = useState('')
   const [warmingUp,       setWarmingUp]       = useState(false)
   const [warmingSeconds,  setWarmingSeconds]  = useState(0)
-  const listRef   = useRef<HTMLDivElement>(null)
-  const esRef     = useRef<EventSource | null>(null)
+  const listRef    = useRef<HTMLDivElement>(null)
+  // Stores an abort controller's abort function so cleanup can cancel the stream
+  const cancelRef  = useRef<(() => void) | null>(null)
   const { getToken } = useAuth()
 
   // Tick elapsed seconds while warming up
@@ -113,11 +98,10 @@ function RunningInner() {
 
     const abort = new AbortController()
 
-    // ── Phase 1: wait for Railway to wake up ──
     async function run() {
       setWarmingUp(true)
       const ok = await awaitServer(abort.signal)
-      if (abort.signal.aborted) return    // component unmounted — bail
+      if (abort.signal.aborted) return
       setWarmingUp(false)
 
       if (!ok) {
@@ -125,26 +109,65 @@ function RunningInner() {
         return
       }
 
-      // ── Phase 2: open the SSE stream ──
       openStream()
     }
 
     async function openStream(isRetry = false) {
-      // Always fetch a fresh token before opening the stream.
-      // _clerkToken may be up to 50 s old (ClerkTokenSync refreshes every 50 s)
-      // and Clerk tokens are only valid for 60 s. After a cold-start health poll
-      // (up to 60 s) the stored token can be expired → Railway returns 401.
+      if (abort.signal.aborted) return
+
+      // Fetch a fresh Clerk token via Authorization header.
+      // EventSource (the old approach) forced the token into the URL query param
+      // (?token=...) which Railway's verifyToken consistently rejected.
+      // fetch() lets us use the standard Authorization header — same path as all
+      // other API calls which work correctly.
+      let token: string | null = null
       try {
-        const fresh = await getToken()
-        if (fresh) setClerkToken(fresh)
-      } catch { /* fall back to cached _clerkToken */ }
+        token = await getToken()
+      } catch { /* ignore — try cached token */ }
+      if (!token) token = getClerkToken()
+      if (!token) {
+        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
+        setError('Your session has expired. Please refresh the page and try again.')
+        return
+      }
 
-      const es = new EventSource(getAssessStreamUrl(frameworkId, clientId))
-      esRef.current = es
+      const url = getAssessStreamUrl(frameworkId, clientId)
+      const ctrl = new AbortController()
+      cancelRef.current = () => ctrl.abort()
 
-      es.onmessage = (e) => {
+      let res: Response
+      try {
+        res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'text/event-stream',
+            'Cache-Control': 'no-cache',
+          },
+          signal: ctrl.signal,
+        })
+      } catch (err: unknown) {
+        if (ctrl.signal.aborted || abort.signal.aborted) return
+        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
+        diagnoseStreamError().then(setError)
+        return
+      }
+
+      if (!res.ok) {
+        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
+        diagnoseStreamError().then(setError)
+        return
+      }
+
+      // ── Parse SSE events from the ReadableStream ────────────────────────────
+      const reader  = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer    = ''
+
+      function processEvent(raw: string) {
+        const dataLine = raw.split('\n').find(l => l.startsWith('data:'))
+        if (!dataLine) return
         try {
-          const evt: SSEEvent = JSON.parse(e.data)
+          const evt: SSEEvent = JSON.parse(dataLine.slice(5).trim())
 
           if (evt.type === 'start') {
             setFrameworkName(evt.frameworkName)
@@ -172,30 +195,38 @@ function RunningInner() {
             const rpt: ComplianceReport = evt.report
             setReportId(rpt.reportId)
             setDone(true)
-            es.close()
           }
 
           if (evt.type === 'error') {
             setError(evt.message)
-            es.close()
           }
         } catch { /* ignore parse errors */ }
       }
 
-      es.onerror = () => {
-        es.close()
-        if (!isRetry) {
-          // One silent retry after 3 s — fresh token is fetched in openStream
-          setTimeout(() => { openStream(true) }, 3_000)
-        } else {
-          // Diagnose the real failure — EventSource gives us no status/body
-          diagnoseStreamError().then(setError)
+      try {
+        while (true) {
+          const { done: streamDone, value } = await reader.read()
+          if (streamDone) break
+          if (abort.signal.aborted || ctrl.signal.aborted) break
+          buffer += decoder.decode(value, { stream: true })
+          const parts = buffer.split('\n\n')
+          buffer = parts.pop() ?? ''
+          for (const part of parts) {
+            if (part.trim()) processEvent(part)
+          }
         }
+      } catch (err: unknown) {
+        if (ctrl.signal.aborted || abort.signal.aborted) return
+        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
+        diagnoseStreamError().then(setError)
       }
     }
 
     run()
-    return () => { abort.abort(); esRef.current?.close() }
+    return () => {
+      abort.abort()
+      cancelRef.current?.()
+    }
   }, [frameworkId, clientId, router, getToken])
 
   const pct = total > 0 ? Math.round((current / total) * 100) : 0

@@ -23,6 +23,10 @@ export class ApiError extends Error {
 // ── Clerk token store ──────────────────────────────────────────────────────
 // Updated by <ClerkTokenSync /> in the root layout. All fetch helpers read it.
 let _clerkToken: string | null = null
+// Clerk's getToken() function, registered by ClerkTokenSync on mount.
+// When set, every API call fetches a guaranteed-fresh token instead of relying
+// on the cached _clerkToken which may not be set yet on first page load.
+let _getToken: (() => Promise<string | null>) | null = null
 
 /** Called by ClerkTokenSync to keep the token fresh (every ~50 s). */
 export function setClerkToken(token: string | null) {
@@ -34,8 +38,18 @@ export function getClerkToken(): string | null {
   return _clerkToken
 }
 
-function authHeaders(): HeadersInit {
-  return _clerkToken ? { Authorization: `Bearer ${_clerkToken}` } : {}
+/**
+ * Register Clerk's getToken() function so every API call fetches a fresh token.
+ * Called once by ClerkTokenSync on mount (before any API calls fire).
+ * Clerk caches tokens internally — calling this per-request is efficient.
+ */
+export function registerGetToken(fn: () => Promise<string | null>) {
+  _getToken = fn
+}
+
+async function authHeaders(): Promise<HeadersInit> {
+  const token = _getToken ? (await _getToken()) : _clerkToken
+  return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 // ── Base fetch helpers ────────────────────────────────────────────────────
@@ -43,7 +57,7 @@ function authHeaders(): HeadersInit {
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     cache: 'no-store',
-    headers: authHeaders(),
+    headers: await authHeaders(),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
@@ -55,7 +69,7 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body?: object): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
@@ -68,7 +82,7 @@ async function post<T>(path: string, body?: object): Promise<T> {
 async function put<T>(path: string, body?: object): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
     body: body ? JSON.stringify(body) : undefined,
   })
   if (!res.ok) {
@@ -81,7 +95,7 @@ async function put<T>(path: string, body?: object): Promise<T> {
 async function del<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     method: 'DELETE',
-    headers: authHeaders(),
+    headers: await authHeaders(),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
@@ -147,7 +161,7 @@ export const deleteReport  = (id: string) => del<{ ok: boolean }>(`/reports/${id
 export async function exportWordReport(reportId: string): Promise<string | null> {
   const res = await fetch(`${BASE}/reports/${reportId}/export/word`, {
     cache: 'no-store',
-    headers: authHeaders(),
+    headers: await authHeaders(),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
@@ -181,12 +195,14 @@ export async function exportWordReport(reportId: string): Promise<string | null>
 // Set NEXT_PUBLIC_RAILWAY_PUBLIC_URL=https://your-app.railway.app in Vercel.
 
 export const getAssessStreamUrl = (frameworkId: string, clientId?: string) => {
+  // Token is NOT added here — it goes in the Authorization header via fetch().
+  // This avoids the query-param auth issue where Railway's verifyToken rejects
+  // tokens passed as URL query params (possibly due to URL encoding or JWKS lookup).
   const directBase = process.env.NEXT_PUBLIC_RAILWAY_PUBLIC_URL?.replace(/\/$/, '')
   const base = directBase ? `${directBase}/api` : BASE
 
   const params = new URLSearchParams()
   if (clientId) params.set('clientId', clientId)
-  if (_clerkToken) params.set('token', _clerkToken)
   const qs = params.toString()
   return qs
     ? `${base}/assess/stream/${frameworkId}?${qs}`
@@ -342,7 +358,7 @@ export async function acceptTeamInvite(token: string, authToken?: string | null)
 export async function exportOPAReport(reportId: string): Promise<string | null> {
   const res = await fetch(`${BASE}/reports/${reportId}/export/opa`, {
     cache: 'no-store',
-    headers: authHeaders(),
+    headers: await authHeaders(),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
@@ -364,7 +380,7 @@ export async function exportOPAReport(reportId: string): Promise<string | null> 
 export async function exportEvidenceZip(reportId: string): Promise<string | null> {
   const res = await fetch(`${BASE}/reports/${reportId}/export/zip`, {
     cache: 'no-store',
-    headers: authHeaders(),
+    headers: await authHeaders(),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }))
@@ -396,7 +412,7 @@ export async function uploadEvidenceFile(reportId: string, objectiveId: string, 
   form.append('file', file)
   const res = await fetch(`${BASE}/reports/${reportId}/objectives/${encodeURIComponent(objectiveId)}/files`, {
     method: 'POST',
-    headers: authHeaders(),
+    headers: await authHeaders(),
     body: form,
   })
   if (!res.ok) {
