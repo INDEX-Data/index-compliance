@@ -181,7 +181,7 @@ export async function exportWordReport(reportId: string): Promise<string | null>
 // Set NEXT_PUBLIC_RAILWAY_PUBLIC_URL=https://your-app.railway.app in Vercel.
 
 export const getAssessStreamUrl = (frameworkId: string, clientId?: string) => {
-  const directBase = process.env.NEXT_PUBLIC_RAILWAY_PUBLIC_URL
+  const directBase = process.env.NEXT_PUBLIC_RAILWAY_PUBLIC_URL?.replace(/\/$/, '')
   const base = directBase ? `${directBase}/api` : BASE
 
   const params = new URLSearchParams()
