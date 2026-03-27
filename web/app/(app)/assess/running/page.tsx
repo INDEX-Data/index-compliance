@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
 import { CheckCircle2, XCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
 import { StatusBadge } from '@/components/StatusBadge'
-import { getAssessStreamUrl, getClerkToken } from '@/lib/api'
+import { getAssessStreamUrl, getClerkToken, setClerkToken } from '@/lib/api'
 import type { ControlAssessment, ComplianceReport, SSEEvent } from '@/lib/types'
 
 interface ProgressItem {
@@ -96,8 +97,9 @@ function RunningInner() {
   const [reportId,        setReportId]        = useState('')
   const [warmingUp,       setWarmingUp]       = useState(false)
   const [warmingSeconds,  setWarmingSeconds]  = useState(0)
-  const listRef = useRef<HTMLDivElement>(null)
-  const esRef   = useRef<EventSource | null>(null)
+  const listRef   = useRef<HTMLDivElement>(null)
+  const esRef     = useRef<EventSource | null>(null)
+  const { getToken } = useAuth()
 
   // Tick elapsed seconds while warming up
   useEffect(() => {
@@ -127,7 +129,16 @@ function RunningInner() {
       openStream()
     }
 
-    function openStream(isRetry = false) {
+    async function openStream(isRetry = false) {
+      // Always fetch a fresh token before opening the stream.
+      // _clerkToken may be up to 50 s old (ClerkTokenSync refreshes every 50 s)
+      // and Clerk tokens are only valid for 60 s. After a cold-start health poll
+      // (up to 60 s) the stored token can be expired → Railway returns 401.
+      try {
+        const fresh = await getToken()
+        if (fresh) setClerkToken(fresh)
+      } catch { /* fall back to cached _clerkToken */ }
+
       const es = new EventSource(getAssessStreamUrl(frameworkId, clientId))
       esRef.current = es
 
@@ -174,8 +185,8 @@ function RunningInner() {
       es.onerror = () => {
         es.close()
         if (!isRetry) {
-          // One silent retry after 3 s for transient mid-stream blips
-          setTimeout(() => openStream(true), 3_000)
+          // One silent retry after 3 s — fresh token is fetched in openStream
+          setTimeout(() => { openStream(true) }, 3_000)
         } else {
           // Diagnose the real failure — EventSource gives us no status/body
           diagnoseStreamError().then(setError)
@@ -185,7 +196,7 @@ function RunningInner() {
 
     run()
     return () => { abort.abort(); esRef.current?.close() }
-  }, [frameworkId, clientId, router])
+  }, [frameworkId, clientId, router, getToken])
 
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
 
