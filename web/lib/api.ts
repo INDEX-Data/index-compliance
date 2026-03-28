@@ -23,14 +23,22 @@ export class ApiError extends Error {
 // ── Clerk token store ──────────────────────────────────────────────────────
 // Updated by <ClerkTokenSync /> in the root layout. All fetch helpers read it.
 let _clerkToken: string | null = null
-// Clerk's getToken() function, registered by ClerkTokenSync on mount.
-// When set, every API call fetches a guaranteed-fresh token instead of relying
-// on the cached _clerkToken which may not be set yet on first page load.
-let _getToken: (() => Promise<string | null>) | null = null
+
+// Promise that resolves with the first valid token. authHeaders() awaits this
+// when _clerkToken is null — handles the React child-before-parent effects
+// order where page useEffects fire before ClerkTokenSync's useEffect.
+let _resolveFirstToken: ((t: string) => void) | null = null
+const _firstTokenPromise = new Promise<string>(resolve => {
+  _resolveFirstToken = resolve
+})
 
 /** Called by ClerkTokenSync to keep the token fresh (every ~50 s). */
 export function setClerkToken(token: string | null) {
   _clerkToken = token
+  if (token && _resolveFirstToken) {
+    _resolveFirstToken(token) // resolve once — promise stays resolved forever
+    _resolveFirstToken = null
+  }
 }
 
 /** Returns current Clerk token, or null in dev (no Clerk configured). */
@@ -38,17 +46,18 @@ export function getClerkToken(): string | null {
   return _clerkToken
 }
 
-/**
- * Register Clerk's getToken() function so every API call fetches a fresh token.
- * Called once by ClerkTokenSync on mount (before any API calls fire).
- * Clerk caches tokens internally — calling this per-request is efficient.
- */
-export function registerGetToken(fn: () => Promise<string | null>) {
-  _getToken = fn
-}
-
 async function authHeaders(): Promise<HeadersInit> {
-  const token = _getToken ? (await _getToken()) : _clerkToken
+  let token = _clerkToken
+  if (!token) {
+    // Wait up to 5 s for ClerkTokenSync to set the first token.
+    // Page useEffects (children) fire before ClerkTokenSync's useEffect (parent).
+    try {
+      token = await Promise.race([
+        _firstTokenPromise,
+        new Promise<string>((_, reject) => setTimeout(reject, 5_000)),
+      ])
+    } catch { token = null }
+  }
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
