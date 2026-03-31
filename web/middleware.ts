@@ -1,63 +1,61 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
+import { createMiddlewareSupabase } from '@/lib/supabase'
 
-// Public routes — no auth required (pages + public API endpoints)
-const isPublicRoute = createRouteMatcher([
+// Routes that don't require authentication
+const PUBLIC_PATHS = [
   '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/onboard(.*)',
-  '/join(.*)',
-  '/api/team/join(.*)',           // public team-invite accept flow
-  '/api/onboard(.*)',             // public client onboarding flow
-  '/api/webhooks/(.*)',           // Clerk + future webhooks — verified by Svix, not JWT
-  '/api/health',
-  '/api/complete-onboarding',    // self-authenticates via auth(); must not be blocked by the onboarding gate
-])
+  '/sign-in',
+  '/sign-up',
+  '/onboard',
+  '/join',
+  '/auth/callback',
+]
 
-export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth()
+function isPublicRoute(pathname: string): boolean {
+  return PUBLIC_PATHS.some(p =>
+    pathname === p || pathname.startsWith(`${p}/`)
+  )
+}
 
-  // Authenticated users hitting the landing page → send to dashboard
-  if (userId && req.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const response = NextResponse.next({ request })
+
+  // Create Supabase client and refresh the session cookie
+  const supabase = createMiddlewareSupabase(request, response)
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // ── Public routes: allow through ──────────────────────────────────────────
+  if (isPublicRoute(pathname)) {
+    // Redirect authenticated users away from landing / sign-in / sign-up
+    if (user && (pathname === '/' || pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up'))) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return response
   }
 
-  // Enforce Clerk auth on all protected routes first
-  if (!isPublicRoute(req)) {
-    await auth.protect()
+  // ── Protected routes: require auth ────────────────────────────────────────
+  if (!user) {
+    const signInUrl = new URL('/sign-in', request.url)
+    signInUrl.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(signInUrl)
   }
 
-  // Onboarding gate: signed-in users who haven't completed onboarding always
-  // get redirected to /onboarding — regardless of refresh or re-login.
-  //
-  // Two-signal check (either is sufficient to pass):
-  //   • JWT signal  — publicMetadata.onboarded = true (permanent, set by Clerk
-  //                   updateUserMetadata; takes effect after next token refresh)
-  //   • Cookie signal — idx_onboarded = userId  (instant; set by the
-  //                   /api/complete-onboarding route in the same response that
-  //                   calls updateUserMetadata, so the user is let through on
-  //                   the very next navigation without waiting for JWT reissue)
-  //
-  // /onboard(.*)  is already in isPublicRoute so this never loops.
-  const jwtOnboarded    = !!(sessionClaims?.publicMetadata as any)?.onboarded
-  const cookieOnboarded = req.cookies.get('idx_onboarded')?.value === userId
+  // ── Onboarding gate ───────────────────────────────────────────────────────
+  // Dual signal: user_metadata.onboarded (permanent) + idx_onboarded cookie (instant)
+  const metadataOnboarded = !!(user.user_metadata as any)?.onboarded
+  const cookieOnboarded = request.cookies.get('idx_onboarded')?.value === user.id
 
-  if (
-    userId &&
-    !isPublicRoute(req) &&
-    !jwtOnboarded &&
-    !cookieOnboarded
-  ) {
-    return NextResponse.redirect(new URL('/onboarding', req.url))
+  if (!metadataOnboarded && !cookieOnboarded && pathname !== '/onboarding') {
+    return NextResponse.redirect(new URL('/onboarding', request.url))
   }
-})
+
+  return response
+}
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
+    // Match all routes except static assets and Next.js internals
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

@@ -9,7 +9,8 @@ import {
   Plus, ChevronsLeft, ChevronsRight,
   UserCog, HelpCircle, Lightbulb, LogOut,
 } from 'lucide-react'
-import { UserButton, useUser, useClerk } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { createClientSupabase } from '@/lib/supabase'
 import { getClients, getConfigStatus, getProfile } from '@/lib/api'
 import type { UserProfile } from '@/lib/types'
 
@@ -125,7 +126,13 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
 
 function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => void }) {
   const ref      = useRef<HTMLDivElement>(null)
-  const { signOut } = useClerk()
+  const router = useRouter()
+  const handleSignOut = async () => {
+    const supabase = createClientSupabase()
+    await supabase.auth.signOut()
+    router.push('/sign-in')
+    router.refresh()
+  }
 
   useEffect(() => {
     function handle(e: MouseEvent) {
@@ -186,7 +193,7 @@ function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => v
       {/* Sign out — separated */}
       <div className="border-t border-[#eeeff1] py-1.5">
         <button
-          onClick={() => signOut({ redirectUrl: '/sign-in' })}
+          onClick={handleSignOut}
           className="w-full flex items-center gap-2 px-3 py-[6px]
                      text-[13px] font-medium text-[#e5484d]
                      hover:bg-red-50
@@ -204,8 +211,9 @@ function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => v
 
 export function Sidebar() {
   const path     = usePathname()
-  const { user } = useUser()
+  const router   = useRouter()
 
+  const [supaUser,    setSupaUser]    = useState<{ id: string; email?: string } | null>(null)
   const [collapsed,   setCollapsed]   = useState(false)
   const [hydrated,    setHydrated]    = useState(false)
   const [wsOpen,      setWsOpen]      = useState(false)
@@ -217,6 +225,12 @@ export function Sidebar() {
     const saved = localStorage.getItem(COLLAPSED_KEY)
     if (saved === 'true') setCollapsed(true)
     setHydrated(true)
+
+    // Get Supabase user
+    const supabase = createClientSupabase()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setSupaUser({ id: user.id, email: user.email ?? undefined })
+    })
   }, [])
 
   useEffect(() => {
@@ -259,7 +273,12 @@ export function Sidebar() {
     },
   ]
 
-  const { signOut } = useClerk()
+  const handleSignOut2 = async () => {
+    const supabase = createClientSupabase()
+    await supabase.auth.signOut()
+    router.push('/sign-in')
+    router.refresh()
+  }
 
   const toggleCollapsed = useCallback(() => {
     setWsOpen(false)
@@ -271,9 +290,9 @@ export function Sidebar() {
   const isActive = (href: string) =>
     href === '/dashboard' ? path === '/dashboard' : path.startsWith(href)
 
-  const displayName = user?.firstName
-    ? `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`
-    : user?.emailAddresses?.[0]?.emailAddress?.split('@')[0] ?? 'Account'
+  const displayName = profile?.companyName
+    ?? supaUser?.email?.split('@')[0]
+    ?? 'Account'
 
   // Prevent SSR flash
   if (!hydrated) {
@@ -442,7 +461,9 @@ export function Sidebar() {
           'group/user flex items-center gap-2 mt-1',
           collapsed ? 'justify-center pt-1' : 'px-2 pt-1',
         ].join(' ')}>
-          <UserButton appearance={{ elements: { avatarBox: 'w-[22px] h-[22px]' } }} />
+          <div className="w-[22px] h-[22px] rounded-full bg-[#1c1d1f] flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+            {(supaUser?.email?.[0] ?? 'U').toUpperCase()}
+          </div>
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
@@ -455,7 +476,7 @@ export function Sidebar() {
                 </p>
               </div>
               <button
-                onClick={() => signOut({ redirectUrl: '/sign-in' })}
+                onClick={handleSignOut2}
                 title="Sign out"
                 className="opacity-0 group-hover/user:opacity-100 transition-opacity duration-150
                            p-1 rounded-[6px] text-[#a4adba] hover:text-[#e5484d] hover:bg-red-50"

@@ -2,12 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
 import {
   ShieldCheck, Building2, Users, ChevronRight, Check,
   Loader2, AlertCircle, BarChart3, FileCheck,
 } from 'lucide-react'
-import { saveProfile, getProfile, setClerkToken } from '@/lib/api'
+import { createClientSupabase } from '@/lib/supabase'
+import { saveProfile, getProfile } from '@/lib/api'
 
 const INDUSTRIES = [
   'Defense / DIB', 'Healthcare', 'Finance / FinTech', 'Government',
@@ -21,7 +21,6 @@ const ROLES = [
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { isLoaded, getToken } = useAuth()
 
   // Phase: loading = checking for existing profile; wizard = show the form
   const [phase,        setPhase]        = useState<'loading' | 'wizard'>('loading')
@@ -42,22 +41,13 @@ export default function OnboardingPage() {
   const [error,  setError]  = useState<string | null>(null)
 
   // On mount: check if profile already exists (returning user).
-  // Guard on isLoaded so getToken() isn't called before Clerk has parsed
-  // the session cookie — on a fresh sign-up redirect it returns null otherwise.
-  // Retry loop: fresh sign-ups may need 1-3s for Clerk to issue the JWT.
+  // Supabase sessions are cookie-based — no token polling needed.
   useEffect(() => {
-    if (!isLoaded) return
     async function check() {
-      // Poll for token up to 5 times (max ~4s) to handle fresh sign-up JWT delay
-      let token: string | null = null
-      for (let i = 0; i < 5; i++) {
-        token = await getToken()
-        if (token) break
-        await new Promise(r => setTimeout(r, 800))
-      }
-      if (!token) { setPhase('wizard'); return }  // No active session after retries
+      const supabase = createClientSupabase()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setPhase('wizard'); return }
       try {
-        setClerkToken(token)
         const profile = await getProfile()
         // Profile exists — send returning user to the right dashboard
         router.replace(profile.accountType === 'msp' ? '/clients' : '/dashboard')
@@ -67,7 +57,7 @@ export default function OnboardingPage() {
       }
     }
     check()
-  }, [isLoaded]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function goToStep(n: 1 | 2) {
     setTransitioning(true)
@@ -83,27 +73,14 @@ export default function OnboardingPage() {
     setSaving(true)
     setError(null)
     try {
-      const token = await getToken()
-      if (!token) {
-        setSaving(false)
-        setError('Session expired — please refresh the page and try again.')
-        return
-      }
-      // STEP 1: Complete onboarding gate — MUST succeed before navigating.
-      // /onboard-finish sets the idx_onboarded cookie unconditionally (even if
-      // the Clerk metadata update inside fails). Only returns non-200 if the
-      // session is completely invalid — impossible for an authenticated user.
+      // STEP 1: Complete onboarding gate — sets cookie + user metadata
       const flagRes = await fetch('/onboard-finish', { method: 'POST' })
       if (!flagRes.ok) {
         const body = await flagRes.json().catch(() => ({}))
         throw new Error((body as any).error ?? 'Failed to complete workspace setup')
       }
 
-      // STEP 2: Save profile to Railway — best-effort.
-      // If Railway is unavailable or rejects the token, the user still gets
-      // through because the cookie is already set above. Profile is editable
-      // in Settings once they're in the app.
-      setClerkToken(token)
+      // STEP 2: Save profile to database
       try {
         await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
       } catch (profileErr) {

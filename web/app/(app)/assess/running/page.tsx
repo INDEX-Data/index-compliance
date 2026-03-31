@@ -2,65 +2,16 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@clerk/nextjs'
 import { CheckCircle2, XCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
 import { StatusBadge } from '@/components/StatusBadge'
-import { getAssessStreamUrl, getClerkToken } from '@/lib/api'
-import type { ControlAssessment, ComplianceReport, SSEEvent } from '@/lib/types'
+import { createClientSupabase } from '@/lib/supabase'
+import type { ControlAssessment, ComplianceReport } from '@/lib/types'
 
 interface ProgressItem {
   controlId: string
   title: string
   status?: ControlAssessment['status']
   done: boolean
-}
-
-// ─── Health poll ───────────────────────────────────────────────────────────────
-// Railway (hobby tier) sleeps after inactivity and takes 30–60 s to cold-start.
-// Poll GET /api/health (bypasses auth, returns {ok:true}) until Railway responds,
-// THEN open the SSE stream. Any HTTP status < 500 means the server is alive.
-
-const HEALTH_INTERVAL_MS = 3_000
-const HEALTH_TIMEOUT_MS  = 5_000
-const HEALTH_MAX_POLLS   = 20   // 20 × 3 s = 60 s max
-
-async function awaitServer(signal: AbortSignal): Promise<boolean> {
-  for (let i = 0; i < HEALTH_MAX_POLLS; i++) {
-    if (signal.aborted) return false
-    try {
-      const ctrl = new AbortController()
-      const tid  = setTimeout(() => ctrl.abort(), HEALTH_TIMEOUT_MS)
-      const r    = await fetch('/api/health', { signal: ctrl.signal })
-      clearTimeout(tid)
-      if (r.status < 500) return true
-    } catch { /* still starting up */ }
-    await new Promise<void>(res => {
-      const t = setTimeout(res, HEALTH_INTERVAL_MS)
-      signal.addEventListener('abort', () => { clearTimeout(t); res() }, { once: true })
-    })
-  }
-  return false
-}
-
-// ─── Diagnostic: why did the stream fail? ─────────────────────────────────────
-async function diagnoseStreamError(): Promise<string> {
-  const tok = getClerkToken()
-  if (!tok) return 'Your session has expired. Please refresh the page and try again.'
-  try {
-    const ctrl = new AbortController()
-    setTimeout(() => ctrl.abort(), 8_000)
-    const r = await fetch('/api/clients', {
-      headers: { Authorization: `Bearer ${tok}` },
-      signal: ctrl.signal,
-    })
-    if (r.status === 401) return 'Authentication failed. Please sign out and sign back in.'
-    if (r.ok) {
-      const clients: unknown[] = await r.json().catch(() => [])
-      if (!Array.isArray(clients) || clients.length === 0)
-        return 'No Microsoft 365 tenant connected. Please connect your M365 environment before running an assessment.'
-    }
-  } catch { /* network / timeout */ }
-  return 'Assessment server connection failed. Please try again in a moment.'
 }
 
 // ─── Main component ────────────────────────────────────────────────────────────
@@ -79,161 +30,150 @@ function RunningInner() {
   const [done,            setDone]            = useState(false)
   const [error,           setError]           = useState('')
   const [reportId,        setReportId]        = useState('')
-  const [warmingUp,       setWarmingUp]       = useState(false)
-  const [warmingSeconds,  setWarmingSeconds]  = useState(0)
-  const listRef    = useRef<HTMLDivElement>(null)
-  // Stores an abort controller's abort function so cleanup can cancel the stream
-  const cancelRef  = useRef<(() => void) | null>(null)
-  const { getToken } = useAuth()
+  const [starting,        setStarting]        = useState(true)
+  const [startingSeconds, setStartingSeconds] = useState(0)
+  const listRef = useRef<HTMLDivElement>(null)
 
-  // Tick elapsed seconds while warming up
+  const supabase = createClientSupabase()
+
+  // Tick elapsed seconds while starting
   useEffect(() => {
-    if (!warmingUp) { setWarmingSeconds(0); return }
-    const id = setInterval(() => setWarmingSeconds(s => s + 1), 1_000)
+    if (!starting) { setStartingSeconds(0); return }
+    const id = setInterval(() => setStartingSeconds(s => s + 1), 1_000)
     return () => clearInterval(id)
-  }, [warmingUp])
+  }, [starting])
 
   useEffect(() => {
     if (!frameworkId) { router.replace('/assess'); return }
 
-    const abort = new AbortController()
+    let jobId: string | null = null
+    let channel: ReturnType<typeof supabase.channel> | null = null
 
-    async function run() {
-      setWarmingUp(true)
-      const ok = await awaitServer(abort.signal)
-      if (abort.signal.aborted) return
-      setWarmingUp(false)
+    async function startAssessment() {
+      setStarting(true)
 
-      if (!ok) {
-        setError('Assessment server could not be reached after 60 s. Please try again in a moment.')
-        return
-      }
-
-      openStream()
-    }
-
-    async function openStream(isRetry = false) {
-      if (abort.signal.aborted) return
-
-      // Fetch a fresh Clerk token via Authorization header.
-      // EventSource (the old approach) forced the token into the URL query param
-      // (?token=...) which Railway's verifyToken consistently rejected.
-      // fetch() lets us use the standard Authorization header — same path as all
-      // other API calls which work correctly.
-      let token: string | null = null
-      try {
-        token = await getToken()
-      } catch { /* ignore — try cached token */ }
-      if (!token) token = getClerkToken()
-      if (!token) {
-        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
+      // Get access token for Edge Function call
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) {
         setError('Your session has expired. Please refresh the page and try again.')
         return
       }
 
-      const url = getAssessStreamUrl(frameworkId, clientId)
-      const ctrl = new AbortController()
-      cancelRef.current = () => ctrl.abort()
+      // Call the assess Edge Function to start the assessment job
+      const { data, error: fnError } = await supabase.functions.invoke('assess', {
+        body: {
+          frameworkId,
+          clientId,
+        },
+      })
 
-      let res: Response
-      try {
-        res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: 'text/event-stream',
-            'Cache-Control': 'no-cache',
+      if (fnError) {
+        setError(fnError.message ?? 'Failed to start assessment. Please try again.')
+        setStarting(false)
+        return
+      }
+
+      if (!data?.ok || !data?.jobId) {
+        setError(data?.error ?? 'Failed to create assessment job.')
+        setStarting(false)
+        return
+      }
+
+      jobId = data.jobId
+
+      // Fetch initial job state
+      const { data: job } = await supabase
+        .from('assessment_jobs')
+        .select('*')
+        .eq('id', jobId)
+        .single()
+
+      if (job) {
+        processJobUpdate(job)
+      }
+
+      // Subscribe to Realtime updates on this specific job row
+      channel = supabase
+        .channel(`assessment-job-${jobId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'assessment_jobs',
+            filter: `id=eq.${jobId}`,
           },
-          signal: ctrl.signal,
+          (payload) => {
+            processJobUpdate(payload.new)
+          }
+        )
+        .subscribe()
+    }
+
+    function processJobUpdate(job: any) {
+      if (!job) return
+
+      setStarting(false)
+      setTotal(job.total_controls ?? 0)
+      setCurrent(job.current_index ?? 0)
+      setCurrentTitle(job.current_title ?? '')
+
+      // Parse progress array from JSONB
+      const progress: ProgressItem[] = (job.progress ?? []).map((p: any) => ({
+        controlId: p.controlId,
+        title: p.title,
+        status: p.status,
+        done: p.done ?? false,
+      }))
+      setItems(progress)
+
+      // Auto-scroll to latest item
+      setTimeout(() => {
+        listRef.current?.lastElementChild?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
         })
-      } catch (err: unknown) {
-        if (ctrl.signal.aborted || abort.signal.aborted) return
-        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
-        diagnoseStreamError().then(setError)
-        return
-      }
+      }, 50)
 
-      if (!res.ok) {
-        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
-        diagnoseStreamError().then(setError)
-        return
-      }
-
-      // ── Parse SSE events from the ReadableStream ────────────────────────────
-      const reader  = res.body!.getReader()
-      const decoder = new TextDecoder()
-      let buffer    = ''
-
-      function processEvent(raw: string) {
-        const dataLine = raw.split('\n').find(l => l.startsWith('data:'))
-        if (!dataLine) return
-        try {
-          const evt: SSEEvent = JSON.parse(dataLine.slice(5).trim())
-
-          if (evt.type === 'start') {
-            setFrameworkName(evt.frameworkName)
-            setTotal(evt.total)
+      if (job.status === 'complete' && job.report_id) {
+        setReportId(job.report_id)
+        setDone(true)
+        // Derive framework name from the report or job
+        if (job.framework_id) {
+          const names: Record<string, string> = {
+            CMMC_L2: 'CMMC Level 2',
+            NIST_CSF: 'NIST Cybersecurity Framework',
+            NIST_800_171: 'NIST SP 800-171',
+            HIPAA: 'HIPAA Security Rule',
+            FINRA: 'FINRA Cybersecurity',
+            FERPA: 'FERPA',
           }
-
-          if (evt.type === 'progress') {
-            setCurrent(evt.index)
-            setCurrentTitle(evt.title)
-            setItems(prev => {
-              if (prev.find(i => i.controlId === evt.controlId)) return prev
-              return [...prev, { controlId: evt.controlId, title: evt.title, done: false }]
-            })
-            setTimeout(() => listRef.current?.lastElementChild?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50)
-          }
-
-          if (evt.type === 'result') {
-            const a = evt.assessment
-            setItems(prev => prev.map(i =>
-              i.controlId === a.controlId ? { ...i, status: a.status, done: true } : i
-            ))
-          }
-
-          if (evt.type === 'complete') {
-            const rpt: ComplianceReport = evt.report
-            setReportId(rpt.reportId)
-            setDone(true)
-          }
-
-          if (evt.type === 'error') {
-            setError(evt.message)
-          }
-        } catch { /* ignore parse errors */ }
-      }
-
-      try {
-        while (true) {
-          const { done: streamDone, value } = await reader.read()
-          if (streamDone) break
-          if (abort.signal.aborted || ctrl.signal.aborted) break
-          buffer += decoder.decode(value, { stream: true })
-          const parts = buffer.split('\n\n')
-          buffer = parts.pop() ?? ''
-          for (const part of parts) {
-            if (part.trim()) processEvent(part)
-          }
+          setFrameworkName(names[job.framework_id] ?? job.framework_id)
         }
-      } catch (err: unknown) {
-        if (ctrl.signal.aborted || abort.signal.aborted) return
-        if (!isRetry) { setTimeout(() => openStream(true), 3_000); return }
-        diagnoseStreamError().then(setError)
+      }
+
+      if (job.status === 'error') {
+        setError(job.error_message ?? 'Assessment failed. Please try again.')
       }
     }
 
-    run()
+    startAssessment()
+
     return () => {
-      abort.abort()
-      cancelRef.current?.()
+      // Cleanup: unsubscribe from Realtime channel
+      if (channel) {
+        supabase.removeChannel(channel)
+      }
     }
-  }, [frameworkId, clientId, router, getToken])
+  }, [frameworkId, clientId, router])
 
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
 
   if (error) {
-    const noTenant = error.toLowerCase().includes('no microsoft 365') ||
-                     error.toLowerCase().includes('no clients')
+    const noTenant = error.toLowerCase().includes('no m365') ||
+                     error.toLowerCase().includes('no microsoft 365') ||
+                     error.toLowerCase().includes('no clients') ||
+                     error.toLowerCase().includes('add a client')
     return (
       <div className="flex items-center justify-center h-full p-8">
         <div className="max-w-md text-center">
@@ -280,7 +220,7 @@ function RunningInner() {
             : <Loader2 className="w-5 h-5 text-[#6f7988] animate-spin" />
           }
           <h1 className="text-[20px] font-bold text-[#1c1d1f] tracking-tight">
-            {done ? 'Assessment Complete' : warmingUp ? 'Warming up…' : 'Running Assessment'}
+            {done ? 'Assessment Complete' : starting ? 'Starting Assessment...' : 'Running Assessment'}
           </h1>
         </div>
         {frameworkName && (
@@ -292,7 +232,7 @@ function RunningInner() {
       <div className="bg-white rounded-xl border border-[#e4e7ec] p-5 mb-5 shadow-card">
         <div className="flex items-center justify-between text-sm mb-3">
           <span className="text-[#1c1d1f] font-medium truncate mr-4">
-            {done ? 'All controls assessed' : currentTitle || (warmingUp ? 'Waiting for server…' : 'Preparing…')}
+            {done ? 'All controls assessed' : currentTitle || (starting ? 'Connecting to assessment engine...' : 'Preparing...')}
           </span>
           <span className="text-[#6f7988] font-mono text-xs shrink-0">{current}/{total}</span>
         </div>
@@ -307,8 +247,8 @@ function RunningInner() {
         </div>
         <div className="flex items-center justify-between mt-2 text-[11px] text-[#a4adba]">
           <span>{done ? '100' : pct}% complete</span>
-          {!done && !warmingUp && <span className="animate-pulse text-[#6f7988]">Querying Microsoft Graph…</span>}
-          {warmingUp && <span className="text-[#a4adba]">Server starting up…</span>}
+          {!done && !starting && <span className="animate-pulse text-[#6f7988]">Querying Microsoft Graph...</span>}
+          {starting && <span className="text-[#a4adba]">Initializing...</span>}
         </div>
       </div>
 
@@ -322,19 +262,19 @@ function RunningInner() {
           {items.length === 0 && (
             <div className="py-10 text-center">
               <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#a4adba]" />
-              {warmingUp ? (
+              {starting ? (
                 <>
-                  <p className="text-xs text-[#6f7988] font-medium">Waking up assessment server…</p>
+                  <p className="text-xs text-[#6f7988] font-medium">Starting assessment engine...</p>
                   <p className="text-[11px] text-[#a4adba] mt-1">
-                    {warmingSeconds < 10
-                      ? 'Starting up…'
-                      : warmingSeconds < 30
-                      ? `${warmingSeconds}s — this can take ~30 seconds`
-                      : `${warmingSeconds}s — almost ready…`}
+                    {startingSeconds < 5
+                      ? 'Connecting...'
+                      : startingSeconds < 15
+                      ? `${startingSeconds}s — authenticating with Microsoft Graph...`
+                      : `${startingSeconds}s — assessing controls...`}
                   </p>
                 </>
               ) : (
-                <p className="text-xs text-[#6f7988]">Starting…</p>
+                <p className="text-xs text-[#6f7988]">Starting...</p>
               )}
             </div>
           )}

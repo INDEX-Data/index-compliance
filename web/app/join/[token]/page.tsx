@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useUser, useAuth, SignIn } from '@clerk/nextjs'
-import { CheckCircle2, AlertCircle, Users, Loader2, ArrowRight } from 'lucide-react'
+import { CheckCircle2, AlertCircle, Users, Loader2, ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { createClientSupabase } from '@/lib/supabase'
 import { getTeamJoinInfo, acceptTeamInvite } from '@/lib/api'
 
 type Phase =
   | 'loading'      // fetching invite info
-  | 'sign-in'      // unauthenticated — show Clerk sign-in
+  | 'sign-in'      // unauthenticated — show sign-in form
   | 'ready'        // authenticated + invite valid — show accept button
   | 'accepting'    // POST in flight
   | 'done'         // accepted successfully
@@ -19,14 +19,38 @@ export default function JoinPage() {
   const params    = useParams()
   const router    = useRouter()
   const token     = typeof params.token === 'string' ? params.token : ''
-  const { isLoaded, isSignedIn } = useUser()
-  const { getToken } = useAuth()
+  const supabase  = createClientSupabase()
 
-  const [phase,    setPhase]    = useState<Phase>('loading')
+  const [phase,       setPhase]       = useState<Phase>('loading')
   const [inviteEmail, setInviteEmail] = useState('')
-  const [errMsg,   setErrMsg]   = useState('')
+  const [errMsg,      setErrMsg]      = useState('')
 
-  // Fetch invite info once Clerk is loaded
+  // Auth state
+  const [isLoaded,   setIsLoaded]   = useState(false)
+  const [isSignedIn, setIsSignedIn] = useState(false)
+
+  // Sign-in form state
+  const [email,      setEmail]      = useState('')
+  const [password,   setPassword]   = useState('')
+  const [showPw,     setShowPw]     = useState(false)
+  const [authError,  setAuthError]  = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
+
+  // Check auth state on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsSignedIn(!!user)
+      setIsLoaded(true)
+    })
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsSignedIn(!!session?.user)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Fetch invite info once auth state is loaded
   useEffect(() => {
     if (!isLoaded || !token) return
     getTeamJoinInfo(token)
@@ -46,14 +70,29 @@ export default function JoinPage() {
     if (phase === 'sign-in' && isSignedIn) setPhase('ready')
   }, [isSignedIn, phase])
 
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault()
+    setAuthError('')
+    setAuthLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setAuthError(error.message)
+      }
+      // onAuthStateChange will flip isSignedIn → triggers phase change
+    } catch {
+      setAuthError('Sign in failed. Please try again.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
   async function handleAccept() {
     setPhase('accepting')
     try {
-      // Fetch a fresh Clerk token directly — the module-level token in api.ts
-      // may not be set yet on the join page (ClerkTokenSync runs only in the
-      // (app) layout). Passing it explicitly avoids a "Sign in" 401.
-      const authToken = await getToken()
-      const result = await acceptTeamInvite(token, authToken)
+      // Supabase auth is cookie-based — no explicit token needed.
+      // acceptTeamInvite will use the session cookie automatically.
+      const result = await acceptTeamInvite(token)
       setPhase(result.alreadyAccepted ? 'already' : 'done')
     } catch (e) {
       setErrMsg(e instanceof Error ? e.message : 'Failed to accept invite.')
@@ -98,18 +137,51 @@ export default function JoinPage() {
               )}
               <p className="text-sm text-[#505967] mt-1">Sign in to accept and get access.</p>
             </div>
-            <div className="p-4">
-              <SignIn
-                routing="hash"
-                forceRedirectUrl={`/join/${token}`}
-                appearance={{
-                  elements: {
-                    rootBox: 'w-full',
-                    card: 'shadow-none border-0 p-0',
-                  },
-                }}
-              />
-            </div>
+            <form onSubmit={handleSignIn} className="p-6 space-y-4">
+              {authError && (
+                <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-4 py-2.5 text-sm text-[#B91C1C]">
+                  {authError}
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-[#1c1d1f] mb-1.5">Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a4adba]" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 border border-[#e4e7ec] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f] focus:border-transparent"
+                    placeholder="you@company.com"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#1c1d1f] mb-1.5">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a4adba]" />
+                  <input
+                    type={showPw ? 'text' : 'password'}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    className="w-full pl-10 pr-10 py-2.5 border border-[#e4e7ec] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f] focus:border-transparent"
+                    placeholder="••••••••"
+                  />
+                  <button type="button" onClick={() => setShowPw(v => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#a4adba] hover:text-[#505967]">
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={authLoading}
+                className="w-full py-3 text-sm font-semibold text-white bg-[#1c1d1f] rounded-xl hover:bg-[#2c2d2f] disabled:opacity-60 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</> : 'Sign In'}
+              </button>
+            </form>
           </div>
         )}
 

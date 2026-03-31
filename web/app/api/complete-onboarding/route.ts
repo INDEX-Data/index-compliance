@@ -1,42 +1,39 @@
-import { auth, clerkClient } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase'
 
 // POST /api/complete-onboarding
-// Called by the onboarding wizard after saveProfile() succeeds on Railway.
-// Does two things:
-//   1. Sets publicMetadata.onboarded = true on the Clerk user (JWT gate,
-//      takes effect on next Clerk token refresh cycle).
-//   2. Sets an idx_onboarded HttpOnly cookie (instant gate — lets the user
-//      through middleware on the very next navigation without waiting for
-//      Clerk to reissue a JWT with the new publicMetadata).
-//
-// Runs on Vercel (same CLERK_SECRET_KEY as clerkMiddleware) — reliable, no
-// Railway dependency, no cold-start issues.
+// Called by the onboarding wizard after saveProfile() succeeds.
+// Sets user_metadata.onboarded = true + idx_onboarded cookie.
 export async function POST() {
-  const { userId } = await auth()
-  if (!userId) {
+  const supabase = await createServerSupabase()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {
-    const client = await clerkClient()
-    await client.users.updateUserMetadata(userId, {
-      publicMetadata: { onboarded: true },
+    const adminClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+    await adminClient.auth.admin.updateUserById(user.id, {
+      user_metadata: { onboarded: true },
     })
   } catch (err) {
     console.error('[onboarding] updateUserMetadata failed:', err)
     return NextResponse.json({ error: 'Failed to complete workspace setup' }, { status: 500 })
   }
 
-  // Set the instant-gate cookie so middleware lets the user through on the
-  // very next navigation — before Clerk reissues a JWT with onboarded=true.
   const res = NextResponse.json({ ok: true })
-  res.cookies.set('idx_onboarded', userId, {
+  res.cookies.set('idx_onboarded', user.id, {
     httpOnly: true,
     secure:   true,
     sameSite: 'lax',
     path:     '/',
-    maxAge:   60 * 60 * 24 * 365, // 1 year
+    maxAge:   60 * 60 * 24 * 365,
   })
   return res
 }
