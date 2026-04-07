@@ -22,6 +22,11 @@ const nextConfig: NextConfig = {
     config.resolve.extensionAlias = {
       '.js': ['.ts', '.js'],
     }
+    // Ensure modules imported from ../src/ resolve packages from web/node_modules
+    config.resolve.modules = [
+      path.join(__dirname, 'node_modules'),
+      'node_modules',
+    ]
     return config
   },
   // Silence "multiple lockfiles" warning in monorepo — point to repo root
