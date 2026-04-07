@@ -9,30 +9,40 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Attio-exact semantic tokens ──────────────────────────────────────
-        canvas:        '#fafafa',     // page background
+        // ── Semantic tokens (stone palette) ─────────────────────────────────
+        canvas:        '#fafaf9',     // page background (stone-50)
         surface:       '#ffffff',     // card / modal backgrounds
-        border:        '#e4e7ec',     // standard border
-        'border-subtle': '#eeeff1',   // dividers, sidebar border
-        ink:           '#1c1d1f',     // primary text (near-black, slight blue cast)
-        secondary:     '#2e3238',     // nav text, button text
-        muted:         '#505967',     // body text, descriptions
-        faint:         '#6f7988',     // secondary muted, icons
-        placeholder:   '#a4adba',     // placeholder, overlines, very faint labels
+        border:        '#e7e5e4',     // standard border (stone-200)
+        'border-subtle': '#f5f5f4',   // dividers, sidebar border (stone-100)
+        ink:           '#1c1917',     // primary text (stone-900)
+        secondary:     '#292524',     // nav text, button text (stone-800)
+        muted:         '#44403c',     // body text, descriptions (stone-700)
+        faint:         '#78716c',     // secondary muted, icons (stone-500)
+        placeholder:   '#a8a29e',     // placeholder, overlines (stone-400)
         // ── Surface states ───────────────────────────────────────────────────
-        hover:         '#f3f4f6',     // ghost button hover
-        active:        '#edeff3',     // ghost button active / nav active bg
+        hover:         '#f5f5f4',     // ghost button hover (stone-100)
+        active:        '#e7e5e4',     // ghost button active (stone-200)
         // ── Sidebar ──────────────────────────────────────────────────────────
         sidebar: {
-          bg:     '#fbfbfb',          // barely-off-white (Attio exact)
-          border: '#eeeff1',
-          hover:  '#f3f4f6',
-          active: '#edeff3',
-          text:   '#505967',
+          bg:     '#fafaf9',          // stone-50
+          border: '#e7e5e4',          // stone-200
+          hover:  '#f5f5f4',          // stone-100
+          active: '#e7e5e4',          // stone-200
+          text:   '#44403c',          // stone-700
         },
-        // ── Accent ───────────────────────────────────────────────────────────
-        gold:          '#C4A96D',     // INDEX brand accent
-        blue:          '#266df0',     // interactive / AI features (Attio blue)
+        // ── Accent (monochrome) ──────────────────────────────────────────────
+        accent: {
+          DEFAULT: '#1c1917',   // stone-900 — primary
+          hover:   '#0c0a09',   // stone-950 — hover
+          dark:    '#0c0a09',   // stone-950 — active press
+          light:   '#a8a29e',   // stone-400 — light
+          wash:    '#e7e5e4',   // stone-200 — wash bg
+        },
+        // ── Surface containers (multi-level bg system) ──────────────────────
+        'surface-low':  '#fafaf9',    // stone-50
+        'surface-mid':  '#f5f5f4',    // stone-100
+        'surface-high': '#e7e5e4',    // stone-200
+        blue:          '#1c1917',     // was interactive blue, now stone-900
         // ── Semantic status (kept as pops of color) ───────────────────────────
         teal: {
           50:  '#F0FDFA',

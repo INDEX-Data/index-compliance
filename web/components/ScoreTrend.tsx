@@ -78,7 +78,7 @@ export function ScoreTrend({ scores, width = 120, height = 36 }: Props) {
 function DeltaBadge({ delta }: { delta: number }) {
   if (Math.abs(delta) < 0.5) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[#6f7988] bg-[#fafafa] border border-[#e4e7ec] px-2 py-0.5 rounded-full">
+      <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-[#78716c] bg-[#fafafa] border border-[#e7e5e4] px-2 py-0.5 rounded-full">
         — no change
       </span>
     )

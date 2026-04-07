@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ShieldCheck, ChevronRight, ExternalLink,
+  ChevronRight, ExternalLink,
   Eye, EyeOff, CheckCircle2, XCircle, Loader2,
 } from 'lucide-react'
+import Image from 'next/image'
 import { getClients, getFrameworks, testConfig, addClient } from '@/lib/api'
 import type { FrameworkMeta } from '@/lib/types'
 
@@ -100,7 +101,7 @@ export default function OnboardingPage() {
   if (checking) {
     return (
       <div className="flex items-center justify-center h-full">
-        <ShieldCheck className="w-7 h-7 text-[#cad0d9] animate-pulse" />
+        <Loader2 className="w-7 h-7 text-[#d6d3d1] animate-spin" />
       </div>
     )
   }
@@ -119,20 +120,20 @@ export default function OnboardingPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-colors
-                    ${i < step  ? 'bg-[#1c1d1f] border-[#1c1d1f] text-white'
-                    : i === step ? 'border-[#1c1d1f] text-[#1c1d1f] bg-white'
-                    :              'border-[#cad0d9] text-[#cad0d9] bg-white'}`}
+                    ${i < step  ? 'bg-[#1c1917] border-[#1c1917] text-white'
+                    : i === step ? 'border-[#1c1917] text-[#1c1917] bg-white'
+                    :              'border-[#d6d3d1] text-[#d6d3d1] bg-white'}`}
                 >
                   {i < step ? '✓' : i + 1}
                 </div>
                 <span className={`text-[12px] font-medium hidden sm:block transition-colors
-                  ${i <= step ? 'text-[#1c1d1f]' : 'text-[#a4adba]'}`}>
+                  ${i <= step ? 'text-[#1c1d1f]' : 'text-[#a8a29e]'}`}>
                   {label}
                 </span>
               </div>
               {/* Connector line */}
               {i < STEPS.length - 1 && (
-                <div className={`flex-1 h-px mx-3 transition-colors ${i < step ? 'bg-[#1c1d1f]' : 'bg-[#e4e7ec]'}`} />
+                <div className={`flex-1 h-px mx-3 transition-colors ${i < step ? 'bg-[#1c1917]' : 'bg-[#e7e5e4]'}`} />
               )}
             </div>
           ))}
@@ -140,17 +141,17 @@ export default function OnboardingPage() {
       </div>
 
       {/* ── Card ── */}
-      <div className="w-full max-w-lg bg-white border border-[#e4e7ec] rounded-2xl shadow-sm">
+      <div className="w-full max-w-lg bg-white border border-[#e7e5e4] rounded-2xl shadow-sm">
 
         {/* ══ Step 1: Welcome ══════════════════════════════════════════════ */}
         {step === 0 && (
           <div className="p-8">
-            <div className="w-12 h-12 rounded-2xl bg-[#FFFFFF] flex items-center justify-center mb-6">
-              <ShieldCheck className="w-6 h-6 text-white" />
+            <div className="mb-6">
+              <Image src="/atlas-logo.svg" alt="Atlas" width={140} height={56} className="h-10 w-auto" />
             </div>
 
-            <h1 className="text-2xl font-bold text-[#1c1d1f] tracking-tight mb-2">
-              Welcome to INDEX
+            <h1 className="text-[24px] font-bold text-[#1c1d1f] mb-2" style={{ letterSpacing: '-0.02em' }}>
+              Welcome to Atlas
             </h1>
             <p className="text-sm text-[#505967] leading-relaxed mb-8">
               You&apos;re 2 steps away from your first compliance assessment.
@@ -168,10 +169,10 @@ export default function OnboardingPage() {
                   key={item.label}
                   className="flex items-start gap-3 bg-[#fafafa] rounded-xl px-4 py-3"
                 >
-                  <div className="w-4 h-4 mt-0.5 rounded border-2 border-[#C4A96D] shrink-0" />
+                  <div className="w-4 h-4 mt-0.5 rounded border-2 border-[#1c1917] shrink-0" />
                   <div>
                     <p className="text-[13px] font-medium text-[#1c1d1f]">{item.label}</p>
-                    <p className="text-[11px] text-[#6f7988] mt-0.5">{item.hint}</p>
+                    <p className="text-[11px] text-[#78716c] mt-0.5">{item.hint}</p>
                   </div>
                 </div>
               ))}
@@ -190,13 +191,13 @@ export default function OnboardingPage() {
             <div className="flex flex-col gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="w-full bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2"
+                className="w-full bg-[#1c1917] hover:bg-[#0c0a09] text-white font-semibold text-sm py-3 rounded-xl transition flex items-center justify-center gap-2"
               >
                 Get Started <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 onClick={() => router.push('/dashboard')}
-                className="text-sm text-[#6f7988] hover:text-[#505967] transition text-center py-1"
+                className="text-sm text-[#78716c] hover:text-[#505967] transition text-center py-1"
               >
                 Skip setup — I&apos;ll do this later
               </button>
@@ -226,7 +227,7 @@ export default function OnboardingPage() {
                   value={name}
                   onChange={e => setName(e.target.value)}
                   placeholder="e.g. Contoso Ltd"
-                  className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 text-sm text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
+                  className="w-full border border-[#e7e5e4] rounded-lg px-3.5 py-2.5 text-sm text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a8a29e]"
                 />
               </div>
 
@@ -234,14 +235,14 @@ export default function OnboardingPage() {
               <div>
                 <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Tenant ID
-                  <span className="text-[#6f7988] font-normal ml-2 normal-case">Azure AD → Properties</span>
+                  <span className="text-[#78716c] font-normal ml-2 normal-case">Azure AD → Properties</span>
                 </label>
                 <input
                   type="text"
                   value={tenantId}
                   onChange={e => { setTenantId(e.target.value); setTestResult(null) }}
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
+                  className="w-full border border-[#e7e5e4] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a8a29e]"
                 />
               </div>
 
@@ -249,14 +250,14 @@ export default function OnboardingPage() {
               <div>
                 <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Client ID
-                  <span className="text-[#6f7988] font-normal ml-2 normal-case">App Registration → Overview</span>
+                  <span className="text-[#78716c] font-normal ml-2 normal-case">App Registration → Overview</span>
                 </label>
                 <input
                   type="text"
                   value={clientId}
                   onChange={e => { setClientId(e.target.value); setTestResult(null) }}
                   placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                  className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
+                  className="w-full border border-[#e7e5e4] rounded-lg px-3.5 py-2.5 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a8a29e]"
                 />
               </div>
 
@@ -264,7 +265,7 @@ export default function OnboardingPage() {
               <div>
                 <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5 uppercase tracking-wide">
                   Client Secret
-                  <span className="text-[#6f7988] font-normal ml-2 normal-case">Certificates &amp; Secrets</span>
+                  <span className="text-[#78716c] font-normal ml-2 normal-case">Certificates &amp; Secrets</span>
                 </label>
                 <div className="relative">
                   <input
@@ -272,12 +273,12 @@ export default function OnboardingPage() {
                     value={clientSecret}
                     onChange={e => { setClientSecret(e.target.value); setTestResult(null) }}
                     placeholder="Secret value"
-                    className="w-full border border-[#e4e7ec] rounded-lg px-3.5 py-2.5 pr-10 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a4adba]"
+                    className="w-full border border-[#e7e5e4] rounded-lg px-3.5 py-2.5 pr-10 text-sm font-mono text-[#1c1d1f] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 placeholder-[#a8a29e]"
                   />
                   <button
                     type="button"
                     onClick={() => setShowSecret(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6f7988] hover:text-[#505967] transition"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#78716c] hover:text-[#505967] transition"
                     tabIndex={-1}
                   >
                     {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -307,7 +308,7 @@ export default function OnboardingPage() {
             <button
               onClick={handleTestConnection}
               disabled={testing || !tenantId || !clientId || !clientSecret}
-              className="w-full border border-[#e4e7ec] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition mb-6 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full border border-[#e7e5e4] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition mb-6 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {testing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
               {testing ? 'Testing connection…' : 'Test Connection'}
@@ -317,14 +318,14 @@ export default function OnboardingPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep(0)}
-                className="flex-1 border border-[#e4e7ec] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition"
+                className="flex-1 border border-[#e7e5e4] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition"
               >
                 ← Back
               </button>
               <button
                 onClick={handleSaveAndContinue}
                 disabled={!step2Ready || saving}
-                className="flex-[2] bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-[2] bg-[#1c1917] hover:bg-[#0c0a09] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 {saving ? 'Saving…' : 'Save & Continue →'}
@@ -346,7 +347,7 @@ export default function OnboardingPage() {
             <div className="space-y-2.5 mb-8">
               {frameworks.length === 0 ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#cad0d9]" />
+                  <Loader2 className="w-5 h-5 animate-spin text-[#d6d3d1]" />
                 </div>
               ) : (
                 frameworks.map(fw => (
@@ -355,14 +356,14 @@ export default function OnboardingPage() {
                     onClick={() => setSelectedFramework(fw.id)}
                     className={`w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 transition
                       ${selectedFramework === fw.id
-                        ? 'border-[#1c1d1f] bg-white shadow-sm'
-                        : 'border-[#e4e7ec] bg-white hover:border-[#a4adba]'}`}
+                        ? 'border-[#1c1917] bg-white shadow-sm'
+                        : 'border-[#e7e5e4] bg-white hover:border-[#a8a29e]'}`}
                   >
                     {/* Radio */}
                     <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition
-                      ${selectedFramework === fw.id ? 'border-[#1c1d1f]' : 'border-[#cad0d9]'}`}>
+                      ${selectedFramework === fw.id ? 'border-[#1c1917]' : 'border-[#d6d3d1]'}`}>
                       {selectedFramework === fw.id && (
-                        <div className="w-2 h-2 rounded-full bg-[#1c1d1f]" />
+                        <div className="w-2 h-2 rounded-full bg-[#1c1917]" />
                       )}
                     </div>
 
@@ -370,12 +371,12 @@ export default function OnboardingPage() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-[#1c1d1f]">{fw.name}</p>
                       {fw.description && (
-                        <p className="text-[11px] text-[#6f7988] mt-0.5 truncate">{fw.description}</p>
+                        <p className="text-[11px] text-[#78716c] mt-0.5 truncate">{fw.description}</p>
                       )}
                     </div>
 
                     {/* Control count badge */}
-                    <span className="text-[11px] text-[#a4adba] font-mono shrink-0">
+                    <span className="text-[11px] text-[#a8a29e] font-mono shrink-0">
                       {fw.controlCount} controls
                     </span>
                   </button>
@@ -387,14 +388,14 @@ export default function OnboardingPage() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setStep(1)}
-                className="flex-1 border border-[#e4e7ec] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition"
+                className="flex-1 border border-[#e7e5e4] hover:bg-[#fafafa] text-[#1c1d1f] font-medium text-sm py-2.5 rounded-xl transition"
               >
                 ← Back
               </button>
               <button
                 onClick={handleStartAssessment}
                 disabled={!selectedFramework}
-                className="flex-[2] bg-[#1c1d1f] hover:bg-[#1c1d1f] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-[2] bg-[#1c1917] hover:bg-[#0c0a09] text-white font-semibold text-sm py-2.5 rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Start My First Assessment <ChevronRight className="w-4 h-4" />
               </button>
@@ -405,7 +406,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Step counter below card */}
-      <p className="text-[11px] text-[#a4adba] mt-5 font-mono">
+      <p className="text-[11px] text-[#a8a29e] mt-5 font-mono">
         Step {step + 1} of {STEPS.length}
       </p>
 

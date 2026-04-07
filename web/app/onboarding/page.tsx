@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  ShieldCheck, Building2, Users, ChevronRight, Check,
-  Loader2, AlertCircle, BarChart3, FileCheck,
+  Building2, Users, ChevronRight, Check,
+  Loader2, AlertCircle, BarChart3, FileCheck, ShieldCheck,
 } from 'lucide-react'
+import Image from 'next/image'
 import { createClientSupabase } from '@/lib/supabase'
 import { saveProfile, getProfile } from '@/lib/api'
 
@@ -45,12 +46,21 @@ export default function OnboardingPage() {
   useEffect(() => {
     async function check() {
       const supabase = createClientSupabase()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setPhase('wizard'); return }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) { setPhase('wizard'); return }
+      const user = session.user
       try {
         const profile = await getProfile()
-        // Profile exists — send returning user to the right dashboard
-        router.replace(profile.accountType === 'msp' ? '/clients' : '/dashboard')
+        // Profile exists with real data — returning user whose onboarding flags
+        // may be missing (e.g. cookie was lost, metadata update failed).
+        // Re-trigger /onboard-finish to set the flags, then hard-navigate.
+        if (profile.companyName) {
+          await fetch('/onboard-finish', { method: 'POST' }).catch(() => {})
+          const dest = profile.accountType === 'msp' ? '/clients' : '/dashboard'
+          window.location.href = dest  // hard nav so browser sends fresh cookie
+          return
+        }
+        setPhase('wizard')
       } catch {
         // 404 = new user; any other error = show wizard (don't block)
         setPhase('wizard')
@@ -74,18 +84,14 @@ export default function OnboardingPage() {
     setError(null)
     try {
       // STEP 1: Complete onboarding gate — sets cookie + user metadata
-      const flagRes = await fetch('/onboard-finish', { method: 'POST' })
+      const flagRes = await fetch('/onboard-finish', { method: 'POST', redirect: 'error' })
       if (!flagRes.ok) {
         const body = await flagRes.json().catch(() => ({}))
         throw new Error((body as any).error ?? 'Failed to complete workspace setup')
       }
 
       // STEP 2: Save profile to database
-      try {
-        await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
-      } catch (profileErr) {
-        console.warn('[onboarding] profile save failed (non-fatal):', profileErr)
-      }
+      await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
 
       // Hard navigation so the browser sends the fresh idx_onboarded cookie.
       window.location.href = accountType === 'msp' ? '/clients' : '/dashboard'
@@ -100,7 +106,7 @@ export default function OnboardingPage() {
   if (phase === 'loading') {
     return (
       <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 text-[#C4A96D] animate-spin" />
+        <Loader2 className="w-6 h-6 text-[#1c1917] animate-spin" />
       </div>
     )
   }
@@ -115,17 +121,8 @@ export default function OnboardingPage() {
                       bg-gradient-to-b from-[#1c1d1f] to-[#111213] text-white px-10 py-12">
 
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/10
-                          flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5 text-white" strokeWidth={1.5} />
-          </div>
-          <div>
-            <div className="text-[15px] font-bold tracking-widest uppercase">INDEX</div>
-            <div className="text-[10px] text-[#C4A96D] leading-none tracking-wide uppercase">
-              Compliance
-            </div>
-          </div>
+        <div className="flex items-center">
+          <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto invert" />
         </div>
 
         {/* Value prop — vertically centered */}
@@ -157,7 +154,7 @@ export default function OnboardingPage() {
               },
             ].map(({ icon: Icon, title, body }) => (
               <div key={title} className="flex items-start gap-4">
-                <Icon className="w-5 h-5 text-[#C4A96D] shrink-0 mt-0.5" strokeWidth={1.5} />
+                <Icon className="w-5 h-5 text-white/70 shrink-0 mt-0.5" strokeWidth={1.5} />
                 <div>
                   <p className="text-[14px] font-semibold text-white">{title}</p>
                   <p className="text-[13px] text-white/45 mt-0.5 leading-relaxed">{body}</p>
@@ -191,7 +188,7 @@ export default function OnboardingPage() {
             <div
               key={n}
               className={`rounded-full transition-all duration-300 ${
-                step === n ? 'bg-[#1c1d1f] w-6 h-2' : 'bg-[#e4e7ec] w-2 h-2'
+                step === n ? 'bg-[#1c1917] w-6 h-2' : 'bg-[#e7e5e4] w-2 h-2'
               }`}
             />
           ))}
@@ -214,9 +211,9 @@ export default function OnboardingPage() {
                   className="text-[28px] font-bold text-[#1c1d1f] mb-1.5"
                   style={{ letterSpacing: '-0.02em' }}
                 >
-                  How will you use INDEX?
+                  How will you use Atlas?
                 </h1>
-                <p className="text-[14px] text-[#6f7988] mb-8">
+                <p className="text-[14px] text-[#78716c] mb-8">
                   We&apos;ll set up your workspace based on your answer.
                 </p>
 
@@ -228,18 +225,18 @@ export default function OnboardingPage() {
                     className={`relative w-full text-left p-6 rounded-2xl border-2 transition-all
                       hover:scale-[1.005] ${
                         accountType === 'org'
-                          ? 'border-[#1c1d1f] bg-[rgba(28,29,31,0.03)]'
-                          : 'border-[#e4e7ec] hover:border-[#c8ccd4]'
+                          ? 'border-[#1c1917] bg-[rgba(37,93,173,0.03)]'
+                          : 'border-[#e7e5e4] hover:border-[#d6d3d1]'
                       }`}
                   >
                     {accountType === 'org' && (
-                      <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-[#1c1d1f]
+                      <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-[#1c1917]
                                       flex items-center justify-center animate-fade-in">
                         <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
                       </div>
                     )}
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4
-                      ${accountType === 'org' ? 'bg-[#1c1d1f]' : 'bg-[#f3f4f6]'}`}>
+                      ${accountType === 'org' ? 'bg-[#1c1917]' : 'bg-[#f3f4f6]'}`}>
                       <Building2
                         className={`w-5 h-5 ${accountType === 'org' ? 'text-white' : 'text-[#505967]'}`}
                         strokeWidth={1.5}
@@ -257,18 +254,18 @@ export default function OnboardingPage() {
                     className={`relative w-full text-left p-6 rounded-2xl border-2 transition-all
                       hover:scale-[1.005] ${
                         accountType === 'msp'
-                          ? 'border-[#1c1d1f] bg-[rgba(28,29,31,0.03)]'
-                          : 'border-[#e4e7ec] hover:border-[#c8ccd4]'
+                          ? 'border-[#1c1917] bg-[rgba(37,93,173,0.03)]'
+                          : 'border-[#e7e5e4] hover:border-[#d6d3d1]'
                       }`}
                   >
                     {accountType === 'msp' && (
-                      <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-[#1c1d1f]
+                      <div className="absolute top-4 right-4 w-5 h-5 rounded-full bg-[#1c1917]
                                       flex items-center justify-center animate-fade-in">
                         <Check className="w-3 h-3 text-white" strokeWidth={2.5} />
                       </div>
                     )}
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4
-                      ${accountType === 'msp' ? 'bg-[#1c1d1f]' : 'bg-[#f3f4f6]'}`}>
+                      ${accountType === 'msp' ? 'bg-[#1c1917]' : 'bg-[#f3f4f6]'}`}>
                       <Users
                         className={`w-5 h-5 ${accountType === 'msp' ? 'text-white' : 'text-[#505967]'}`}
                         strokeWidth={1.5}
@@ -305,7 +302,7 @@ export default function OnboardingPage() {
                 >
                   About your organisation
                 </h1>
-                <p className="text-[14px] text-[#6f7988] mb-8">
+                <p className="text-[14px] text-[#78716c] mb-8">
                   A few quick details to personalise your experience.
                 </p>
 
@@ -332,8 +329,8 @@ export default function OnboardingPage() {
                       onChange={e => setCompanyName(e.target.value)}
                       placeholder="Acme Defense Corp"
                       autoFocus
-                      className="w-full px-3.5 py-2.5 rounded-lg border border-[#e4e7ec] bg-white
-                                 text-[14px] text-[#1c1d1f] placeholder-[#a4adba]
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-[#e7e5e4] bg-white
+                                 text-[14px] text-[#1c1d1f] placeholder-[#a8a29e]
                                  focus:outline-none focus:border-[#1c1d1f] focus:ring-2
                                  focus:ring-[#1c1d1f]/10 transition-colors"
                     />
@@ -354,8 +351,8 @@ export default function OnboardingPage() {
                           className={`text-left px-3.5 py-2.5 rounded-lg border text-[13px]
                             transition-all ${
                               role === r
-                                ? 'border-[#1c1d1f] bg-[#1c1d1f] text-white font-medium'
-                                : 'border-[#e4e7ec] text-[#505967] hover:border-[#c8ccd4]'
+                                ? 'border-[#1c1917] bg-[#1c1917] text-white font-medium'
+                                : 'border-[#e7e5e4] text-[#505967] hover:border-[#d6d3d1]'
                             }`}
                         >
                           {r}
@@ -374,7 +371,7 @@ export default function OnboardingPage() {
                       <select
                         value={industry}
                         onChange={e => setIndustry(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-[#e4e7ec] bg-white
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-[#e7e5e4] bg-white
                                    text-[13px] text-[#1c1d1f] focus:outline-none
                                    focus:border-[#1c1d1f] transition-colors"
                       >
@@ -390,7 +387,7 @@ export default function OnboardingPage() {
                       <select
                         value={orgSize}
                         onChange={e => setOrgSize(e.target.value)}
-                        className="w-full px-3.5 py-2.5 rounded-lg border border-[#e4e7ec] bg-white
+                        className="w-full px-3.5 py-2.5 rounded-lg border border-[#e7e5e4] bg-white
                                    text-[13px] text-[#1c1d1f] focus:outline-none
                                    focus:border-[#1c1d1f] transition-colors"
                       >
@@ -406,7 +403,7 @@ export default function OnboardingPage() {
                   <button
                     onClick={() => goToStep(1)}
                     disabled={saving}
-                    className="px-5 py-3.5 rounded-xl border border-[#e4e7ec] text-[13px]
+                    className="px-5 py-3.5 rounded-xl border border-[#e7e5e4] text-[13px]
                                font-medium text-[#505967] hover:bg-[#f3f4f6] transition-colors
                                disabled:opacity-40"
                   >
@@ -418,8 +415,8 @@ export default function OnboardingPage() {
                     className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl
                                text-[14px] font-semibold text-white transition-all
                                disabled:opacity-40 disabled:cursor-not-allowed
-                               hover:bg-[#2e3238]"
-                    style={{ background: '#1c1d1f' }}
+                               hover:bg-[#0c0a09]"
+                    style={{ background: '#1c1917' }}
                   >
                     {saving
                       ? <><Loader2 className="w-4 h-4 animate-spin" /> Setting up…</>

@@ -822,7 +822,7 @@ export async function assessFramework(
   };
 }
 
-function buildSummary(assessments: ControlAssessment[]): ComplianceSummary {
+export function buildSummary(assessments: ControlAssessment[]): ComplianceSummary {
   const total = assessments.length;
   const passed = assessments.filter((a) => a.status === "pass").length;
   const failed = assessments.filter((a) => a.status === "fail").length;

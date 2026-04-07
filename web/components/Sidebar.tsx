@@ -9,6 +9,7 @@ import {
   Plus, ChevronsLeft, ChevronsRight,
   UserCog, HelpCircle, Lightbulb, LogOut,
 } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClientSupabase } from '@/lib/supabase'
 import { getClients, getConfigStatus, getProfile } from '@/lib/api'
@@ -63,52 +64,49 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
     <Link
       href={href}
       className={[
-        'group/nav relative flex items-center gap-1.5 rounded-[9px] select-none outline-none',
-        /* Attio: 28px height, 8px horizontal padding */
+        'group/nav relative flex items-center gap-3 rounded-[10px] select-none outline-none',
         collapsed
-          ? 'w-7 h-7 justify-center mx-auto'
-          : 'h-7 px-2 w-full',
+          ? 'w-9 h-9 justify-center mx-auto'
+          : 'h-11 px-4 w-full',
         active
-          ? 'bg-[#edeff3] text-[#1c1d1f]'
-          : 'text-[#505967] hover:bg-[#f3f4f6] hover:text-[#2e3238]',
-        /* Attio: fast hover in, instant out */
+          ? 'bg-slate-200/50 text-[#1c1917] font-semibold'
+          : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-700',
         'transition-colors duration-300 hover:duration-50',
       ].join(' ')}
     >
-      {/* Gold left accent — active only */}
+      {/* Blue right accent — active only */}
       {active && !collapsed && (
-        <span className="absolute left-0 top-[5px] bottom-[5px] w-[2.5px] rounded-r-full bg-[#C4A96D]" />
+        <span className="absolute right-0 top-[8px] bottom-[8px] w-[2px] rounded-l-full bg-[#1c1917]" />
       )}
 
       <Icon
         className={[
           'shrink-0',
-          collapsed ? 'w-[15px] h-[15px]' : 'w-[14px] h-[14px]',
-          active ? 'text-[#C4A96D]' : 'text-current',
+          collapsed ? 'w-[18px] h-[18px]' : 'w-[18px] h-[18px]',
+          active ? 'text-[#1c1917]' : 'text-current',
         ].join(' ')}
-        strokeWidth={1.5}
+        strokeWidth={1.6}
       />
 
       {!collapsed && (
         <>
-          {/* Attio: 14px, weight 500, tracking -0.28px */}
-          <span className="flex-1 text-[13.5px] font-medium leading-none" style={{ letterSpacing: '-0.01em' }}>
+          <span className="flex-1 text-sm font-medium leading-none tracking-tight">
             {label}
           </span>
 
           {badge != null && badge > 0 && (
             <span className={[
-              'text-[10px] font-semibold tabular-nums rounded-full px-[6px] py-[2px] leading-none',
+              'text-[10.5px] font-semibold tabular-nums rounded-full px-[7px] py-[3px] leading-none',
               active
-                ? 'bg-[#cad0d9]/50 text-[#505967]'
-                : 'bg-[#eeeff1] text-[#6f7988] group-hover/nav:bg-[#e4e7ec]',
+                ? 'bg-[#d6d3d1]/50 text-[#505967]'
+                : 'bg-[#f5f5f4] text-[#78716c] group-hover/nav:bg-[#e7e5e4]',
             ].join(' ')}>
               {badge}
             </span>
           )}
 
           {shortcut && (badge == null || badge === 0) && (
-            <kbd className="text-[10px] font-mono text-[#a4adba] leading-none
+            <kbd className="text-[10.5px] font-mono text-[#a8a29e] leading-none
                             opacity-0 group-hover/nav:opacity-100 transition-opacity duration-100">
               {shortcut}
             </kbd>
@@ -124,7 +122,7 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
 
 // ─── Workspace dropdown ───────────────────────────────────────────────────────
 
-function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => void }) {
+function WorkspaceMenu({ orgName, onClose, toggleRef }: { orgName: string; onClose: () => void; toggleRef?: React.RefObject<HTMLElement | null> }) {
   const ref      = useRef<HTMLDivElement>(null)
   const router = useRouter()
   const handleSignOut = async () => {
@@ -136,32 +134,34 @@ function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => v
 
   useEffect(() => {
     function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+      const target = e.target as Node
+      if (ref.current && !ref.current.contains(target) &&
+          !(toggleRef?.current && toggleRef.current.contains(target))) onClose()
     }
     const t = setTimeout(() => document.addEventListener('mousedown', handle), 50)
     return () => { clearTimeout(t); document.removeEventListener('mousedown', handle) }
-  }, [onClose])
+  }, [onClose, toggleRef])
 
   return (
     <div
       ref={ref}
       className="absolute top-[calc(100%+4px)] left-0 right-0 z-[999]
-                 bg-white border border-[#e4e7ec] rounded-[10px] overflow-hidden
+                 bg-white border border-[#e7e5e4] rounded-[10px] overflow-hidden
                  shadow-[0_4px_16px_0_rgba(28,29,31,0.08),0_1px_4px_0_rgba(28,29,31,0.04)]"
     >
       {/* Org identity */}
-      <div className="px-3 py-2.5 border-b border-[#eeeff1]">
+      <div className="px-3 py-2.5 border-b border-[#f5f5f4]">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-[8px] bg-[#C4A96D]/10 border border-[#C4A96D]/20
+          <div className="w-7 h-7 rounded-[8px] bg-[#1c1917]/10 border border-[#1c1917]/20
                           flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#C4A96D]" strokeWidth={1.5} />
+            <ShieldCheck className="w-3.5 h-3.5 text-[#1c1917]" strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[#1c1d1f] truncate leading-none" style={{ letterSpacing: '-0.01em' }}>
               {orgName}
             </p>
             <span className="inline-block mt-1.5 text-[9px] font-bold uppercase tracking-widest
-                             text-[#C4A96D] bg-[#C4A96D]/10 px-1.5 py-[2px] rounded-full leading-none">
+                             text-[#1c1917] bg-[#1c1917]/10 px-1.5 py-[2px] rounded-full leading-none">
               MSP PRO
             </span>
           </div>
@@ -191,7 +191,7 @@ function WorkspaceMenu({ orgName, onClose }: { orgName: string; onClose: () => v
       </nav>
 
       {/* Sign out — separated */}
-      <div className="border-t border-[#eeeff1] py-1.5">
+      <div className="border-t border-[#f5f5f4] py-1.5">
         <button
           onClick={handleSignOut}
           className="w-full flex items-center gap-2 px-3 py-[6px]
@@ -217,8 +217,9 @@ export function Sidebar() {
   const [collapsed,   setCollapsed]   = useState(false)
   const [hydrated,    setHydrated]    = useState(false)
   const [wsOpen,      setWsOpen]      = useState(false)
+  const brandRef = useRef<HTMLDivElement>(null)
   const [clientCount, setClientCount] = useState<number | null>(null)
-  const [orgName,     setOrgName]     = useState('INDEX')
+  const [orgName,     setOrgName]     = useState('Atlas')
   const [profile,     setProfile]     = useState<UserProfile | null>(null)
 
   useEffect(() => {
@@ -226,10 +227,10 @@ export function Sidebar() {
     if (saved === 'true') setCollapsed(true)
     setHydrated(true)
 
-    // Get Supabase user
+    // Get Supabase user from session (no network call)
     const supabase = createClientSupabase()
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setSupaUser({ id: user.id, email: user.email ?? undefined })
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setSupaUser({ id: session.user.id, email: session.user.email ?? undefined })
     })
   }, [])
 
@@ -298,8 +299,8 @@ export function Sidebar() {
   if (!hydrated) {
     return (
       <aside
-        className="w-[272px] shrink-0 h-screen"
-        style={{ background: '#fbfbfb', borderRight: '1px solid #eeeff1' }}
+        className="w-[256px] shrink-0 h-screen"
+        style={{ background: '#fafaf9', borderRight: '1px solid #f5f5f4' }}
       />
     )
   }
@@ -311,102 +312,46 @@ export function Sidebar() {
         'transition-[width] duration-200 ease-in-out',
       ].join(' ')}
       style={{
-        width: collapsed ? 56 : 272,
-        background: '#fbfbfb',
-        borderRight: '1px solid #eeeff1',
+        width: collapsed ? 64 : 256,
+        background: '#fafaf9',
+        borderRight: '1px solid #f5f5f4',
       }}
     >
 
-      {/* ── Workspace switcher ── */}
-      <div className="relative px-2 pt-3 pb-2">
+      {/* ── Logo / Brand ── */}
+      <div ref={brandRef} className="relative px-6 pt-6 mb-10">
         {collapsed ? (
-          <Tip label={profile?.companyName ?? orgName}>
+          <Tip label="Atlas">
             <button
               onClick={() => setWsOpen(s => !s)}
-              className="w-7 h-7 rounded-[9px] flex items-center justify-center mx-auto
-                         hover:bg-[#f3f4f6] transition-colors duration-300 hover:duration-50"
+              className="w-9 h-9 rounded-[10px] flex items-center justify-center mx-auto
+                         hover:bg-slate-200/50 transition-colors"
             >
-              <ShieldCheck className="w-[15px] h-[15px] text-[#C4A96D]" strokeWidth={1.5} />
+              <Image src="/atlas-logo.svg" alt="Atlas" width={36} height={36} className="h-7 w-auto" />
             </button>
           </Tip>
         ) : (
           <button
             onClick={() => setWsOpen(s => !s)}
-            className={[
-              'flex items-center gap-2 w-full px-2 h-9 rounded-[9px]',
-              'transition-colors duration-300 hover:duration-50',
-              wsOpen ? 'bg-[#f3f4f6]' : 'hover:bg-[#f3f4f6]',
-            ].join(' ')}
+            className="group text-left w-full flex items-center justify-between rounded-lg px-2 py-1.5 -mx-2
+                       hover:bg-slate-200/50 transition-colors"
           >
-            <div className="w-6 h-6 rounded-[6px] bg-[#C4A96D]/10 border border-[#C4A96D]/20
-                            flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-3 h-3 text-[#C4A96D]" strokeWidth={1.5} />
+            <div className="flex items-center">
+              <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto" />
             </div>
-            <div className="flex-1 min-w-0 text-left">
-              <p className="text-[13px] font-semibold text-[#1c1d1f] truncate leading-none"
-                 style={{ letterSpacing: '-0.01em' }}>
-                {profile?.companyName ?? orgName}
-              </p>
-            </div>
-            <ChevronDown
-              className={[
-                'w-3.5 h-3.5 text-[#a4adba] shrink-0 transition-transform duration-150',
-                wsOpen ? 'rotate-180' : '',
-              ].join(' ')}
-              strokeWidth={1.5}
-            />
+            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform
+                          ${wsOpen ? 'rotate-180' : ''}`} />
           </button>
         )}
 
-        {wsOpen && <WorkspaceMenu orgName={profile?.companyName ?? orgName} onClose={() => setWsOpen(false)} />}
+        {wsOpen && <WorkspaceMenu orgName={profile?.companyName ?? orgName} onClose={() => setWsOpen(false)} toggleRef={brandRef} />}
       </div>
-
-      {/* ── New Assessment CTA ── */}
-      <div className={['px-2 pb-3', collapsed ? 'flex justify-center' : ''].join(' ')}>
-        {collapsed ? (
-          <Tip label="New Assessment">
-            <Link
-              href="/assess"
-              className="w-7 h-7 rounded-[9px] flex items-center justify-center mx-auto
-                         text-[#f3f4f6] transition-colors duration-300 hover:duration-50"
-              style={{ background: '#202124' }}
-            >
-              <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-            </Link>
-          </Tip>
-        ) : (
-          <Link
-            href="/assess"
-            className="flex items-center justify-center gap-1.5 w-full h-8 rounded-[10px]
-                       text-[#f3f4f6] text-[13px] font-medium
-                       transition-colors duration-300 hover:duration-50"
-            style={{
-              background: '#202124',
-              border: '0.667px solid rgba(80,89,103,0.4)',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            <Plus className="w-3.5 h-3.5" strokeWidth={2} />
-            New Assessment
-          </Link>
-        )}
-      </div>
-
-      {/* ── Divider ── */}
-      <div className="mx-2 mb-3 h-px" style={{ background: '#eeeff1' }} />
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll px-2 space-y-4 pb-2">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll px-4 space-y-2 pb-4">
         {NAV_SECTIONS.map(section => (
           <div key={section.label}>
-            {!collapsed && (
-              /* Attio overline: 12px semibold uppercase wide tracking muted */
-              <p className="px-2 mb-1 text-[11px] font-semibold uppercase text-[#a4adba]"
-                 style={{ letterSpacing: '0.06em' }}>
-                {section.label}
-              </p>
-            )}
-            <div className="space-y-[1px]">
+            <div className="space-y-2">
               {section.items.map(item => (
                 <NavItem
                   key={item.href}
@@ -421,34 +366,8 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* ── Collapse toggle ── */}
-      <div className={['px-2 pb-1', collapsed ? 'flex justify-center' : ''].join(' ')}>
-        {collapsed ? (
-          <Tip label="Expand sidebar">
-            <button
-              onClick={toggleCollapsed}
-              className="w-7 h-7 rounded-[9px] flex items-center justify-center mx-auto
-                         text-[#a4adba] hover:text-[#6f7988] hover:bg-[#f3f4f6]
-                         transition-colors duration-300 hover:duration-50"
-            >
-              <ChevronsRight className="w-3.5 h-3.5" strokeWidth={1.5} />
-            </button>
-          </Tip>
-        ) : (
-          <button
-            onClick={toggleCollapsed}
-            className="flex items-center gap-1.5 w-full px-2 py-[5px] rounded-[9px]
-                       text-[#a4adba] hover:text-[#6f7988] hover:bg-[#f3f4f6]
-                       transition-colors duration-300 hover:duration-50"
-          >
-            <ChevronsLeft className="w-3.5 h-3.5" strokeWidth={1.5} />
-            <span className="text-[12px] font-medium">Collapse</span>
-          </button>
-        )}
-      </div>
-
-      {/* ── Settings + user row ── */}
-      <div className="pt-2 pb-3 px-2 space-y-[1px]" style={{ borderTop: '1px solid #eeeff1' }}>
+      {/* ── Bottom: Settings + Support ── */}
+      <div className="mt-auto px-4 space-y-2 pb-6">
         <NavItem
           href="/settings"
           label="Settings"
@@ -456,36 +375,13 @@ export function Sidebar() {
           active={isActive('/settings')}
           collapsed={collapsed}
         />
-
-        <div className={[
-          'group/user flex items-center gap-2 mt-1',
-          collapsed ? 'justify-center pt-1' : 'px-2 pt-1',
-        ].join(' ')}>
-          <div className="w-[22px] h-[22px] rounded-full bg-[#1c1d1f] flex items-center justify-center text-[10px] font-bold text-white shrink-0">
-            {(supaUser?.email?.[0] ?? 'U').toUpperCase()}
-          </div>
-          {!collapsed && (
-            <>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12.5px] font-medium text-[#2e3238] truncate leading-none"
-                   style={{ letterSpacing: '-0.01em' }}>
-                  {displayName}
-                </p>
-                <p className="text-[11px] text-[#a4adba] mt-[4px] leading-none">
-                  {profile?.accountType === 'msp' ? 'MSP Platform' : 'Organisation'}
-                </p>
-              </div>
-              <button
-                onClick={handleSignOut2}
-                title="Sign out"
-                className="opacity-0 group-hover/user:opacity-100 transition-opacity duration-150
-                           p-1 rounded-[6px] text-[#a4adba] hover:text-[#e5484d] hover:bg-red-50"
-              >
-                <LogOut className="w-3.5 h-3.5" strokeWidth={1.5} />
-              </button>
-            </>
-          )}
-        </div>
+        <NavItem
+          href="#"
+          label="Support"
+          icon={HelpCircle}
+          active={false}
+          collapsed={collapsed}
+        />
       </div>
 
     </aside>

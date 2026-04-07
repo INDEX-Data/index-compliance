@@ -14,7 +14,17 @@ export type FrameworkId =
   | "FINRA"
   | "FERPA"
   | "NIST_CSF"
-  | "SOC2";
+  | "SOC2"
+  | "ISO_27001"
+  | "PCI_DSS"
+  | "GDPR"
+  | "HITRUST"
+  | "FDA"
+  | "NYDFS_NYCRR_500"
+  | "SEC"
+  | "ISO_27017"
+  | "CIS_CONTROLS"
+  | "MVSP";
 
 export interface ComplianceFramework {
   id: FrameworkId;

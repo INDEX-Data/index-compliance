@@ -30,26 +30,26 @@ function CAExclusionPanel({ clientId }: { clientId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#eeeff1]">
+    <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#f5f5f4]">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[rgba(242,87,87,0.10)] flex items-center justify-center">
             <Shield className="w-4 h-4 text-[#f25757]" />
           </div>
           <div>
             <p className="text-[13px] font-semibold text-[#1c1d1f]">Conditional Access Exclusions</p>
-            <p className="text-[11px] text-[#6f7988]">
+            <p className="text-[11px] text-[#78716c]">
               {data ? `${data.total} policies with exclusions · ${data.withChanges} changed since last scan` : 'Scanning…'}
             </p>
           </div>
         </div>
         <button onClick={load} disabled={loading} className="p-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors">
-          <RefreshCw className={`w-3.5 h-3.5 text-[#a4adba] ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 text-[#a8a29e] ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {loading && !data && (
-        <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a4adba]">
+        <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a8a29e]">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Querying Graph API…
         </div>
       )}
@@ -72,11 +72,11 @@ function CAExclusionPanel({ clientId }: { clientId: string }) {
                 {p.changed ? (
                   <AlertTriangle className="w-3.5 h-3.5 text-[#f59e0b] shrink-0" />
                 ) : (
-                  <div className="w-3.5 h-3.5 rounded-full border border-[#e4e7ec] shrink-0" />
+                  <div className="w-3.5 h-3.5 rounded-full border border-[#e7e5e4] shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{p.policyName}</p>
-                  <p className="text-[11px] text-[#6f7988]">
+                  <p className="text-[11px] text-[#78716c]">
                     {p.excludedUsers.length} user{p.excludedUsers.length !== 1 ? 's' : ''} · {p.excludedGroups.length} group{p.excludedGroups.length !== 1 ? 's' : ''} excluded
                     {p.changed && <span className="ml-2 text-[#f59e0b] font-semibold">Changed</span>}
                   </p>
@@ -85,7 +85,7 @@ function CAExclusionPanel({ clientId }: { clientId: string }) {
                   ? <span className="text-[10px] text-[#0eb472] font-medium bg-[rgba(14,180,114,0.08)] px-2 py-0.5 rounded-full shrink-0">Justified</span>
                   : <span className="text-[10px] text-[#f59e0b] font-medium bg-[rgba(245,158,11,0.08)] px-2 py-0.5 rounded-full shrink-0">Needs review</span>
                 }
-                {expanded === p.policyId ? <ChevronUp className="w-3.5 h-3.5 text-[#a4adba] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a4adba] shrink-0" />}
+                {expanded === p.policyId ? <ChevronUp className="w-3.5 h-3.5 text-[#a8a29e] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e] shrink-0" />}
               </div>
 
               {expanded === p.policyId && (
@@ -96,9 +96,9 @@ function CAExclusionPanel({ clientId }: { clientId: string }) {
                       <p className="text-[12px] text-[#505967]">{p.justification}</p>
                     </div>
                   )}
-                  <p className="text-[11px] font-semibold text-[#6f7988] uppercase tracking-wide mt-3 mb-2">Add / Update Justification</p>
+                  <p className="text-[11px] font-semibold text-[#78716c] uppercase tracking-wide mt-3 mb-2">Add / Update Justification</p>
                   <textarea
-                    className="w-full text-[12px] text-[#1c1d1f] bg-white border border-[#e4e7ec] rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:border-[#1c1d1f] transition-colors"
+                    className="w-full text-[12px] text-[#1c1d1f] bg-white border border-[#e7e5e4] rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:border-[#1c1d1f] transition-colors"
                     rows={3}
                     placeholder="e.g. Break-glass accounts excluded per IR-3 policy. Reviewed quarterly by CISO."
                     value={justText[p.policyId] ?? p.justification ?? ''}
@@ -107,8 +107,8 @@ function CAExclusionPanel({ clientId }: { clientId: string }) {
                   <button
                     onClick={() => saveJustification(p.policyId)}
                     disabled={saving === p.policyId}
-                    className="mt-2 text-[12px] font-medium text-white px-4 py-2 rounded-lg transition-colors"
-                    style={{ background: '#202124' }}
+                    className="mt-2 text-[12px] font-medium text-white px-4 py-2 rounded-lg transition-colors hover:bg-[#0c0a09]"
+                    style={{ background: '#1c1917' }}
                   >
                     {saving === p.policyId ? 'Saving…' : 'Save Justification'}
                   </button>
@@ -137,33 +137,33 @@ function AccessReviewPanel({ clientId }: { clientId: string }) {
   useEffect(() => { load() }, [load])
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#eeeff1]">
+    <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#f5f5f4]">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-[rgba(79,140,255,0.10)] flex items-center justify-center">
-            <Calendar className="w-4 h-4 text-[#4f8cff]" />
+            <Calendar className="w-4 h-4 text-[#78716c]" />
           </div>
           <div>
             <p className="text-[13px] font-semibold text-[#1c1d1f]">Access Reviews</p>
-            <p className="text-[11px] text-[#6f7988]">
+            <p className="text-[11px] text-[#78716c]">
               {data?.supported === false ? 'Requires Entra ID P2 licensing'
                : data ? `${data.configured} configured · ${data.overdue} overdue` : 'Loading…'}
             </p>
           </div>
         </div>
         <button onClick={load} disabled={loading} className="p-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors">
-          <RefreshCw className={`w-3.5 h-3.5 text-[#a4adba] ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 text-[#a8a29e] ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {loading && !data && (
-        <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a4adba]">
+        <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a8a29e]">
           <Loader2 className="w-3.5 h-3.5 animate-spin" /> Querying Identity Governance…
         </div>
       )}
 
       {data?.supported === false && (
-        <div className="px-5 py-4 text-[12px] text-[#6f7988]">{data.message}</div>
+        <div className="px-5 py-4 text-[12px] text-[#78716c]">{data.message}</div>
       )}
 
       {data?.supported && data.definitions.length === 0 && (
@@ -175,7 +175,7 @@ function AccessReviewPanel({ clientId }: { clientId: string }) {
 
       {data?.supported && data.definitions.length > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-px bg-[#f3f4f6] border-b border-[#e4e7ec]">
+          <div className="grid grid-cols-3 gap-px bg-[#f3f4f6] border-b border-[#e7e5e4]">
             {[
               { label: 'Configured', value: data.configured, color: '#1c1d1f' },
               { label: 'On Schedule', value: data.onSchedule, color: '#0eb472' },
@@ -183,7 +183,7 @@ function AccessReviewPanel({ clientId }: { clientId: string }) {
             ].map(s => (
               <div key={s.label} className="bg-white px-4 py-3 text-center">
                 <p className="text-[20px] font-bold tabular-nums" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
-                <p className="text-[10px] text-[#a4adba] font-medium uppercase tracking-wide">{s.label}</p>
+                <p className="text-[10px] text-[#a8a29e] font-medium uppercase tracking-wide">{s.label}</p>
               </div>
             ))}
           </div>
@@ -193,17 +193,17 @@ function AccessReviewPanel({ clientId }: { clientId: string }) {
             onClick={() => setExpanded(v => !v)}
           >
             <span className="text-[12px] font-medium text-[#505967]">View all reviews</span>
-            {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[#a4adba]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a4adba]" />}
+            {expanded ? <ChevronUp className="w-3.5 h-3.5 text-[#a8a29e]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" />}
           </div>
 
           {expanded && (
             <div className="border-t border-[#f3f4f6] divide-y divide-[#f3f4f6]">
               {data.definitions.map(d => (
                 <div key={d.id} className="flex items-center gap-3 px-5 py-3">
-                  <div className={`w-2 h-2 rounded-full shrink-0 ${d.overdue ? 'bg-[#f25757]' : d.onSchedule ? 'bg-[#0eb472]' : 'bg-[#a4adba]'}`} />
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${d.overdue ? 'bg-[#f25757]' : d.onSchedule ? 'bg-[#0eb472]' : 'bg-[#a8a29e]'}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{d.displayName}</p>
-                    <p className="text-[11px] text-[#6f7988]">
+                    <p className="text-[11px] text-[#78716c]">
                       {d.recurrenceType !== 'none' ? d.recurrenceType : 'one-time'}
                       {d.daysSinceLast !== null && ` · last run ${d.daysSinceLast}d ago`}
                     </p>
@@ -212,7 +212,7 @@ function AccessReviewPanel({ clientId }: { clientId: string }) {
                     ? <span className="text-[10px] font-semibold text-[#f25757]">Overdue</span>
                     : d.onSchedule
                     ? <span className="text-[10px] font-semibold text-[#0eb472]">On track</span>
-                    : <span className="text-[10px] text-[#a4adba]">—</span>
+                    : <span className="text-[10px] text-[#a8a29e]">—</span>
                   }
                 </div>
               ))}
@@ -239,30 +239,30 @@ export default function InsightsPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-full min-h-[400px]">
-      <Loader2 className="w-6 h-6 text-[#e4e7ec] animate-spin" />
+      <Loader2 className="w-6 h-6 text-[#e7e5e4] animate-spin" />
     </div>
   )
 
   if (clients.length === 0) return (
-    <div className="p-8 max-w-2xl mx-auto text-center mt-12">
+    <div className="p-8 max-w-3xl text-center mt-12">
       <div className="w-12 h-12 rounded-xl bg-[#f3f4f6] flex items-center justify-center mx-auto mb-4">
-        <Shield className="w-5 h-5 text-[#a4adba]" />
+        <Shield className="w-5 h-5 text-[#a8a29e]" />
       </div>
       <p className="text-[14px] font-semibold text-[#1c1d1f] mb-1">No clients yet</p>
-      <p className="text-[12px] text-[#6f7988]">Add a client to start viewing security insights.</p>
+      <p className="text-[12px] text-[#78716c]">Add a client to start viewing security insights.</p>
     </div>
   )
 
   const activeClient = clients.find(c => c.id === activeId)
 
   return (
-    <div className="p-8 max-w-3xl mx-auto">
+    <div className="p-8 max-w-5xl">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-[#1c1d1f] mb-1" style={{ letterSpacing: '-0.02em' }}>
+      <div className="mb-8">
+        <h1 className="text-[24px] font-bold text-[#1c1d1f]" style={{ letterSpacing: '-0.02em' }}>
           Security Insights
         </h1>
-        <p className="text-[13px] text-[#6f7988]">Live compliance signals pulled from Microsoft Graph</p>
+        <p className="text-[14px] text-[#78716c] mt-1.5">Live compliance signals pulled from Microsoft Graph.</p>
       </div>
 
       {/* Client selector */}
@@ -274,8 +274,8 @@ export default function InsightsPage() {
               onClick={() => setActiveId(c.id)}
               className="text-[12px] font-medium px-3 py-1.5 rounded-lg border transition-all"
               style={activeId === c.id
-                ? { background: '#1c1d1f', color: '#fff', borderColor: '#1c1d1f' }
-                : { background: '#fff', color: '#505967', borderColor: '#e4e7ec' }}
+                ? { background: '#1c1917', color: '#fff', borderColor: '#1c1917' }
+                : { background: '#fff', color: '#505967', borderColor: '#e7e5e4' }}
             >
               {c.name}
             </button>

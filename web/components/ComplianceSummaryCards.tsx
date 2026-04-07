@@ -1,6 +1,5 @@
-import { TrendingUp } from 'lucide-react'
+import { CheckCircle2, Clock, XCircle, HelpCircle } from 'lucide-react'
 import type { ComplianceSummary } from '@/lib/types'
-import { RiskBadge } from './RiskBadge'
 
 interface Props {
   summary: ComplianceSummary
@@ -8,87 +7,61 @@ interface Props {
 }
 
 export function ComplianceSummaryCards({ summary, className }: Props) {
-  const { passed, failed, partial, notAssessed, compliancePercentage, riskScore, totalControls } = summary
+  const { passed, failed, partial, notAssessed, totalControls } = summary
 
   const cards = [
     {
-      label:    'Passed',
-      value:    passed,
-      sub:      `of ${totalControls}`,
-      barColor: '#15803D',
-      pct:      Math.round((passed / totalControls) * 100),
-      valCls:   'text-[#15803D]',
+      label: 'Passed',
+      value: passed,
+      pct: Math.round((passed / totalControls) * 100),
+      color: '#1c1917',
+      icon: CheckCircle2,
+      danger: false,
     },
     {
-      label:    'Partial',
-      value:    partial,
-      sub:      `of ${totalControls}`,
-      barColor: '#B45309',
-      pct:      Math.round((partial / totalControls) * 100),
-      valCls:   'text-[#B45309]',
+      label: 'Partial',
+      value: partial,
+      pct: Math.round((partial / totalControls) * 100),
+      color: '#78716c',
+      icon: Clock,
+      danger: false,
     },
     {
-      label:    'Failed',
-      value:    failed,
-      sub:      `of ${totalControls}`,
-      barColor: '#B91C1C',
-      pct:      Math.round((failed / totalControls) * 100),
-      valCls:   'text-[#B91C1C]',
+      label: 'Failed',
+      value: failed,
+      pct: Math.round((failed / totalControls) * 100),
+      color: '#9f403d',
+      icon: XCircle,
+      danger: true,
     },
     {
-      label:    'Not Assessed',
-      value:    notAssessed,
-      sub:      `of ${totalControls}`,
-      barColor: '#6f7988',
-      pct:      Math.round((notAssessed / totalControls) * 100),
-      valCls:   'text-[#505967]',
+      label: 'Unassessed',
+      value: notAssessed,
+      pct: Math.round((notAssessed / totalControls) * 100),
+      color: '#78716c',
+      icon: HelpCircle,
+      danger: false,
     },
   ]
 
-  const scoreColor = compliancePercentage >= 85 ? '#15803D'
-                   : compliancePercentage >= 65 ? '#B45309'
-                   : '#B91C1C'
-
   return (
-    <div className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 ${className ?? ''}`}>
-
-      {/* Four stat cards */}
-      {cards.map(({ label, value, sub, barColor, pct, valCls }) => (
-        <div key={label} className="lg:col-span-1 col-span-1 bg-white rounded-xl border border-[#e4e7ec] p-4 flex flex-col relative overflow-hidden">
-          {/* Colored bottom bar */}
-          <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: barColor, opacity: 0.6 }} />
-          <p className={`text-3xl font-bold tabular-nums ${valCls}`}>{value}</p>
-          <p className="text-[11px] font-medium text-[#505967] mt-0.5 uppercase tracking-wide">{label}</p>
-          <p className="text-[10px] text-[#6f7988] mt-2">{pct}% {sub}</p>
+    <div className={`grid grid-cols-1 md:grid-cols-4 gap-4 ${className ?? ''}`}>
+      {cards.map(({ label, value, pct, color, icon: Icon, danger }) => (
+        <div
+          key={label}
+          className={`bg-[#fafaf9] p-5 rounded-xl ${danger ? 'border-l-4 border-[#9f403d]' : ''}`}
+        >
+          <div className="flex justify-between items-start mb-4">
+            <p className="text-xs font-bold text-[#44403c] uppercase tracking-wider">{label}</p>
+            <Icon className="w-5 h-5" style={{ color }} strokeWidth={1.5} />
+          </div>
+          <p className="text-2xl font-bold text-[#1c1917] mb-1">{value}</p>
+          <p className="text-xs text-[#44403c]">{pct}% of {totalControls} controls</p>
+          <div className="mt-4 w-full bg-[#d6d3d1] h-1 rounded-full overflow-hidden">
+            <div className="h-full rounded-full" style={{ background: color, width: `${pct}%` }} />
+          </div>
         </div>
       ))}
-
-      {/* Compliance score — spans 2 cols */}
-      <div className="col-span-2 bg-white rounded-xl border border-[#e4e7ec] p-4 flex items-center gap-4">
-        <div className="shrink-0">
-          <p className="text-4xl font-bold tabular-nums" style={{ color: scoreColor }}>
-            {compliancePercentage}
-            <span className="text-xl font-medium text-[#6f7988]">%</span>
-          </p>
-          <p className="text-[11px] font-medium text-[#505967] uppercase tracking-wide mt-0.5">Compliance Score</p>
-          <div className="mt-2">
-            <RiskBadge score={riskScore} />
-          </div>
-        </div>
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 text-[10px] text-[#6f7988]">
-            <div className="h-1.5 flex-1 rounded-full bg-[#eeeff1] overflow-hidden">
-              <div className="h-full rounded-full" style={{ width: `${compliancePercentage}%`, background: scoreColor }} />
-            </div>
-            <span className="shrink-0 font-mono">{compliancePercentage}%</span>
-          </div>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <TrendingUp className="w-3 h-3 text-[#6f7988]" />
-            <span className="text-[10px] text-[#6f7988]">{totalControls} total controls assessed</span>
-          </div>
-        </div>
-      </div>
-
     </div>
   )
 }

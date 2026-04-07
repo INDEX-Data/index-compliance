@@ -28,7 +28,7 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; on
       className={`flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium border-b-2 transition-all ${
         active
           ? 'border-[#1c1d1f] text-[#1c1d1f]'
-          : 'border-transparent text-[#6f7988] hover:text-[#505967] hover:border-[#e4e7ec]'
+          : 'border-transparent text-[#78716c] hover:text-[#505967] hover:border-[#e7e5e4]'
       }`}
     >
       <Icon className="w-3.5 h-3.5" />
@@ -51,10 +51,10 @@ function OverviewTab({ client, reports }: { client: Client; reports: ReportMeta[
   return (
     <div className="space-y-4">
       {reports.length === 0 ? (
-        <div className="bg-white rounded-xl border border-[#e4e7ec] px-5 py-10 text-center">
-          <Shield className="w-8 h-8 text-[#e4e7ec] mx-auto mb-3" />
+        <div className="bg-white rounded-xl border border-[#e7e5e4] px-5 py-10 text-center">
+          <Shield className="w-8 h-8 text-[#e7e5e4] mx-auto mb-3" />
           <p className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No assessments yet</p>
-          <p className="text-[12px] text-[#6f7988]">Run an assessment from the Assess page to see results here.</p>
+          <p className="text-[12px] text-[#78716c]">Run an assessment from the Assess page to see results here.</p>
         </div>
       ) : (
         Object.entries(byFramework).map(([fwId, fwReports]) => {
@@ -62,17 +62,17 @@ function OverviewTab({ client, reports }: { client: Client; reports: ReportMeta[
           const latest = sorted[0]
           const pct = latest.summary.compliancePercentage
           return (
-            <div key={fwId} className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[#eeeff1]">
+            <div key={fwId} className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-[#f5f5f4]">
                 <div>
                   <p className="text-[13px] font-semibold text-[#1c1d1f]">{latest.frameworkName}</p>
-                  <p className="text-[11px] text-[#6f7988] mt-0.5">{sorted.length} assessment{sorted.length !== 1 ? 's' : ''}</p>
+                  <p className="text-[11px] text-[#78716c] mt-0.5">{sorted.length} assessment{sorted.length !== 1 ? 's' : ''}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[24px] font-bold tabular-nums" style={{ color: scoreColor(pct), letterSpacing: '-0.02em' }}>
                     {pct}%
                   </p>
-                  <p className="text-[10px] text-[#a4adba] font-medium uppercase tracking-wide">Compliance</p>
+                  <p className="text-[10px] text-[#a8a29e] font-medium uppercase tracking-wide">Compliance</p>
                 </div>
               </div>
               <div className="divide-y divide-[#f3f4f6]">
@@ -141,25 +141,25 @@ function InsightsTab({ clientId }: { clientId: string }) {
   return (
     <div className="space-y-4">
       {/* CA Exclusions */}
-      <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eeeff1]">
+      <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#f5f5f4]">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-[rgba(242,87,87,0.10)] flex items-center justify-center">
               <Shield className="w-3.5 h-3.5 text-[#f25757]" />
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[#1c1d1f]">Conditional Access Exclusions</p>
-              <p className="text-[11px] text-[#6f7988]">
+              <p className="text-[11px] text-[#78716c]">
                 {caData ? `${caData.total} policies with exclusions · ${caData.withChanges} changed` : '—'}
               </p>
             </div>
           </div>
           <button onClick={loadCA} disabled={caLoading} className="p-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors">
-            <RefreshCw className={`w-3.5 h-3.5 text-[#a4adba] ${caLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-[#a8a29e] ${caLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
         {caLoading && !caData && (
-          <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a4adba]">
+          <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a8a29e]">
             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Querying Graph API…
           </div>
         )}
@@ -177,10 +177,10 @@ function InsightsTab({ clientId }: { clientId: string }) {
             >
               {p.changed
                 ? <AlertTriangle className="w-3.5 h-3.5 text-[#f59e0b] shrink-0" />
-                : <div className="w-3.5 h-3.5 rounded-full border border-[#e4e7ec] shrink-0" />}
+                : <div className="w-3.5 h-3.5 rounded-full border border-[#e7e5e4] shrink-0" />}
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{p.policyName}</p>
-                <p className="text-[11px] text-[#6f7988]">
+                <p className="text-[11px] text-[#78716c]">
                   {p.excludedUsers.length} users · {p.excludedGroups.length} groups excluded
                   {p.changed && <span className="ml-2 text-[#f59e0b] font-semibold">Changed</span>}
                 </p>
@@ -188,7 +188,7 @@ function InsightsTab({ clientId }: { clientId: string }) {
               {p.justification
                 ? <span className="text-[10px] text-[#0eb472] bg-[rgba(14,180,114,0.08)] px-2 py-0.5 rounded-full shrink-0 font-medium">Justified</span>
                 : <span className="text-[10px] text-[#f59e0b] bg-[rgba(245,158,11,0.08)] px-2 py-0.5 rounded-full shrink-0 font-medium">Needs review</span>}
-              {expanded === p.policyId ? <ChevronUp className="w-3.5 h-3.5 text-[#a4adba] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a4adba] shrink-0" />}
+              {expanded === p.policyId ? <ChevronUp className="w-3.5 h-3.5 text-[#a8a29e] shrink-0" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e] shrink-0" />}
             </div>
             {expanded === p.policyId && (
               <div className="px-5 pb-4 bg-[#fafafa] border-t border-[#f3f4f6]">
@@ -198,10 +198,10 @@ function InsightsTab({ clientId }: { clientId: string }) {
                     <p className="text-[12px] text-[#505967]">{p.justification}</p>
                   </div>
                 )}
-                <p className="text-[11px] font-semibold text-[#6f7988] uppercase tracking-wide mt-3 mb-2">Justification</p>
+                <p className="text-[11px] font-semibold text-[#78716c] uppercase tracking-wide mt-3 mb-2">Justification</p>
                 <textarea
                   rows={3}
-                  className="w-full text-[12px] text-[#1c1d1f] bg-white border border-[#e4e7ec] rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:border-[#1c1d1f] transition-colors"
+                  className="w-full text-[12px] text-[#1c1d1f] bg-white border border-[#e7e5e4] rounded-lg px-3 py-2.5 resize-none focus:outline-none focus:border-[#1c1d1f] transition-colors"
                   placeholder="e.g. Break-glass accounts excluded per IR-3 policy. Reviewed quarterly by CISO."
                   value={justText[p.policyId] ?? p.justification ?? ''}
                   onChange={e => setJustText(prev => ({ ...prev, [p.policyId]: e.target.value }))}
@@ -210,7 +210,7 @@ function InsightsTab({ clientId }: { clientId: string }) {
                   onClick={() => saveJust(p.policyId)}
                   disabled={saving === p.policyId}
                   className="mt-2 text-[12px] font-medium text-white px-4 py-2 rounded-lg transition-colors"
-                  style={{ background: '#202124' }}
+                  style={{ background: '#1c1917' }}
                 >
                   {saving === p.policyId ? 'Saving…' : 'Save'}
                 </button>
@@ -221,27 +221,27 @@ function InsightsTab({ clientId }: { clientId: string }) {
       </div>
 
       {/* Access Reviews */}
-      <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eeeff1]">
+      <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#f5f5f4]">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-lg bg-[rgba(79,140,255,0.10)] flex items-center justify-center">
-              <Calendar className="w-3.5 h-3.5 text-[#4f8cff]" />
+              <Calendar className="w-3.5 h-3.5 text-[#78716c]" />
             </div>
             <div>
               <p className="text-[13px] font-semibold text-[#1c1d1f]">Access Reviews</p>
-              <p className="text-[11px] text-[#6f7988]">
+              <p className="text-[11px] text-[#78716c]">
                 {arData?.supported === false ? 'Requires Entra ID P2'
                  : arData ? `${arData.configured} configured · ${arData.overdue} overdue` : '—'}
               </p>
             </div>
           </div>
           <button onClick={loadAR} disabled={arLoading} className="p-1.5 rounded-lg hover:bg-[#f3f4f6] transition-colors">
-            <RefreshCw className={`w-3.5 h-3.5 text-[#a4adba] ${arLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-[#a8a29e] ${arLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
         {arData?.supported && arData.definitions.length > 0 && (
           <>
-            <div className="grid grid-cols-3 gap-px bg-[#f3f4f6] border-b border-[#e4e7ec]">
+            <div className="grid grid-cols-3 gap-px bg-[#f3f4f6] border-b border-[#e7e5e4]">
               {[
                 { label: 'Configured', value: arData.configured, color: '#1c1d1f' },
                 { label: 'On Schedule', value: arData.onSchedule, color: '#0eb472' },
@@ -249,30 +249,30 @@ function InsightsTab({ clientId }: { clientId: string }) {
               ].map(s => (
                 <div key={s.label} className="bg-white px-4 py-3 text-center">
                   <p className="text-[18px] font-bold tabular-nums" style={{ color: s.color, letterSpacing: '-0.02em' }}>{s.value}</p>
-                  <p className="text-[10px] text-[#a4adba] font-medium uppercase tracking-wide">{s.label}</p>
+                  <p className="text-[10px] text-[#a8a29e] font-medium uppercase tracking-wide">{s.label}</p>
                 </div>
               ))}
             </div>
             <div className="flex items-center justify-between px-5 py-3 cursor-pointer hover:bg-[#fafafa] transition-colors border-t border-[#f3f4f6]" onClick={() => setARExpanded(v => !v)}>
               <span className="text-[12px] font-medium text-[#505967]">View reviews</span>
-              {arExpanded ? <ChevronUp className="w-3.5 h-3.5 text-[#a4adba]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a4adba]" />}
+              {arExpanded ? <ChevronUp className="w-3.5 h-3.5 text-[#a8a29e]" /> : <ChevronDown className="w-3.5 h-3.5 text-[#a8a29e]" />}
             </div>
             {arExpanded && arData.definitions.map(d => (
               <div key={d.id} className="flex items-center gap-3 px-5 py-3 border-t border-[#f3f4f6]">
-                <div className={`w-2 h-2 rounded-full shrink-0 ${d.overdue ? 'bg-[#f25757]' : d.onSchedule ? 'bg-[#0eb472]' : 'bg-[#a4adba]'}`} />
+                <div className={`w-2 h-2 rounded-full shrink-0 ${d.overdue ? 'bg-[#f25757]' : d.onSchedule ? 'bg-[#0eb472]' : 'bg-[#a8a29e]'}`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{d.displayName}</p>
-                  <p className="text-[11px] text-[#6f7988]">{d.recurrenceType}{d.daysSinceLast !== null && ` · last run ${d.daysSinceLast}d ago`}</p>
+                  <p className="text-[11px] text-[#78716c]">{d.recurrenceType}{d.daysSinceLast !== null && ` · last run ${d.daysSinceLast}d ago`}</p>
                 </div>
                 {d.overdue ? <span className="text-[10px] font-semibold text-[#f25757]">Overdue</span>
                   : d.onSchedule ? <span className="text-[10px] font-semibold text-[#0eb472]">On track</span>
-                  : <span className="text-[10px] text-[#a4adba]">—</span>}
+                  : <span className="text-[10px] text-[#a8a29e]">—</span>}
               </div>
             ))}
           </>
         )}
-        {arData?.supported === false && <div className="px-5 py-4 text-[12px] text-[#6f7988]">{arData.message}</div>}
-        {arLoading && !arData && <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a4adba]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Querying Identity Governance…</div>}
+        {arData?.supported === false && <div className="px-5 py-4 text-[12px] text-[#78716c]">{arData.message}</div>}
+        {arLoading && !arData && <div className="flex items-center gap-2 px-5 py-4 text-[12px] text-[#a8a29e]"><Loader2 className="w-3.5 h-3.5 animate-spin" /> Querying Identity Governance…</div>}
       </div>
     </div>
   )
@@ -288,24 +288,24 @@ function IntegrationsTab({ clientId }: { clientId: string }) {
       .then(setIntegrations).catch(console.error).finally(() => setLoading(false))
   }, [clientId])
 
-  if (loading) return <div className="flex items-center gap-2 py-8 text-[12px] text-[#a4adba] justify-center"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</div>
+  if (loading) return <div className="flex items-center gap-2 py-8 text-[12px] text-[#a8a29e] justify-center"><Loader2 className="w-4 h-4 animate-spin" /> Loading…</div>
 
   const connected = integrations.filter(i => i.status === 'connected')
   if (connected.length === 0) return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] px-5 py-10 text-center">
-      <Plug className="w-7 h-7 text-[#e4e7ec] mx-auto mb-3" />
+    <div className="bg-white rounded-xl border border-[#e7e5e4] px-5 py-10 text-center">
+      <Plug className="w-7 h-7 text-[#e7e5e4] mx-auto mb-3" />
       <p className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No integrations connected</p>
-      <p className="text-[12px] text-[#6f7988]">Connect Jira, ServiceNow, or other tools from the Integrations page.</p>
+      <p className="text-[12px] text-[#78716c]">Connect Jira, ServiceNow, or other tools from the Integrations page.</p>
     </div>
   )
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] divide-y divide-[#f3f4f6]">
+    <div className="bg-white rounded-xl border border-[#e7e5e4] divide-y divide-[#f3f4f6]">
       {connected.map(i => (
         <div key={i.id} className="flex items-center gap-3 px-5 py-3.5">
           <div className="w-2 h-2 rounded-full bg-[#0eb472] shrink-0" />
           <p className="text-[13px] font-medium text-[#1c1d1f] capitalize">{i.platform}</p>
-          <span className="ml-auto text-[11px] text-[#6f7988]">
+          <span className="ml-auto text-[11px] text-[#78716c]">
             {i.connectedAt ? `Connected ${new Date(i.connectedAt).toLocaleDateString()}` : 'Connected'}
           </span>
         </div>
@@ -340,10 +340,10 @@ function ScopingTab({ clientId }: { clientId: string }) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#eeeff1]">
+    <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#f5f5f4]">
         <p className="text-[13px] font-semibold text-[#1c1d1f]">Asset Scoping</p>
-        <p className="text-[11px] text-[#6f7988] mt-0.5">Controls related to out-of-scope asset classes are suppressed.</p>
+        <p className="text-[11px] text-[#78716c] mt-0.5">Controls related to out-of-scope asset classes are suppressed.</p>
       </div>
       {loading ? <div className="p-5 space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-16 bg-[#f3f4f6] rounded-xl animate-pulse" />)}</div> : (
         <div className="p-5 space-y-2.5">
@@ -353,19 +353,19 @@ function ScopingTab({ clientId }: { clientId: string }) {
               <div
                 key={cls.id}
                 onClick={() => !cls.required && setScoping(prev => ({ ...prev, [cls.id]: !prev[cls.id] }))}
-                className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${cls.required ? 'cursor-default opacity-75' : 'cursor-pointer'} ${checked ? 'border-[#1c1d1f] bg-[rgba(28,29,31,0.02)]' : 'border-[#e4e7ec] hover:border-[#c8ccd4]'}`}
+                className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${cls.required ? 'cursor-default opacity-75' : 'cursor-pointer'} ${checked ? 'border-[#1c1917] bg-[rgba(37,93,173,0.02)]' : 'border-[#e7e5e4] hover:border-[#d6d3d1]'}`}
               >
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${checked ? 'bg-[#1c1d1f]' : 'bg-[#f3f4f6]'}`}>
-                  <Layers className={`w-4 h-4 ${checked ? 'text-white' : 'text-[#a4adba]'}`} />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${checked ? 'bg-[#1c1917]' : 'bg-[#f3f4f6]'}`}>
+                  <Layers className={`w-4 h-4 ${checked ? 'text-white' : 'text-[#a8a29e]'}`} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-[13px] font-semibold text-[#1c1d1f]">{cls.label}</p>
-                    {cls.required && <span className="text-[10px] text-[#6f7988] bg-[#f3f4f6] px-1.5 py-0.5 rounded font-medium">Required</span>}
+                    {cls.required && <span className="text-[10px] text-[#78716c] bg-[#f3f4f6] px-1.5 py-0.5 rounded font-medium">Required</span>}
                   </div>
-                  <p className="text-[11px] text-[#6f7988] mt-0.5">{cls.desc}</p>
+                  <p className="text-[11px] text-[#78716c] mt-0.5">{cls.desc}</p>
                 </div>
-                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${checked ? 'bg-[#1c1d1f] border-[#1c1d1f]' : 'border-[#c8ccd4]'}`}>
+                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${checked ? 'bg-[#1c1917] border-[#1c1917]' : 'border-[#d6d3d1]'}`}>
                   {checked && <div className="w-1.5 h-1 border-b-2 border-l-2 border-white transform -rotate-45 -translate-y-[1px]" />}
                 </div>
               </div>
@@ -375,7 +375,7 @@ function ScopingTab({ clientId }: { clientId: string }) {
             onClick={handleSave}
             disabled={saving}
             className="w-full mt-2 py-2.5 rounded-xl text-[13px] font-medium text-white transition-colors"
-            style={{ background: saved ? '#0eb472' : '#202124' }}
+            style={{ background: saved ? '#0eb472' : '#1c1917' }}
           >
             {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save Scoping'}
           </button>
@@ -399,10 +399,10 @@ function NotesTab({ clientId, initialNotes }: { clientId: string; initialNotes?:
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden">
-      <div className="px-5 py-4 border-b border-[#eeeff1]">
+    <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+      <div className="px-5 py-4 border-b border-[#f5f5f4]">
         <p className="text-[13px] font-semibold text-[#1c1d1f]">Client Notes</p>
-        <p className="text-[11px] text-[#6f7988] mt-0.5">Internal notes about this client — assessment due dates, open items, context.</p>
+        <p className="text-[11px] text-[#78716c] mt-0.5">Internal notes about this client — assessment due dates, open items, context.</p>
       </div>
       <div className="p-5">
         <textarea
@@ -410,13 +410,13 @@ function NotesTab({ clientId, initialNotes }: { clientId: string; initialNotes?:
           onChange={e => setNotes(e.target.value)}
           rows={10}
           placeholder="e.g. Assessment due Q2. MFA rollout in progress — expect AC.2.005 to pass next scan. POC: jane@client.com"
-          className="w-full text-[13px] text-[#1c1d1f] bg-[#fafafa] border border-[#e4e7ec] rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-[#1c1d1f] transition-colors placeholder-[#a4adba]"
+          className="w-full text-[13px] text-[#1c1d1f] bg-[#fafafa] border border-[#e7e5e4] rounded-xl px-4 py-3 resize-none focus:outline-none focus:border-[#1c1d1f] transition-colors placeholder-[#a8a29e]"
         />
         <button
           onClick={handleSave}
           disabled={saving}
           className="mt-3 px-5 py-2.5 rounded-xl text-[13px] font-medium text-white transition-colors"
-          style={{ background: saved ? '#0eb472' : '#202124' }}
+          style={{ background: saved ? '#0eb472' : '#1c1917' }}
         >
           {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save Notes'}
         </button>
@@ -461,14 +461,14 @@ export default function ClientDetailPage() {
 
   if (loading) return (
     <div className="flex items-center justify-center h-full min-h-[400px]">
-      <Loader2 className="w-6 h-6 text-[#e4e7ec] animate-spin" />
+      <Loader2 className="w-6 h-6 text-[#e7e5e4] animate-spin" />
     </div>
   )
   if (!client) return null
 
   const lastReport  = reports.sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())[0]
   const lastScore   = lastReport?.summary.compliancePercentage
-  const scoreColor  = !lastScore ? '#a4adba' : lastScore >= 80 ? '#0eb472' : lastScore >= 50 ? '#f59e0b' : '#f25757'
+  const scoreColor  = !lastScore ? '#a8a29e' : lastScore >= 80 ? '#0eb472' : lastScore >= 50 ? '#f59e0b' : '#f25757'
 
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'overview',     label: 'Overview',     icon: BarChart2  },
@@ -481,33 +481,33 @@ export default function ClientDetailPage() {
   return (
     <div className="p-8 max-w-4xl mx-auto">
       {/* Back */}
-      <Link href="/clients" className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#6f7988] hover:text-[#1c1d1f] transition-colors mb-6">
+      <Link href="/clients" className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#78716c] hover:text-[#1c1d1f] transition-colors mb-6">
         <ArrowLeft className="w-3.5 h-3.5" /> All Clients
       </Link>
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-[#e4e7ec] px-6 py-5 mb-5">
+      <div className="bg-white rounded-xl border border-[#e7e5e4] px-6 py-5 mb-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-[#fafafa] border border-[#e4e7ec] flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-[#fafafa] border border-[#e7e5e4] flex items-center justify-center shrink-0">
               <Building2 className="w-6 h-6 text-[#505967]" />
             </div>
             <div>
               <h1 className="text-[20px] font-bold text-[#1c1d1f]" style={{ letterSpacing: '-0.02em' }}>{client.name}</h1>
-              <p className="text-[12px] font-mono text-[#a4adba] mt-0.5">{client.tenantId}</p>
+              <p className="text-[12px] font-mono text-[#a8a29e] mt-0.5">{client.tenantId}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {lastScore !== undefined && (
               <div className="text-right">
                 <p className="text-[22px] font-bold tabular-nums" style={{ color: scoreColor, letterSpacing: '-0.02em' }}>{lastScore}%</p>
-                <p className="text-[10px] text-[#a4adba] uppercase tracking-wide">Last score</p>
+                <p className="text-[10px] text-[#a8a29e] uppercase tracking-wide">Last score</p>
               </div>
             )}
             <button
               onClick={handleTest}
               disabled={testing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e4e7ec] text-[12px] font-medium text-[#505967] hover:bg-[#fafafa] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e7e5e4] text-[12px] font-medium text-[#505967] hover:bg-[#fafafa] transition-colors"
             >
               {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
               Test
@@ -520,7 +520,7 @@ export default function ClientDetailPage() {
           </div>
         </div>
         {lastReport && (
-          <div className="flex items-center gap-1.5 mt-4 text-[11px] text-[#a4adba]">
+          <div className="flex items-center gap-1.5 mt-4 text-[11px] text-[#a8a29e]">
             <Clock className="w-3 h-3" />
             Last assessment: {new Date(lastReport.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · {lastReport.frameworkName}
           </div>
@@ -528,7 +528,7 @@ export default function ClientDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#e4e7ec] mb-5 -mx-1 px-1 overflow-x-auto">
+      <div className="flex border-b border-[#e7e5e4] mb-5 -mx-1 px-1 overflow-x-auto">
         {TABS.map(t => (
           <TabButton key={t.id} active={activeTab === t.id} onClick={() => setActiveTab(t.id)} icon={t.icon} label={t.label} />
         ))}

@@ -71,19 +71,19 @@ export function AssetScopingModal({ clientId, clientName, onClose }: Props) {
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-[#eeeff1]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-[#f5f5f4]">
           <div>
             <h2 className="text-[14px] font-semibold text-[#1c1d1f]">Asset Scoping</h2>
-            <p className="text-[11px] text-[#6f7988] mt-0.5">{clientName}</p>
+            <p className="text-[11px] text-[#78716c] mt-0.5">{clientName}</p>
           </div>
-          <button onClick={onClose} className="text-[#a4adba] hover:text-[#505967] transition-colors">
+          <button onClick={onClose} className="text-[#a8a29e] hover:text-[#505967] transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5">
-          <p className="text-[12px] text-[#6f7988] mb-4 leading-relaxed">
+          <p className="text-[12px] text-[#78716c] mb-4 leading-relaxed">
             Select the asset classes in scope for this assessment. Controls related to out-of-scope asset classes will be suppressed, reducing noise and increasing signal.
           </p>
 
@@ -106,26 +106,26 @@ export function AssetScopingModal({ clientId, clientName, onClose }: Props) {
                       cls.required ? 'cursor-default opacity-75' : 'cursor-pointer'
                     } ${
                       checked
-                        ? 'border-[#1c1d1f] bg-[rgba(28,29,31,0.03)]'
-                        : 'border-[#e4e7ec] hover:border-[#c8ccd4]'
+                        ? 'border-[#1c1917] bg-[rgba(37,93,173,0.03)]'
+                        : 'border-[#e7e5e4] hover:border-[#d6d3d1]'
                     }`}
                   >
                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                      checked ? 'bg-[#1c1d1f]' : 'bg-[#f3f4f6]'
+                      checked ? 'bg-[#1c1917]' : 'bg-[#f3f4f6]'
                     }`}>
-                      <Icon className={`w-4 h-4 ${checked ? 'text-white' : 'text-[#a4adba]'}`} />
+                      <Icon className={`w-4 h-4 ${checked ? 'text-white' : 'text-[#a8a29e]'}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-[13px] font-semibold text-[#1c1d1f]">{cls.label}</p>
                         {cls.required && (
-                          <span className="text-[10px] text-[#6f7988] bg-[#f3f4f6] px-1.5 py-0.5 rounded font-medium">Required</span>
+                          <span className="text-[10px] text-[#78716c] bg-[#f3f4f6] px-1.5 py-0.5 rounded font-medium">Required</span>
                         )}
                       </div>
-                      <p className="text-[11px] text-[#6f7988] mt-0.5 leading-relaxed">{cls.description}</p>
+                      <p className="text-[11px] text-[#78716c] mt-0.5 leading-relaxed">{cls.description}</p>
                     </div>
                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 mt-1 transition-colors ${
-                      checked ? 'bg-[#1c1d1f] border-[#1c1d1f]' : 'border-[#c8ccd4]'
+                      checked ? 'bg-[#1c1917] border-[#1c1917]' : 'border-[#d6d3d1]'
                     }`}>
                       {checked && <div className="w-1.5 h-1 border-b-2 border-l-2 border-white transform -rotate-45 -translate-y-[1px]" />}
                     </div>
@@ -139,17 +139,17 @@ export function AssetScopingModal({ clientId, clientName, onClose }: Props) {
             <div className="mt-4 p-3 bg-[#fafafa] rounded-lg border border-[#f3f4f6] flex items-center justify-between">
               <p className="text-[12px] text-[#505967]">
                 <span className="font-semibold text-[#1c1d1f]">{inScope}</span> asset class{inScope !== 1 ? 'es' : ''} in scope
-                {outOfScope > 0 && <span className="text-[#a4adba]"> · {outOfScope} suppressed</span>}
+                {outOfScope > 0 && <span className="text-[#a8a29e]"> · {outOfScope} suppressed</span>}
               </p>
               {outOfScope > 0 && (
-                <p className="text-[11px] text-[#6f7988]">Irrelevant controls will be hidden</p>
+                <p className="text-[11px] text-[#78716c]">Irrelevant controls will be hidden</p>
               )}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#eeeff1]">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#f5f5f4]">
           <button onClick={onClose} className="text-[13px] font-medium text-[#505967] hover:text-[#1c1d1f] transition-colors px-4 py-2">
             Cancel
           </button>
@@ -157,7 +157,7 @@ export function AssetScopingModal({ clientId, clientName, onClose }: Props) {
             onClick={handleSave}
             disabled={saving || loading}
             className="text-[13px] font-medium text-white px-5 py-2.5 rounded-lg transition-colors"
-            style={{ background: saved ? '#0eb472' : '#202124' }}
+            style={{ background: saved ? '#0eb472' : '#1c1917' }}
           >
             {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save Scoping'}
           </button>

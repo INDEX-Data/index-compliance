@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { X, Database, CheckCircle2, AlertCircle, Clock, Lightbulb, FileSearch,
-         ExternalLink, Upload, Trash2, FileIcon, Loader2, Paperclip } from 'lucide-react'
-import { StatusBadge } from './StatusBadge'
+import { createPortal } from 'react-dom'
+import { X, CheckCircle2, AlertCircle, Clock, Lightbulb, Search,
+         ExternalLink, Upload, Trash2, FileIcon, Loader2, Paperclip,
+         CloudUpload, Shield, Database } from 'lucide-react'
 import { getPortalLinks } from '@/lib/portal-links'
 import { getEvidenceFiles, uploadEvidenceFile, deleteEvidenceFile, downloadEvidenceFile } from '@/lib/api'
 import type { EvidenceFileMeta } from '@/lib/api'
@@ -28,40 +29,57 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function EvidenceTable({ data }: { data: unknown[] }) {
+// ── Status badge config ─────────────────────────────────────────────────────
+
+const statusConfig: Record<string, { bg: string; text: string; label: string }> = {
+  pass:           { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'Pass' },
+  fail:           { bg: 'bg-red-100',     text: 'text-[#9f403d]',  label: 'Fail' },
+  partial:        { bg: 'bg-amber-100',   text: 'text-amber-800',  label: 'Partial' },
+  not_assessed:   { bg: 'bg-[#f5f5f4]',   text: 'text-[#78716c]',  label: 'N/A' },
+  not_applicable: { bg: 'bg-[#f5f5f4]',   text: 'text-[#78716c]',  label: 'N/A' },
+}
+
+// ── Evidence table for Graph query data ─────────────────────────────────────
+
+function EvidenceTable({ data, title }: { data: unknown[]; title?: string }) {
   if (data.length === 0)
-    return <p className="text-xs text-[#6f7988] italic py-2">No records returned.</p>
+    return <p className="text-xs text-[#44403c] italic py-2">No records returned.</p>
 
   const first = data[0]
   if (typeof first !== 'object' || first === null)
-    return <pre className="text-[11px] font-mono text-[#505967] bg-[#fafafa] p-3 rounded-lg overflow-auto max-h-32">{String(first)}</pre>
+    return <pre className="text-[11px] font-mono text-[#1c1917] bg-[#fafaf9] p-3 rounded-lg overflow-auto max-h-32">{String(first)}</pre>
 
   const allKeys = Object.keys(first as object).filter(k => !k.startsWith('@'))
   const cols    = allKeys.slice(0, 7)
   const rows    = data.slice(0, 15)
 
   if (cols.length === 0)
-    return <p className="text-xs text-[#6f7988] italic py-2">Metadata-only response.</p>
+    return <p className="text-xs text-[#44403c] italic py-2">Metadata-only response.</p>
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-[#e4e7ec]">
-      <table className="w-full text-[11px] font-mono min-w-max">
-        <thead>
-          <tr className="bg-[#eeeff1]">
+    <div className="rounded-lg border border-[#a8a29e]/20 overflow-hidden">
+      {title && (
+        <div className="bg-[#f5f5f4] p-3 border-b border-[#a8a29e]/20">
+          <h4 className="text-[11px] font-black uppercase tracking-widest text-[#44403c]">{title}</h4>
+        </div>
+      )}
+      <table className="w-full text-left text-xs border-collapse">
+        <thead className="bg-[#fafaf9]">
+          <tr>
             {cols.map(c => (
-              <th key={c} className="px-3 py-2 text-left text-[#505967] font-semibold whitespace-nowrap border-r border-[#e4e7ec] last:border-r-0">
+              <th key={c} className="px-4 py-2 font-bold text-[#44403c] border-b border-[#a8a29e]/10 whitespace-nowrap">
                 {c}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-[#a8a29e]/10">
           {rows.map((row, i) => (
-            <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-[#fafafa]'}>
-              {cols.map(col => (
+            <tr key={i} className="hover:bg-[#fafaf9]/50 transition-colors">
+              {cols.map((col, ci) => (
                 <td
                   key={col}
-                  className="px-3 py-1.5 text-[#1c1d1f] border-r border-[#e4e7ec] last:border-r-0 max-w-[220px] truncate"
+                  className={`px-4 py-3 max-w-[220px] truncate ${ci === 0 ? 'font-mono text-[10px] text-[#1c1917]' : 'text-[#1c1917]'}`}
                   title={String((row as Record<string, unknown>)[col] ?? '')}
                 >
                   {cellVal((row as Record<string, unknown>)[col])}
@@ -72,49 +90,10 @@ function EvidenceTable({ data }: { data: unknown[] }) {
         </tbody>
       </table>
       {data.length > 15 && (
-        <div className="px-3 py-1.5 bg-[#fafafa] border-t border-[#e4e7ec] text-[11px] text-[#6f7988]">
+        <div className="px-4 py-2 bg-[#fafaf9] border-t border-[#a8a29e]/10 text-[11px] text-[#44403c]">
           Showing 15 of {data.length} records
         </div>
       )}
-    </div>
-  )
-}
-
-function EvidenceBlock({ ev }: { ev: EvidenceResult }) {
-  const ts = ev.collectedAt ? new Date(ev.collectedAt).toLocaleTimeString() : null
-
-  return (
-    <div className="space-y-2.5">
-      <div className="flex items-start gap-2 flex-wrap">
-        <span className={`mt-0.5 shrink-0 ${ev.success ? 'text-[#15803D]' : 'text-[#B91C1C]'}`}>
-          {ev.success
-            ? <CheckCircle2 className="w-3.5 h-3.5" />
-            : <AlertCircle  className="w-3.5 h-3.5" />}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className="text-[12px] font-semibold text-[#1c1d1f] leading-snug">{ev.queryDescription}</p>
-          <p className="text-[10px] font-mono text-[#505967] mt-0.5 break-all">{ev.endpoint}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] text-[#6366F1] bg-[#EEF2FF] border border-[#C7D2FE] px-2 py-0.5 rounded-full font-medium">
-          {ev.recordCount} {ev.recordCount === 1 ? 'record' : 'records'}
-        </span>
-        {ts && (
-          <span className="inline-flex items-center gap-1 text-[10px] text-[#6f7988]">
-            <Clock className="w-2.5 h-2.5" />
-            {ts}
-          </span>
-        )}
-      </div>
-
-      {ev.success
-        ? <EvidenceTable data={ev.rawData ?? []} />
-        : <p className="text-xs text-[#DC2626] italic bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2">
-            {ev.errorMessage ?? 'Query failed'}
-          </p>
-      }
     </div>
   )
 }
@@ -123,34 +102,40 @@ function EvidenceBlock({ ev }: { ev: EvidenceResult }) {
 
 function FileUploadSection({ reportId, objectiveId }: { reportId: string; objectiveId: string }) {
   const [files,     setFiles]     = useState<EvidenceFileMeta[]>([])
-  const [loading,   setLoading]   = useState(true)
+  const [loading,   setLoading]   = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error,     setError]     = useState<string | null>(null)
   const [dragOver,  setDragOver]  = useState(false)
+  const [ready,     setReady]     = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
-    getEvidenceFiles(reportId, objectiveId)
-      .then(setFiles)
-      .catch(() => setFiles([]))
-      .finally(() => setLoading(false))
+  // Load existing evidence files when the section mounts
+  useEffect(() => {
+    setReady(true)
+    let cancelled = false
+    getEvidenceFiles(reportId, objectiveId).then(result => {
+      if (!cancelled) setFiles(result)
+    })
+    return () => { cancelled = true }
   }, [reportId, objectiveId])
-
-  useEffect(() => { load() }, [load])
 
   async function handleFiles(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return
     setUploading(true)
     setError(null)
     try {
+      const uploaded: EvidenceFileMeta[] = []
       for (const file of Array.from(fileList)) {
         if (file.size > 5 * 1024 * 1024) { setError(`${file.name} exceeds 5 MB limit`); continue }
-        await uploadEvidenceFile(reportId, objectiveId, file)
+        const meta = await uploadEvidenceFile(reportId, objectiveId, file)
+        uploaded.push(meta)
       }
-      load()
+      // Add newly uploaded files to the list immediately
+      if (uploaded.length > 0) {
+        setFiles(prev => [...uploaded, ...prev])
+      }
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Upload failed')
+      setError(e instanceof Error ? e.message : 'Upload failed — the evidence_files table may not exist in Supabase')
     } finally {
       setUploading(false)
       if (inputRef.current) inputRef.current.value = ''
@@ -175,20 +160,22 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
         onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
         onClick={() => inputRef.current?.click()}
         className={[
-          'flex flex-col items-center justify-center gap-2 h-20 rounded-xl border-2 border-dashed cursor-pointer transition-colors',
+          'border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors group',
           dragOver
-            ? 'border-[#C4A96D] bg-[#C4A96D]/5'
-            : 'border-[#e4e7ec] hover:border-[#cad0d9] bg-[#fafafa] hover:bg-white',
+            ? 'border-[#1c1917] bg-[#1c1917]/5'
+            : 'border-[#a8a29e]/30 bg-white hover:bg-[#fafaf9]',
         ].join(' ')}
       >
         {uploading
-          ? <Loader2 className="w-4 h-4 text-[#6f7988] animate-spin" />
-          : <Upload className="w-4 h-4 text-[#a4adba]" />
+          ? <Loader2 className="w-10 h-10 text-[#a8a29e] animate-spin mb-2" />
+          : <CloudUpload className="w-10 h-10 text-[#a8a29e] group-hover:text-[#1c1917] mb-2 transition-colors" />
         }
-        <p className="text-[11px] text-[#6f7988]">
+        <p className="text-sm font-semibold text-[#1c1917]">
           {uploading ? 'Uploading…' : 'Drop files here or click to upload'}
         </p>
-        <p className="text-[10px] text-[#a4adba]">PDF, DOCX, PNG, JPG — max 5 MB each</p>
+        <p className="text-xs text-[#44403c] mt-1">
+          {files.length === 0 ? 'No files uploaded yet' : `${files.length} file${files.length !== 1 ? 's' : ''} uploaded`}
+        </p>
       </div>
       <input
         ref={inputRef}
@@ -199,7 +186,7 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
       />
 
       {error && (
-        <p className="text-[11px] text-[#DC2626] bg-[#FEF2F2] border border-[#FECACA] rounded-lg px-3 py-2">
+        <p className="text-[11px] text-[#9f403d] bg-[#fe8983]/10 border border-[#fe8983]/30 rounded-lg px-3 py-2">
           {error}
         </p>
       )}
@@ -207,33 +194,31 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
       {/* File list */}
       {loading ? (
         <div className="flex justify-center py-3">
-          <Loader2 className="w-4 h-4 animate-spin text-[#a4adba]" />
+          <Loader2 className="w-4 h-4 animate-spin text-[#a8a29e]" />
         </div>
-      ) : files.length === 0 ? (
-        <p className="text-[11px] text-[#a4adba] italic text-center py-1">No files uploaded yet</p>
-      ) : (
+      ) : files.length > 0 && (
         <ul className="space-y-1.5">
           {files.map(f => (
             <li
               key={f.id}
-              className="flex items-center gap-2 bg-white border border-[#e4e7ec] rounded-lg px-3 py-2 group"
+              className="flex items-center gap-2 bg-white border border-[#a8a29e]/20 rounded-lg px-3 py-2 group"
             >
-              <FileIcon className="w-3.5 h-3.5 text-[#6f7988] shrink-0" />
+              <FileIcon className="w-3.5 h-3.5 text-[#44403c] shrink-0" />
               <div className="flex-1 min-w-0">
                 <button
                   onClick={() => downloadEvidenceFile(reportId, objectiveId, f.id, f.originalName)}
-                  className="text-[12px] font-medium text-[#1c1d1f] hover:text-[#266df0] truncate block max-w-full text-left"
+                  className="text-[12px] font-medium text-[#1c1917] hover:text-[#1c1917] truncate block max-w-full text-left"
                   title={f.originalName}
                 >
                   {f.originalName}
                 </button>
-                <p className="text-[10px] text-[#a4adba]">
+                <p className="text-[10px] text-[#a8a29e]">
                   {formatBytes(f.fileSize)} · {new Date(f.uploadedAt).toLocaleDateString()}
                 </p>
               </div>
               <button
                 onClick={() => handleDelete(f.id)}
-                className="p-1 rounded hover:bg-[#FEF2F2] text-[#a4adba] hover:text-[#DC2626] opacity-0 group-hover:opacity-100 transition"
+                className="p-1 rounded hover:bg-[#fe8983]/10 text-[#a8a29e] hover:text-[#9f403d] opacity-0 group-hover:opacity-100 transition"
                 title="Delete file"
               >
                 <Trash2 className="w-3 h-3" />
@@ -250,13 +235,12 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
 
 function Section({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <span className="text-[#6f7988]">{icon}</span>
-        <h3 className="text-[11px] font-semibold text-[#505967] uppercase tracking-wider">{label}</h3>
-      </div>
+    <section>
+      <h3 className="text-xs font-bold uppercase tracking-widest text-[#44403c] mb-3 flex items-center gap-2">
+        <span className="text-[#78716c]">{icon}</span> {label}
+      </h3>
       {children}
-    </div>
+    </section>
   )
 }
 
@@ -286,60 +270,95 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
   const queries         = assessment.evidenceCollected ?? []
   const totalRecords    = queries.reduce((sum, e) => sum + (e.recordCount ?? 0), 0)
   const collected       = assessment.assessedAt
-    ? new Date(assessment.assessedAt).toLocaleString()
+    ? new Date(assessment.assessedAt).toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' })
     : null
 
   const portalLinks     = getPortalLinks(assessment.controlId)
   const showRemediation = portalLinks.length > 0 && (assessment.status === 'fail' || assessment.status === 'partial')
   const hasData         = queries.some(e => e.success && (e.rawData?.length ?? 0) > 0)
 
-  return (
+  const badge = statusConfig[assessment.status] ?? statusConfig.not_assessed
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[9998] bg-[#1c1917]/20 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
       {/* Drawer panel */}
       <div
-        className="fixed right-0 top-0 h-full w-full max-w-[560px] z-50 bg-white border-l border-[#e4e7ec] flex flex-col animate-slide-in-right"
-        style={{ boxShadow: '-8px 0 40px rgba(28,29,31,0.10)' }}
+        className="fixed top-0 bottom-0 right-0 w-full max-w-[600px] h-screen z-[9999] bg-white shadow-2xl flex flex-col animate-slide-in-right"
       >
-        {/* ── Header ── */}
-        <div className="flex items-start gap-3 px-5 py-4 border-b border-[#e4e7ec] bg-[#fafafa] shrink-0">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
+        {/* ── Glass Header ── */}
+        <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[#a8a29e]/20" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(255,255,255,0.85)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold font-mono tracking-wider text-[#1c1917] bg-[#e7e5e4]/30 px-2 py-0.5 rounded">
                 {assessment.controlId}
               </span>
-              <StatusBadge status={assessment.status} size="sm" />
+              <span className={`text-[10px] font-black uppercase tracking-widest ${badge.bg} ${badge.text} px-2 py-0.5 rounded-full flex items-center gap-1`}>
+                {badge.label === 'Pass' && <CheckCircle2 className="w-3 h-3" style={{ fill: 'currentColor', strokeWidth: 0 }} />}
+                {badge.label === 'Fail' && <AlertCircle className="w-3 h-3" />}
+                {badge.label}
+              </span>
             </div>
-            <p className="text-[13px] font-semibold text-[#1c1d1f] leading-snug">{assessment.controlTitle}</p>
+            <button
+              onClick={onClose}
+              className="text-[#44403c] hover:text-[#1c1917] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <h2 className="text-2xl font-bold text-[#1c1917] leading-tight">{assessment.controlTitle}</h2>
+          <div className="mt-1 flex items-center gap-4">
             {assessment.family && (
-              <p className="text-[11px] text-[#6f7988] mt-0.5">{assessment.family}</p>
+              <span className="text-sm font-medium text-[#44403c]">{assessment.family}</span>
+            )}
+            {assessment.family && collected && (
+              <span className="h-1 w-1 bg-[#a8a29e] rounded-full" />
             )}
             {collected && (
-              <p className="text-[10px] text-[#a4adba] mt-1 flex items-center gap-1">
-                <Clock className="w-2.5 h-2.5" />
-                Collected {collected}
-              </p>
+              <span className="text-sm font-medium text-[#44403c]">
+                Collection Date: <span className="text-[#1c1917]">{collected}</span>
+              </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-[#eeeff1] text-[#6f7988] hover:text-[#1c1d1f] shrink-0 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* ── Body ── */}
-        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-10">
 
-          {/* 1. Remediate in Azure */}
+          {/* 1. Findings */}
+          {assessment.findings.length > 0 && (
+            <Section icon={<Search className="w-4 h-4" />} label="Findings">
+              <div className="p-4 bg-[#fafaf9] rounded-lg border-l-2 border-[#1c1917]">
+                {assessment.findings.map((f, i) => (
+                  <p key={i} className="text-sm leading-relaxed text-[#1c1917]">
+                    {f}{i < assessment.findings.length - 1 ? ' ' : ''}
+                  </p>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* 2. Recommendations */}
+          {assessment.recommendations.length > 0 && (
+            <Section icon={<Lightbulb className="w-4 h-4" />} label="Recommendations">
+              <div className="p-4 bg-[#fafaf9] rounded-lg">
+                {assessment.recommendations.map((r, i) => (
+                  <p key={i} className="text-sm leading-relaxed text-[#1c1917]">
+                    {r}{i < assessment.recommendations.length - 1 ? ' ' : ''}
+                  </p>
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* 3. Remediate in Azure */}
           {showRemediation && (
-            <Section icon={<ExternalLink className="w-3.5 h-3.5" />} label="Remediate in Azure">
+            <Section icon={<ExternalLink className="w-4 h-4" />} label="Remediation Actions">
               <div className="flex flex-wrap gap-2">
                 {portalLinks.map(link => (
                   <a
@@ -347,88 +366,125 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#6D28D9] bg-[#F5F3FF] border border-[#DDD6FE] hover:bg-[#EDE9FE] hover:border-[#C4B5FD] px-3 py-1.5 rounded-lg transition-colors"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-gradient-to-b from-[#1c1917] to-[#0c0a09] px-4 py-2 rounded shadow-md hover:shadow-lg transition"
                     title={link.hint}
                   >
                     {link.label}
-                    <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                    <ExternalLink className="w-3 h-3 opacity-70" />
                   </a>
                 ))}
               </div>
             </Section>
           )}
 
-          {/* 2. Findings */}
-          {assessment.findings.length > 0 && (
-            <Section icon={<AlertCircle className="w-3.5 h-3.5" />} label="Findings">
-              <ul className="space-y-2">
-                {assessment.findings.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="mt-0.5 shrink-0">
-                      {assessment.status === 'pass'
-                        ? <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D]" />
-                        : <AlertCircle  className="w-3.5 h-3.5 text-[#D97706]" />}
-                    </span>
-                    <p className="text-[12px] text-[#1c1d1f] leading-relaxed">{f}</p>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-
-          {/* 3. Recommendations */}
-          {assessment.recommendations.length > 0 && (
-            <Section icon={<Lightbulb className="w-3.5 h-3.5" />} label="Recommendations">
-              <ul className="space-y-2">
-                {assessment.recommendations.map((r, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <span className="shrink-0 text-[#6f7988] text-[12px] leading-relaxed">→</span>
-                    <p className="text-[12px] text-[#1c1d1f] leading-relaxed">{r}</p>
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
-
           {/* 4. Evidence file upload */}
           {reportId && (
-            <Section icon={<Paperclip className="w-3.5 h-3.5" />} label="Uploaded Evidence Files">
+            <Section icon={<Paperclip className="w-4 h-4" />} label="Uploaded Evidence Files">
               <FileUploadSection reportId={reportId} objectiveId={assessment.controlId} />
             </Section>
           )}
 
-          {/* 5. Automated evidence */}
+          {/* 5. Graph Evidence */}
           <Section
-            icon={<FileSearch className="w-3.5 h-3.5" />}
-            label={`Graph Evidence — ${queries.length} ${queries.length === 1 ? 'query' : 'queries'}, ${totalRecords} ${totalRecords === 1 ? 'record' : 'records'}`}
+            icon={<Database className="w-4 h-4" />}
+            label="Graph Evidence"
           >
-            {queries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-28 gap-3 text-center">
-                <Database className="w-7 h-7 text-[#e4e7ec]" />
-                <p className="text-sm text-[#a4adba]">No automated evidence for this control.</p>
+            <div className="space-y-6">
+              {/* Query / Record count badges */}
+              <div className="flex gap-4">
+                <span className="text-[10px] font-bold text-[#1c1917] px-2 py-0.5 bg-[#e7e5e4] rounded">
+                  {queries.length} {queries.length === 1 ? 'Query' : 'Queries'}
+                </span>
+                <span className="text-[10px] font-bold text-[#78716c] px-2 py-0.5 bg-[#e7e5e4] rounded">
+                  {totalRecords} {totalRecords === 1 ? 'Record' : 'Records'}
+                </span>
               </div>
-            ) : !hasData ? (
-              <div className="space-y-4">
-                <p className="text-[11px] text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] px-3 py-2 rounded-lg">
-                  Queries ran but returned no data. May indicate insufficient permissions or no matching records.
-                </p>
-                {queries.map(ev => (
-                  <div key={ev.queryId} className="border-b border-[#eeeff1] pb-4 last:border-0 last:pb-0">
-                    <EvidenceBlock ev={ev} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              queries.map(ev => (
-                <div key={ev.queryId} className="border-b border-[#eeeff1] pb-6 last:border-0 last:pb-0">
-                  <EvidenceBlock ev={ev} />
+
+              {queries.length === 0 ? (
+                <div className="border-2 border-dashed border-[#a8a29e]/20 rounded-xl p-8 flex flex-col items-center justify-center">
+                  <Database className="w-10 h-10 text-[#a8a29e] mb-2" />
+                  <p className="text-sm font-semibold text-[#1c1917]">No automated evidence</p>
+                  <p className="text-xs text-[#44403c] mt-1">No Graph API queries were executed for this control.</p>
                 </div>
-              ))
-            )}
+              ) : !hasData ? (
+                <div className="space-y-4">
+                  <div className="p-3 bg-[#FFFBEB] border border-[#FDE68A] rounded-lg text-xs text-[#B45309]">
+                    Queries ran but returned no data. May indicate insufficient permissions or no matching records.
+                  </div>
+                  {queries.map(ev => (
+                    <div key={ev.queryId} className="space-y-2">
+                      <div className="rounded-lg border border-[#a8a29e]/20 overflow-hidden">
+                        <div className="bg-[#f5f5f4] p-3 border-b border-[#a8a29e]/20">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-[#44403c]">{ev.queryDescription}</h4>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            {ev.success
+                              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              : <AlertCircle className="w-3.5 h-3.5 text-[#9f403d]" />
+                            }
+                            <p className="text-[10px] font-mono text-[#44403c] break-all">{ev.endpoint}</p>
+                          </div>
+                          <span className="text-[10px] text-[#1c1917] bg-[#e7e5e4] px-2 py-0.5 rounded font-bold">
+                            {ev.recordCount} {ev.recordCount === 1 ? 'record' : 'records'}
+                          </span>
+                          {!ev.success && (
+                            <p className="text-xs text-[#9f403d] italic mt-2">{ev.errorMessage ?? 'Query failed'}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                queries.map(ev => (
+                  <div key={ev.queryId} className="space-y-2">
+                    {ev.success && (ev.rawData?.length ?? 0) > 0 ? (
+                      <EvidenceTable data={ev.rawData ?? []} title={ev.queryDescription} />
+                    ) : (
+                      <div className="rounded-lg border border-[#a8a29e]/20 overflow-hidden">
+                        <div className="bg-[#f5f5f4] p-3 border-b border-[#a8a29e]/20">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-[#44403c]">{ev.queryDescription}</h4>
+                        </div>
+                        <div className="p-4">
+                          <div className="flex items-center gap-2">
+                            {ev.success
+                              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              : <AlertCircle className="w-3.5 h-3.5 text-[#9f403d]" />
+                            }
+                            <p className="text-xs text-[#44403c]">
+                              {ev.success ? `${ev.recordCount} records returned` : (ev.errorMessage ?? 'Query failed')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </Section>
 
         </div>
+
+        {/* ── Footer ── */}
+        <div className="shrink-0 p-4 border-t border-[#a8a29e]/20 bg-white flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#44403c] hover:bg-[#f5f5f4] rounded transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 text-xs font-bold uppercase tracking-widest text-white rounded shadow-md"
+            style={{ background: 'linear-gradient(180deg, #1c1917 0%, #0c0a09 100%)' }}
+          >
+            Save
+          </button>
+        </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }

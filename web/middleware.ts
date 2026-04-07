@@ -7,8 +7,10 @@ const PUBLIC_PATHS = [
   '/sign-in',
   '/sign-up',
   '/onboard',
+  '/onboard-finish',
   '/join',
   '/auth/callback',
+  '/api/config-status',
 ]
 
 function isPublicRoute(pathname: string): boolean {

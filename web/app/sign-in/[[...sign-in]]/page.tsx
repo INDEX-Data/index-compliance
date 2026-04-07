@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClientSupabase } from '@/lib/supabase'
 
 const FRAMEWORKS = [
@@ -45,17 +46,8 @@ export default function SignInPage() {
       <div className="hidden lg:flex lg:w-[400px] xl:w-[460px] shrink-0 flex-col bg-[#1c1d1f] text-white px-10 py-12">
 
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/10 border border-white/10">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-            </svg>
-          </div>
-          <div>
-            <div className="text-[15px] font-bold tracking-widest uppercase">INDEX</div>
-            <div className="text-[10px] text-white/40 leading-none tracking-wide uppercase">Compliance</div>
-          </div>
+        <div className="flex items-center">
+          <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto invert" />
         </div>
 
         {/* Value prop */}
@@ -92,22 +84,13 @@ export default function SignInPage() {
       <div className="flex-1 bg-[#fafafa] flex flex-col items-center justify-center px-8 py-12">
 
         {/* Mobile logo (hidden on lg+) */}
-        <div className="flex items-center gap-3 mb-8 lg:hidden">
-          <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-[#1c1d1f]">
-            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round"
-                d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-            </svg>
-          </div>
-          <div>
-            <div className="text-[15px] font-bold text-[#1c1d1f] tracking-widest uppercase">INDEX</div>
-            <div className="text-[10px] text-[#6f7988] leading-none tracking-wide uppercase">Compliance</div>
-          </div>
+        <div className="flex items-center mb-8 lg:hidden">
+          <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto" />
         </div>
 
         <div className="w-full max-w-sm">
           <h1 className="text-2xl font-bold text-[#1c1d1f] mb-1">Welcome back</h1>
-          <p className="text-sm text-[#6f7988] mb-6">
+          <p className="text-sm text-[#78716c] mb-6">
             Sign in to your account to continue
           </p>
 
@@ -120,7 +103,7 @@ export default function SignInPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 bg-white border border-[#e4e7ec] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
+                className="w-full px-3 py-2.5 bg-white border border-[#e7e5e4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
                 placeholder="you@company.com"
               />
             </div>
@@ -132,7 +115,7 @@ export default function SignInPage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 bg-white border border-[#e4e7ec] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
+                className="w-full px-3 py-2.5 bg-white border border-[#e7e5e4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
                 placeholder="Enter your password"
               />
             </div>
@@ -146,13 +129,13 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1c1d1f] text-white text-sm font-semibold py-2.5 rounded-lg transition hover:bg-[#2d2e30] disabled:opacity-50"
+              className="w-full bg-[#1c1917] text-white text-sm font-semibold py-2.5 rounded-lg transition hover:bg-[#0c0a09] disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
-          <p className="text-sm text-[#6f7988] text-center mt-6">
+          <p className="text-sm text-[#78716c] text-center mt-6">
             Don&apos;t have an account?{' '}
             <Link href="/sign-up" className="text-[#1c1d1f] font-medium hover:underline">
               Sign up

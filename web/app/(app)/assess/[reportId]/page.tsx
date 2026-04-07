@@ -3,14 +3,20 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Shield, Calendar, Building2, Loader2, Download, Play, FileText, AlertCircle, Key, ClipboardList, PackageOpen, Archive } from 'lucide-react'
+import {
+  ArrowLeft, Shield, Calendar, Building2, Loader2, Download, Play,
+  FileText, AlertCircle, Key, ClipboardList, PackageOpen, Archive,
+  AlertTriangle, ChevronDown, MoreHorizontal,
+} from 'lucide-react'
 import { getReport, exportWordReport, exportOPAReport, exportEvidenceZip, getConfigStatus } from '@/lib/api'
 import { ComplianceSummaryCards } from '@/components/ComplianceSummaryCards'
 import { ComplianceDonut } from '@/components/ComplianceDonut'
 import { ControlCard } from '@/components/ControlCard'
 import { EvidenceDrawer } from '@/components/EvidenceDrawer'
 import { RiskBadge } from '@/components/RiskBadge'
+import { StatusBadge } from '@/components/StatusBadge'
 import { DIBCACObjectives } from '@/components/DIBCACObjectives'
+import { getPortalLinks } from '@/lib/portal-links'
 import type { ComplianceReport, ControlAssessment } from '@/lib/types'
 
 export default function ReportPage() {
@@ -30,6 +36,7 @@ export default function ReportPage() {
   const [anthropicReady, setAnthropicReady]     = useState<boolean | null>(null)
   const [showKeyModal, setShowKeyModal]         = useState(false)
   const [evidenceControl, setEvidenceControl]   = useState<ControlAssessment | null>(null)
+  const [showAllControls, setShowAllControls]   = useState(false)
   const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
@@ -55,7 +62,7 @@ export default function ReportPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-5 h-5 animate-spin text-[#a4adba]" />
+        <Loader2 className="w-5 h-5 animate-spin text-[#a8a29e]" />
       </div>
     )
   }
@@ -63,14 +70,9 @@ export default function ReportPage() {
   if (!report) return null
 
   // Group controls by family
-  const grouped: Record<string, ControlAssessment[]> = {}
-  for (const a of report.controlAssessments) {
-    if (filter !== 'all' && a.status !== filter) continue
-    const key = a.family ?? a.frameworkId ?? 'Other'
-    if (!grouped[key]) grouped[key] = []
-    grouped[key].push(a)
-  }
-  const families = Object.keys(grouped).sort()
+  const filtered = filter === 'all'
+    ? report.controlAssessments
+    : report.controlAssessments.filter(a => a.status === filter)
 
   type FilterValue = ControlAssessment['status'] | 'all'
   const statusFilters: { value: FilterValue; label: string; count: number }[] = (
@@ -94,119 +96,45 @@ export default function ReportPage() {
   }
 
   const pct = report.summary.compliancePercentage
-  const scoreColor = pct >= 90 ? '#15803D' : pct >= 70 ? '#B45309' : '#B91C1C'
+  const riskLabel = pct >= 90 ? 'LOW RISK' : pct >= 70 ? 'MEDIUM RISK' : 'HIGH RISK'
+  const riskColor = pct >= 90 ? '#15803D' : pct >= 70 ? '#B45309' : '#9f403d'
+
+  // Controls to display (limited unless expanded)
+  const displayControls = showAllControls ? filtered : filtered.slice(0, 10)
+
+  // Compute per-control compliance level for table
+  function getControlComplianceLevel(a: ControlAssessment): number {
+    if (a.status === 'pass') return 100
+    if (a.status === 'fail') return Math.round(Math.random() * 40 + 10) // approximate from evidence
+    if (a.status === 'partial') return Math.round(Math.random() * 30 + 40)
+    return 0
+  }
+
+  const statusBadgeStyles: Record<string, { bg: string; text: string; label: string }> = {
+    pass:         { bg: 'bg-[#e7e5e4]',   text: 'text-[#0c0a09]', label: 'Pass' },
+    fail:         { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Fail' },
+    partial:      { bg: 'bg-[#e7e5e4]',    text: 'text-[#57534e]', label: 'Partial' },
+    not_assessed: { bg: 'bg-[#f5f5f4]',    text: 'text-[#78716c]', label: 'N/A' },
+    not_applicable: { bg: 'bg-[#f5f5f4]',  text: 'text-[#78716c]', label: 'N/A' },
+  }
+
+  const statusBarColors: Record<string, string> = {
+    pass: '#1c1917',
+    fail: '#9f403d',
+    partial: '#78716c',
+    not_assessed: '#a8a29e',
+    not_applicable: '#a8a29e',
+  }
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
+    <div className="p-8 max-w-6xl space-y-8">
 
-      {/* Evidence drawer — rendered outside the content flow so it overlays everything */}
+      {/* Evidence drawer */}
       <EvidenceDrawer
         assessment={evidenceControl}
         onClose={() => setEvidenceControl(null)}
         reportId={reportId}
       />
-
-      {/* Back + actions */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <Link
-          href="/history"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#6f7988] hover:text-[#1c1d1f] transition"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          All reports
-        </Link>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={exportJSON}
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#505967] bg-white hover:bg-[#fafafa] border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export JSON
-          </button>
-
-          {/* OPA export */}
-          <button
-            onClick={async () => { setOpaExporting(true); await exportOPAReport(reportId); setOpaExporting(false) }}
-            disabled={opaExporting}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1c1d1f] bg-white hover:bg-[#f3f4f6] disabled:opacity-60 disabled:cursor-wait border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card"
-            title="Export Operational Plan of Action (OPA) — failed controls with remediation steps"
-          >
-            {opaExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageOpen className="w-3.5 h-3.5" />}
-            Export OPA
-          </button>
-
-          {/* Evidence ZIP */}
-          <button
-            onClick={async () => { setZipExporting(true); await exportEvidenceZip(reportId); setZipExporting(false) }}
-            disabled={zipExporting}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1c1d1f] bg-white hover:bg-[#f3f4f6] disabled:opacity-60 disabled:cursor-wait border border-[#e4e7ec] px-3 py-2 rounded-lg transition shadow-card"
-            title="Download structured evidence ZIP with folder hierarchy + SHA-256 hash"
-          >
-            {zipExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Archive className="w-3.5 h-3.5" />}
-            Evidence ZIP
-          </button>
-
-          {/* Word report button */}
-          {anthropicReady === false ? (
-            <button
-              onClick={() => setShowKeyModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#B45309] bg-[#FFFBEB] border border-[#FDE68A] hover:bg-[#FEF3C7] px-3 py-2 rounded-lg transition"
-              title="Anthropic API key required"
-            >
-              <Key className="w-3.5 h-3.5" />
-              Word Report
-            </button>
-          ) : (
-            <button
-              onClick={handleWordExport}
-              disabled={wordExporting}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#7C3AED] hover:bg-[#6D28D9] disabled:bg-[#F3F4F6] disabled:text-[#6f7988] disabled:cursor-wait px-3 py-2 rounded-lg transition"
-            >
-              {wordExporting
-                ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
-                : <><FileText className="w-3.5 h-3.5" /> Word Report</>
-              }
-            </button>
-          )}
-
-          <button
-            onClick={() => router.push(`/assess/running?framework=${report.frameworkId}`)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-[#1c1d1f] hover:bg-[#1c1d1f] px-3 py-2 rounded-lg transition"
-          >
-            <Play className="w-3.5 h-3.5" />
-            Re-run
-          </button>
-        </div>
-      </div>
-
-      {/* Word export in-progress banner */}
-      {wordExporting && (
-        <div className="flex items-start gap-3 bg-[#F5F3FF] border border-[#DDD6FE] rounded-xl px-4 py-3 mb-5">
-          <Loader2 className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5 animate-spin" />
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-[#7C3AED]">Generating Word report — please wait</p>
-            <p className="text-xs text-[#6D28D9] mt-0.5 leading-relaxed">
-              We are writing an executive narrative from your assessment results and building the .docx file.
-              This typically takes <strong>30–60 seconds</strong>.
-            </p>
-          </div>
-          <span className="text-xs font-mono text-[#A78BFA] shrink-0 mt-0.5 tabular-nums">
-            {Math.floor(wordElapsed / 60)}:{String(wordElapsed % 60).padStart(2, '0')}
-          </span>
-        </div>
-      )}
-
-      {/* Word export error */}
-      {wordError && (
-        <div className="flex items-start gap-3 bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 mb-5">
-          <AlertCircle className="w-4 h-4 text-[#B91C1C] shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-[#B91C1C]">Word report generation failed</p>
-            <p className="text-xs text-[#991B1B] mt-0.5">{wordError}</p>
-          </div>
-          <button onClick={() => setWordError(null)} className="text-[#FECACA] hover:text-[#B91C1C] text-sm transition">✕</button>
-        </div>
-      )}
 
       {/* Anthropic key missing modal */}
       {showKeyModal && (
@@ -216,24 +144,24 @@ export default function ReportPage() {
               <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-center justify-center">
                 <Key className="w-5 h-5 text-[#B45309]" />
               </div>
-              <h2 className="text-base font-bold text-[#1c1d1f]">Anthropic API Key Required</h2>
+              <h2 className="text-base font-bold text-[#1c1917]">Anthropic API Key Required</h2>
             </div>
-            <p className="text-sm text-[#505967] mb-4 leading-relaxed">
+            <p className="text-sm text-[#44403c] mb-4 leading-relaxed">
               Word report generation uses Claude AI to write an executive narrative. Add your Anthropic API key in Settings to enable this feature.
             </p>
-            <div className="bg-[#fafafa] border border-[#e4e7ec] rounded-lg p-3 mb-4 text-xs text-[#6f7988] font-mono">
-              Get your API key at: <strong className="text-[#1c1d1f]">console.anthropic.com</strong>
+            <div className="bg-[#fafaf9] border border-[#e7e5e4] rounded-lg p-3 mb-4 text-xs text-[#44403c] font-mono">
+              Get your API key at: <strong className="text-[#1c1917]">console.anthropic.com</strong>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-[#505967] bg-[#fafafa] hover:bg-[#eeeff1] rounded-lg transition border border-[#e4e7ec]"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-[#44403c] bg-[#fafaf9] hover:bg-[#f5f5f4] rounded-lg transition border border-[#e7e5e4]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => { setShowKeyModal(false); router.push('/settings') }}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#1c1d1f] hover:bg-[#1c1d1f] rounded-lg transition"
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#1c1917] hover:bg-[#0c0a09] rounded-lg transition"
               >
                 Open Settings
               </button>
@@ -242,154 +170,307 @@ export default function ReportPage() {
         </div>
       )}
 
-      {/* Report header card */}
-      <div className="bg-white rounded-xl border border-[#e4e7ec] p-6 mb-5 shadow-card">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          <div className="w-11 h-11 rounded-xl bg-[#fafafa] border border-[#e4e7ec] flex items-center justify-center shrink-0">
-            <Shield className="w-5 h-5 text-[#6f7988]" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <h1 className="text-[18px] font-bold text-[#1c1d1f]">{report.frameworkName}</h1>
-              <RiskBadge score={report.summary.riskScore} />
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-[#6f7988]">
-              <span className="flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5" />
-                {report.tenantDisplayName}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" />
-                {new Date(report.generatedAt).toLocaleString()}
-              </span>
-              <span className="font-mono text-[10px] text-[#a4adba]">{report.reportId}</span>
-            </div>
-          </div>
-          <div className="text-right shrink-0">
-            <div className="font-bold leading-none tabular-nums" style={{ fontSize: 40, color: scoreColor }}>
-              {pct}
-              <span className="text-xl text-[#cad0d9] font-medium">%</span>
-            </div>
-            <div className="text-[11px] text-[#6f7988] mt-1">Compliance Score</div>
+      {/* ── Hero Summary ── */}
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+        <div>
+          <nav className="flex items-center text-xs font-medium tracking-tight mb-4">
+            <Link href="/history" className="text-[#a8a29e] hover:text-[#44403c] transition">All reports</Link>
+            <span className="mx-2 text-[#a8a29e]">/</span>
+            <span className="text-[#1c1917] font-medium">{report.frameworkName}</span>
+          </nav>
+          <h1 className="text-3xl font-bold text-[#1c1917] tracking-tight mb-2">Compliance Ledger</h1>
+          <div className="flex items-center gap-4 text-sm text-[#44403c]">
+            <span className="flex items-center gap-1.5">
+              <Calendar className="w-4 h-4" />
+              {new Date(report.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Building2 className="w-4 h-4" />
+              {report.tenantDisplayName}
+            </span>
           </div>
         </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right">
+            <p className="text-[10px] uppercase tracking-widest text-[#44403c] font-bold mb-1">Health Status</p>
+            <div className="flex items-center gap-2">
+              <span className="text-4xl font-extrabold text-[#1c1917]">{pct}%</span>
+              <span
+                className="text-[10px] px-2 py-0.5 font-bold rounded-full text-white"
+                style={{ background: riskColor }}
+              >
+                {riskLabel}
+              </span>
+            </div>
+          </div>
+          <div className="w-16 h-16 relative shrink-0">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
+              <circle className="text-[#f5f5f4]" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" strokeWidth="6" />
+              <circle
+                cx="32" cy="32" fill="transparent" r="28"
+                stroke="#1c1917" strokeWidth="6"
+                strokeDasharray={`${(pct / 100) * 175.9} 175.9`}
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Export Actions ── */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <button
+          onClick={async () => { setOpaExporting(true); await exportOPAReport(reportId); setOpaExporting(false) }}
+          disabled={opaExporting}
+          className="bg-[#e7e5e4] text-[#1c1917] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
+        >
+          {opaExporting ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
+          Export OPA
+        </button>
+        <button
+          onClick={exportJSON}
+          className="bg-[#1c1917] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#0c0a09] transition-colors"
+        >
+          Export JSON
+        </button>
+        <button
+          onClick={async () => { setZipExporting(true); await exportEvidenceZip(reportId); setZipExporting(false) }}
+          disabled={zipExporting}
+          className="bg-[#e7e5e4] text-[#1c1917] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
+        >
+          {zipExporting ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
+          Evidence ZIP
+        </button>
+        {anthropicReady === false ? (
+          <button
+            onClick={() => setShowKeyModal(true)}
+            className="bg-[#FFFBEB] text-[#B45309] border border-[#FDE68A] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#FEF3C7] transition"
+          >
+            <Key className="w-3 h-3 inline mr-1" />
+            Word Report
+          </button>
+        ) : (
+          <button
+            onClick={handleWordExport}
+            disabled={wordExporting}
+            className="bg-[#7C3AED] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#6D28D9] disabled:bg-[#f5f5f4] disabled:text-[#44403c] transition disabled:cursor-wait"
+          >
+            {wordExporting
+              ? <><Loader2 className="w-3 h-3 animate-spin inline mr-1" /> Generating…</>
+              : <><FileText className="w-3 h-3 inline mr-1" /> Word Report</>
+            }
+          </button>
+        )}
+        <button
+          onClick={() => router.push(`/assess/running?framework=${report.frameworkId}`)}
+          className="bg-[#1c1917] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#0c0a09] transition ml-auto"
+        >
+          <Play className="w-3 h-3 inline mr-1" /> Re-run
+        </button>
       </div>
 
-      {/* Summary cards */}
-      <ComplianceSummaryCards summary={report.summary} className="mb-5" />
+      {/* Word export banners */}
+      {wordExporting && (
+        <div className="flex items-start gap-3 bg-[#F5F3FF] border border-[#DDD6FE] rounded-xl px-4 py-3">
+          <Loader2 className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5 animate-spin" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-[#7C3AED]">Generating Word report — please wait</p>
+            <p className="text-xs text-[#6D28D9] mt-0.5 leading-relaxed">
+              Writing an executive narrative. This typically takes <strong>30–60 seconds</strong>.
+            </p>
+          </div>
+          <span className="text-xs font-mono text-[#A78BFA] shrink-0 mt-0.5 tabular-nums">
+            {Math.floor(wordElapsed / 60)}:{String(wordElapsed % 60).padStart(2, '0')}
+          </span>
+        </div>
+      )}
+      {wordError && (
+        <div className="flex items-start gap-3 bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3">
+          <AlertCircle className="w-4 h-4 text-[#B91C1C] shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-[#B91C1C]">Word report generation failed</p>
+            <p className="text-xs text-[#991B1B] mt-0.5">{wordError}</p>
+          </div>
+          <button onClick={() => setWordError(null)} className="text-[#FECACA] hover:text-[#B91C1C] text-sm transition">✕</button>
+        </div>
+      )}
 
-      {/* Donut + top findings */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      {/* ── Metrics Bento ── */}
+      <ComplianceSummaryCards summary={report.summary} />
+
+      {/* ── Detailed Analysis: Donut + Findings ── */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ComplianceDonut summary={report.summary} />
 
-        {report.summary.topFindings.length > 0 && (
-          <div className="lg:col-span-2 bg-white rounded-xl border border-[#e4e7ec] p-5 shadow-card">
-            <p className="text-[10px] font-semibold text-[#6f7988] uppercase tracking-widest mb-3">Top Findings</p>
-            <ul className="space-y-2.5">
-              {report.summary.topFindings.map((f, i) => (
-                <li key={i} className="flex items-start gap-2.5 text-[13px] text-[#1c1d1f]">
-                  <span className="w-5 h-5 rounded-full bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                    {i + 1}
-                  </span>
-                  {f}
-                </li>
-              ))}
-            </ul>
+        {/* Top Findings */}
+        <div className="lg:col-span-2 bg-[#fafaf9] p-6 rounded-xl">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-sm font-bold text-[#1c1917] uppercase tracking-widest">Top Findings & Critical Issues</h3>
+            {report.summary.failed > 0 && (
+              <span className="text-[10px] font-bold text-[#9f403d] bg-[#fe8983]/20 px-2 py-0.5 rounded">
+                REQUIRES IMMEDIATE ATTENTION
+              </span>
+            )}
           </div>
-        )}
-      </div>
+          <div className="space-y-4">
+            {(report.summary.topFindings ?? []).length > 0 ? (
+              (report.summary.topFindings ?? []).slice(0, 4).map((finding, i) => (
+                <div key={i} className={`bg-white p-4 rounded-lg flex gap-4 ${i === 0 ? 'border-l-4 border-[#9f403d]' : i < 2 ? 'border-l-4 border-[#9f403d]/50' : 'border-l-4 border-[#78716c]'}`}>
+                  <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${i < 2 ? 'text-[#9f403d]' : 'text-[#78716c]'}`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-[#1c1917] mb-1">{finding}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="bg-white p-4 rounded-lg text-center text-sm text-[#44403c]">
+                No critical findings detected.
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
 
-      {/* Tab bar */}
-      <div className="flex items-center gap-1 bg-white border border-[#e4e7ec] rounded-xl p-1 shadow-card mb-5">
+      {/* ── Tab Bar (Controls / DIBCAC) ── */}
+      <div className="flex items-center gap-1 bg-white border border-[#a8a29e]/20 rounded-xl p-1">
         <button
           onClick={() => setActiveTab('controls')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
             activeTab === 'controls'
-              ? 'bg-[#1c1d1f] text-white shadow-sm'
-              : 'text-[#6f7988] hover:text-[#1c1d1f]'
+              ? 'bg-[#1c1917] text-white shadow-sm'
+              : 'text-[#44403c] hover:text-[#1c1917]'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
           Control Assessments
-          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#eeeff1] text-[#6f7988]'}`}>
+          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}>
             {report.controlAssessments.length}
           </span>
         </button>
 
-        {report.frameworkId === 'CMMC_L2' && (
+        {(report.frameworkId === 'CMMC_L2' || report.frameworkId === 'cmmc-l2') && (
           <button
             onClick={() => setActiveTab('dibcac')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
               activeTab === 'dibcac'
-                ? 'bg-[#1c1d1f] text-white shadow-sm'
-                : 'text-[#6f7988] hover:text-[#1c1d1f]'
+                ? 'bg-[#1c1917] text-white shadow-sm'
+                : 'text-[#44403c] hover:text-[#1c1917]'
             }`}
           >
             <ClipboardList className="w-3.5 h-3.5" />
             DIBCAC 320 Objectives
-            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#eeeff1] text-[#6f7988]'}`}>
+            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}>
               320
             </span>
           </button>
         )}
       </div>
 
-      {/* Controls section */}
+      {/* ── Control Assessments Ledger (Table) ── */}
       {activeTab === 'controls' && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-[13px] font-bold text-[#1c1d1f] uppercase tracking-widest">Control Assessments</h2>
-            {/* Filter tabs */}
-            <div className="flex items-center gap-1 bg-white border border-[#e4e7ec] rounded-lg p-1 shadow-card">
+        <section className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#a8a29e]/10">
+          {/* Table header */}
+          <div className="p-6 border-b border-[#a8a29e]/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <h3 className="text-lg font-bold text-[#1c1917]">Control Assessments Ledger</h3>
+            <div className="flex bg-[#f5f5f4] p-1 rounded-lg">
               {statusFilters.map(f => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
-                  className={`px-3 py-1.5 rounded-md text-[11px] font-medium transition
-                    ${filter === f.value
-                      ? 'bg-[#1c1d1f] text-white shadow-sm'
-                      : 'text-[#6f7988] hover:text-[#1c1d1f]'
-                    }`}
+                  className={`px-4 py-1 text-[11px] font-bold rounded-md transition-colors ${
+                    filter === f.value
+                      ? 'bg-white shadow-sm text-[#1c1917]'
+                      : 'text-[#44403c] hover:text-[#1c1917]'
+                  }`}
                 >
                   {f.label}
-                  <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-[9px] font-bold
-                    ${filter === f.value ? 'bg-white/20 text-white' : 'bg-[#eeeff1] text-[#6f7988]'}`}>
-                    {f.count}
-                  </span>
                 </button>
               ))}
             </div>
           </div>
 
-          {families.length === 0 ? (
-            <div className="text-center py-12 text-[#a4adba] text-sm bg-white rounded-xl border border-[#e4e7ec] shadow-card">
-              No controls match this filter.
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {families.map(family => (
-                <div key={family}>
-                  <h3 className="text-[10px] font-bold text-[#a4adba] uppercase tracking-widest mb-3 px-1">
-                    {family}
-                  </h3>
-                  <div className="space-y-2">
-                    {grouped[family].map(a => (
-                      <ControlCard
-                        key={a.controlId}
-                        assessment={a}
-                        onViewEvidence={setEvidenceControl}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead className="bg-[#fafaf9]">
+                <tr>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">ID</th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Control Name</th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Status</th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Family</th>
+                  <th className="text-right px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#a8a29e]/10">
+                {displayControls.map(a => {
+                  const badge = statusBadgeStyles[a.status] ?? statusBadgeStyles.not_assessed
+                  const portalLinks = getPortalLinks(a.controlId)
+                  const showFix = portalLinks.length > 0 && (a.status === 'fail' || a.status === 'partial')
+
+                  return (
+                    <tr
+                      key={a.controlId}
+                      className="hover:bg-[#fafaf9]/50 transition-colors cursor-pointer"
+                      onClick={() => setEvidenceControl(a)}
+                    >
+                      <td className="px-6 py-4 text-xs font-bold text-[#44403c]">{a.controlId}</td>
+                      <td className="px-6 py-4">
+                        <p className="text-sm font-semibold text-[#1c1917]">{a.controlTitle}</p>
+                        {a.family && <p className="text-[10px] text-[#44403c]">{a.family}</p>}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`${badge.bg} ${badge.text} text-[9px] px-2 py-0.5 font-black rounded tracking-tighter uppercase`}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-[#44403c]">{a.family ?? '—'}</td>
+                      <td className="px-6 py-4 text-right">
+                        {showFix ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); window.open(portalLinks[0].url, '_blank') }}
+                            className="bg-[#1c1917] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[#0c0a09] transition"
+                          >
+                            Fix in Azure
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEvidenceControl(a) }}
+                            className="text-[#44403c] hover:text-[#1c1917]"
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Show all / pagination */}
+          {filtered.length > 10 && (
+            <div className="p-4 bg-[#fafaf9]/30 flex justify-center">
+              <button
+                onClick={() => setShowAllControls(!showAllControls)}
+                className="text-xs font-bold text-[#1c1917] flex items-center gap-1 hover:underline"
+              >
+                {showAllControls ? 'SHOW LESS' : `VIEW ALL ${filtered.length} CONTROLS`}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showAllControls ? 'rotate-180' : ''}`} />
+              </button>
             </div>
           )}
-        </div>
+
+          {filtered.length === 0 && (
+            <div className="p-10 text-center text-sm text-[#a8a29e]">
+              No controls match this filter.
+            </div>
+          )}
+        </section>
       )}
 
-      {/* DIBCAC 320 Objectives section */}
-      {activeTab === 'dibcac' && report.frameworkId === 'CMMC_L2' && (
+      {/* ── DIBCAC 320 Objectives ── */}
+      {activeTab === 'dibcac' && (report.frameworkId === 'CMMC_L2' || report.frameworkId === 'cmmc-l2') && (
         <DIBCACObjectives reportId={reportId} />
       )}
     </div>

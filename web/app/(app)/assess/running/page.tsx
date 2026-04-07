@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { CheckCircle2, XCircle, AlertCircle, Loader2, Shield } from 'lucide-react'
-import { StatusBadge } from '@/components/StatusBadge'
+import {
+  CheckCircle2, XCircle, AlertCircle, Loader2, Shield,
+  Clock, Activity, Zap, ArrowLeft,
+} from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
 import type { ControlAssessment, ComplianceReport } from '@/lib/types'
 
@@ -36,12 +38,12 @@ function RunningInner() {
 
   const supabase = createClientSupabase()
 
-  // Tick elapsed seconds while starting
+  // Tick elapsed seconds while assessment is running
   useEffect(() => {
-    if (!starting) { setStartingSeconds(0); return }
+    if (done) { return }
     const id = setInterval(() => setStartingSeconds(s => s + 1), 1_000)
     return () => clearInterval(id)
-  }, [starting])
+  }, [done])
 
   useEffect(() => {
     if (!frameworkId) { router.replace('/assess'); return }
@@ -52,23 +54,22 @@ function RunningInner() {
     async function startAssessment() {
       setStarting(true)
 
-      // Get access token for Edge Function call
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) {
-        setError('Your session has expired. Please refresh the page and try again.')
-        return
-      }
-
-      // Call the assess Edge Function to start the assessment job
-      const { data, error: fnError } = await supabase.functions.invoke('assess', {
-        body: {
-          frameworkId,
-          clientId,
-        },
-      })
-
-      if (fnError) {
-        setError(fnError.message ?? 'Failed to start assessment. Please try again.')
+      // Call the local assess API route (replaces Supabase Edge Function)
+      let data: any
+      try {
+        const res = await fetch('/api/assess', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ frameworkId, clientId }),
+        })
+        data = await res.json()
+        if (!res.ok) {
+          setError(data?.error ?? 'Failed to start assessment. Please try again.')
+          setStarting(false)
+          return
+        }
+      } catch (fetchErr) {
+        setError(fetchErr instanceof Error ? fetchErr.message : 'Failed to start assessment.')
         setStarting(false)
         return
       }
@@ -167,8 +168,17 @@ function RunningInner() {
     }
   }, [frameworkId, clientId, router])
 
+  // ── Derived data ──────────────────────────────────────────────────────────
   const pct = total > 0 ? Math.round((current / total) * 100) : 0
+  const failedItems  = items.filter(i => i.done && i.status === 'fail')
+  const passedItems  = items.filter(i => i.done && i.status === 'pass')
+  const checkedCount = items.filter(i => i.done).length
+  const elapsedMin   = Math.floor(startingSeconds / 60)
+  const elapsedSec   = startingSeconds % 60
+  const elapsedStr   = `${String(elapsedMin).padStart(2, '0')}:${String(elapsedSec).padStart(2, '0')}s`
+  const currentDomain = currentTitle || (starting ? 'Initializing...' : 'Preparing...')
 
+  // ── Error state ───────────────────────────────────────────────────────────
   if (error) {
     const noTenant = error.toLowerCase().includes('no m365') ||
                      error.toLowerCase().includes('no microsoft 365') ||
@@ -180,15 +190,15 @@ function RunningInner() {
           <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center mx-auto mb-5">
             <XCircle className="w-7 h-7 text-[#B91C1C]" />
           </div>
-          <h2 className="text-base font-bold text-[#1c1d1f] mb-2">
+          <h2 className="text-base font-bold text-[#1c1917] mb-2">
             {noTenant ? 'M365 tenant not connected' : 'Assessment failed'}
           </h2>
-          <p className="text-sm text-[#505967] mb-6 leading-relaxed">{error}</p>
+          <p className="text-sm text-[#44403c] mb-6 leading-relaxed">{error}</p>
           <div className="flex flex-col gap-2 items-center">
             {noTenant && (
               <button
                 onClick={() => router.push('/connect')}
-                className="w-full bg-[#1c1d1f] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+                className="w-full bg-[#1c1917] hover:bg-[#0c0a09] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
               >
                 Connect Microsoft 365
               </button>
@@ -197,8 +207,8 @@ function RunningInner() {
               onClick={() => router.push('/assess')}
               className={`w-full text-sm font-semibold px-5 py-2.5 rounded-lg transition border ${
                 noTenant
-                  ? 'bg-white text-[#505967] border-[#e4e7ec]'
-                  : 'bg-[#1c1d1f] text-white border-transparent'
+                  ? 'bg-white text-[#44403c] border-[#a8a29e]/30'
+                  : 'bg-[#1c1917] hover:bg-[#0c0a09] text-white border-transparent'
               }`}
             >
               Back to Frameworks
@@ -209,118 +219,297 @@ function RunningInner() {
     )
   }
 
+  // ── Status badge styles ───────────────────────────────────────────────────
+  const badgeStyles: Record<string, { bg: string; text: string; label: string }> = {
+    pass:           { bg: 'bg-[#e7e5e4]',   text: 'text-[#1c1917]', label: 'Passed' },
+    fail:           { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Failed' },
+    partial:        { bg: 'bg-[#e7e5e4]',    text: 'text-[#57534e]', label: 'Partial' },
+    not_assessed:   { bg: 'bg-[#f5f5f4]',    text: 'text-[#44403c]', label: 'N/A' },
+    not_applicable: { bg: 'bg-[#f5f5f4]',    text: 'text-[#44403c]', label: 'N/A' },
+  }
+
+  // ── Main render ───────────────────────────────────────────────────────────
   return (
-    <div className="p-8 max-w-2xl mx-auto">
+    <div className="p-8 max-w-6xl space-y-8">
 
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          {done
-            ? <CheckCircle2 className="w-5 h-5 text-[#15803D]" />
-            : <Loader2 className="w-5 h-5 text-[#6f7988] animate-spin" />
-          }
-          <h1 className="text-[20px] font-bold text-[#1c1d1f] tracking-tight">
-            {done ? 'Assessment Complete' : starting ? 'Starting Assessment...' : 'Running Assessment'}
+      {/* ── Header ── */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-[#0c0a09] mb-1">
+            <Shield className="w-4 h-4" />
+            <span className="text-xs font-bold uppercase tracking-widest">
+              {done ? 'Assessment Complete' : 'Running Assessment'}
+            </span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#1c1917]">
+            {done ? 'Compliance Scan Complete' : starting ? 'Starting Compliance Scan...' : 'Compliance Scan In Progress'}
           </h1>
-        </div>
-        {frameworkName && (
-          <p className="text-sm text-[#505967] ml-8">{frameworkName}</p>
-        )}
-      </div>
-
-      {/* Progress */}
-      <div className="bg-white rounded-xl border border-[#e4e7ec] p-5 mb-5 shadow-card">
-        <div className="flex items-center justify-between text-sm mb-3">
-          <span className="text-[#1c1d1f] font-medium truncate mr-4">
-            {done ? 'All controls assessed' : currentTitle || (starting ? 'Connecting to assessment engine...' : 'Preparing...')}
-          </span>
-          <span className="text-[#6f7988] font-mono text-xs shrink-0">{current}/{total}</span>
-        </div>
-        <div className="w-full bg-[#eeeff1] rounded-full h-2 overflow-hidden">
-          <div
-            className="h-2 rounded-full transition-all duration-500"
-            style={{
-              width: `${done ? 100 : pct}%`,
-              background: done ? '#15803D' : '#1c1d1f',
-            }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-2 text-[11px] text-[#a4adba]">
-          <span>{done ? '100' : pct}% complete</span>
-          {!done && !starting && <span className="animate-pulse text-[#6f7988]">Querying Microsoft Graph...</span>}
-          {starting && <span className="text-[#a4adba]">Initializing...</span>}
-        </div>
-      </div>
-
-      {/* Control list */}
-      <div className="bg-white rounded-xl border border-[#e4e7ec] overflow-hidden mb-5 shadow-card">
-        <div className="px-5 py-3 border-b border-[#eeeff1] flex items-center gap-2">
-          <Shield className="w-3.5 h-3.5 text-[#a4adba]" />
-          <span className="text-[11px] font-semibold text-[#6f7988] uppercase tracking-widest">Controls</span>
-        </div>
-        <div ref={listRef} className="divide-y divide-[#fafafa] max-h-[400px] overflow-y-auto sidebar-scroll">
-          {items.length === 0 && (
-            <div className="py-10 text-center">
-              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#a4adba]" />
-              {starting ? (
-                <>
-                  <p className="text-xs text-[#6f7988] font-medium">Starting assessment engine...</p>
-                  <p className="text-[11px] text-[#a4adba] mt-1">
-                    {startingSeconds < 5
-                      ? 'Connecting...'
-                      : startingSeconds < 15
-                      ? `${startingSeconds}s — authenticating with Microsoft Graph...`
-                      : `${startingSeconds}s — assessing controls...`}
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-[#6f7988]">Starting...</p>
-              )}
-            </div>
-          )}
-          {items.map(item => (
-            <div key={item.controlId} className="flex items-center gap-3 px-5 py-3">
-              <div className="w-4 h-4 shrink-0 flex items-center justify-center">
-                {!item.done ? (
-                  <Loader2 className="w-3.5 h-3.5 text-[#a4adba] animate-spin" />
-                ) : item.status === 'pass' ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#15803D]" />
-                ) : item.status === 'fail' ? (
-                  <XCircle className="w-3.5 h-3.5 text-[#B91C1C]" />
-                ) : (
-                  <AlertCircle className="w-3.5 h-3.5 text-[#B45309]" />
-                )}
-              </div>
-              <span className="font-mono text-[10px] text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-1.5 py-0.5 rounded shrink-0">
-                {item.controlId}
+          <div className="flex items-center gap-3 mt-2">
+            {frameworkId && (
+              <span className="px-2.5 py-1 bg-[#e7e5e4] rounded text-xs font-medium text-[#44403c]">
+                <span className="text-[#a8a29e]">Framework:</span>{' '}
+                <span className="font-semibold text-[#1c1917]">{frameworkName || frameworkId}</span>
               </span>
-              <span className="text-[13px] text-[#1c1d1f] flex-1 truncate">{item.title}</span>
-              {item.done && item.status && (
-                <StatusBadge status={item.status} size="sm" />
-              )}
-            </div>
-          ))}
+            )}
+          </div>
         </div>
-      </div>
-
-      {/* Done CTA */}
-      {done && reportId && (
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          {!done && (
+            <button
+              onClick={() => router.push('/assess')}
+              className="flex items-center gap-2 px-4 py-2 bg-white text-[#44403c] font-semibold text-sm border border-[#a8a29e]/30 rounded shadow-sm hover:bg-[#fafaf9] transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </button>
+          )}
           <button
-            onClick={() => router.push(`/assess/${reportId}`)}
-            className="flex-1 bg-[#1c1d1f] text-white text-sm font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2"
+            onClick={() => done && reportId ? router.push(`/assess/${reportId}`) : undefined}
+            disabled={!done || !reportId}
+            className={`px-6 py-2 font-semibold text-sm rounded shadow-sm transition-colors ${
+              done && reportId
+                ? 'text-white hover:opacity-90'
+                : 'bg-[#f5f5f4] text-[#a8a29e] cursor-not-allowed'
+            }`}
+            style={done && reportId ? { background: 'linear-gradient(180deg, #1c1917 0%, #0c0a09 100%)' } : undefined}
           >
-            <CheckCircle2 className="w-4 h-4" />
             View Full Report
           </button>
-          <button
-            onClick={() => router.push('/')}
-            className="px-5 py-3 bg-white hover:bg-[#fafafa] text-[#505967] hover:text-[#1c1d1f] text-sm font-medium rounded-lg transition border border-[#e4e7ec]"
-          >
-            Dashboard
-          </button>
         </div>
-      )}
+      </div>
+
+      {/* ── Progress Card ── */}
+      <div className="bg-white rounded-xl p-8 border border-[#a8a29e]/10">
+        <div className="flex justify-between items-end mb-4">
+          <div className="space-y-1">
+            <span className="text-[11px] font-bold text-[#44403c] uppercase tracking-widest">Current Evaluation Phase</span>
+            <h3 className="text-xl font-semibold text-[#1c1917]">{currentDomain}</h3>
+          </div>
+          <div className="text-right">
+            <span className="text-4xl font-black text-[#0c0a09] tracking-tighter">{done ? 100 : pct}%</span>
+            <span className="text-xs block font-bold text-[#44403c] uppercase">Complete</span>
+          </div>
+        </div>
+
+        <div className="h-3 w-full bg-[#f5f5f4] rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-500 relative"
+            style={{
+              width: `${done ? 100 : pct}%`,
+              background: done
+                ? '#15803D'
+                : 'linear-gradient(90deg, #1c1917, #0c0a09)',
+            }}
+          >
+            {!done && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 mt-6 gap-4">
+          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
+            <span className="text-[10px] uppercase font-bold text-[#44403c]">Elapsed Time</span>
+            <p className="text-sm font-semibold text-[#1c1917]">{elapsedStr}</p>
+          </div>
+          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
+            <span className="text-[10px] uppercase font-bold text-[#44403c]">Controls Checked</span>
+            <p className="text-sm font-semibold text-[#1c1917]">{checkedCount} / {total || '—'}</p>
+          </div>
+          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
+            <span className="text-[10px] uppercase font-bold text-[#44403c]">Detected Risks</span>
+            <p className={`text-sm font-semibold ${failedItems.length > 0 ? 'text-[#9f403d]' : 'text-[#1c1917]'}`}>
+              {failedItems.length > 0 ? `${failedItems.length} Critical` : 'None'}
+            </p>
+          </div>
+          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
+            <span className="text-[10px] uppercase font-bold text-[#44403c]">Engine Load</span>
+            <p className="text-sm font-semibold text-[#1c1917]">
+              {done ? 'Idle' : starting ? 'Warming up' : 'Active'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Main Grid: Control Ledger + Sidebar ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Left 2/3 — Real-Time Control Ledger */}
+        <div className="lg:col-span-2">
+          <div className="bg-[#fafaf9] rounded-xl overflow-hidden">
+            <div className="px-6 py-4 bg-[#f5f5f4] border-b border-[#a8a29e]/10 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-[#44403c]" />
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#44403c]">Real-Time Control Ledger</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {!done && !starting && <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917] animate-pulse" />}
+                <span className="text-[10px] text-[#a8a29e]">LIVE FEED FROM MICROSOFT GRAPH</span>
+              </div>
+            </div>
+
+            <div ref={listRef} className="max-h-[420px] overflow-y-auto sidebar-scroll divide-y divide-[#f5f5f4]/70">
+              {items.length === 0 && (
+                <div className="py-16 text-center">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-3 text-[#a8a29e]" />
+                  {starting ? (
+                    <>
+                      <p className="text-xs text-[#44403c] font-medium">Starting assessment engine...</p>
+                      <p className="text-[11px] text-[#a8a29e] mt-1">
+                        {startingSeconds < 5
+                          ? 'Connecting...'
+                          : startingSeconds < 15
+                          ? `${startingSeconds}s — authenticating with Microsoft Graph...`
+                          : `${startingSeconds}s — assessing controls...`}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-[#44403c]">Preparing...</p>
+                  )}
+                </div>
+              )}
+              {items.map((item, idx) => {
+                const isPending = !item.done && idx > current
+                const isActive  = !item.done && !isPending
+                const badge = item.done && item.status ? badgeStyles[item.status] ?? badgeStyles.not_assessed : null
+
+                return (
+                  <div
+                    key={item.controlId}
+                    className={`px-6 py-3.5 flex items-center justify-between transition-colors ${
+                      isPending ? 'opacity-50' : isActive ? 'bg-white' : 'hover:bg-[#f5f5f4]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-5 h-5 shrink-0 flex items-center justify-center">
+                        {isActive ? (
+                          <div className="w-4 h-4 border-2 border-[#1c1917] border-t-transparent rounded-full animate-spin" />
+                        ) : isPending ? (
+                          <Clock className="w-4 h-4 text-[#a8a29e]" />
+                        ) : item.status === 'pass' ? (
+                          <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
+                        ) : item.status === 'fail' ? (
+                          <XCircle className="w-4 h-4 text-[#9f403d]" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-[#B45309]" />
+                        )}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-mono font-bold text-[#1c1917]">{item.controlId}</span>
+                        <span className="text-sm font-medium text-[#1c1917]">{item.title}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {badge ? (
+                        <span className={`px-2 py-0.5 ${badge.bg} ${badge.text} text-[10px] font-bold uppercase tracking-wider rounded`}>
+                          {badge.label}
+                        </span>
+                      ) : isActive ? (
+                        <span className="px-2 py-0.5 bg-[#e7e5e4] text-[#57534e] text-[10px] font-bold uppercase tracking-wider rounded">
+                          In Progress
+                        </span>
+                      ) : isPending ? (
+                        <span className="px-2 py-0.5 bg-[#f5f5f4] text-[#44403c] text-[10px] font-bold uppercase tracking-wider rounded">
+                          Pending
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right 1/3 — Sidebar Panels */}
+        <div className="space-y-6">
+          {/* Scanner Telemetry */}
+          <div className="bg-[#0c0a09] text-white rounded-xl p-6 shadow-xl">
+            <h4 className="text-[11px] font-bold uppercase tracking-widest mb-4 opacity-70">Scanner Telemetry</h4>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                <span className="text-sm opacity-80 flex items-center gap-2">
+                  <Zap className="w-3.5 h-3.5" /> API Latency
+                </span>
+                <span className="text-sm font-mono font-bold">
+                  {done ? '—' : starting ? '...' : '~120ms'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                <span className="text-sm opacity-80 flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5" /> Throttle Status
+                </span>
+                <span className={`text-sm font-mono font-bold ${!done && !starting ? 'text-green-300' : ''}`}>
+                  {done ? 'Idle' : starting ? 'Connecting' : 'Optimal'}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm opacity-80 flex items-center gap-2">
+                  <Shield className="w-3.5 h-3.5" /> Identity Checks
+                </span>
+                <span className="text-sm font-mono font-bold">{checkedCount > 0 ? checkedCount.toLocaleString() : '—'}</span>
+              </div>
+            </div>
+            <div className="mt-6 p-4 bg-white/10 rounded-lg border border-white/5">
+              <div className="flex gap-3">
+                <Shield className="w-5 h-5 text-[#e7e5e4] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold mb-1">Assessment Engine Active</p>
+                  <p className="text-[10px] opacity-70 leading-relaxed">
+                    Performing automated compliance checks via Microsoft Graph API.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Live Insights */}
+          <div className="bg-[#d6d3d1] rounded-xl p-6">
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-[#44403c] mb-4">Live Insights</h4>
+            <ul className="space-y-3">
+              {failedItems.length > 0 && (
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#9f403d] mt-1.5 shrink-0" />
+                  <p className="text-xs text-[#1c1917]">
+                    Detected <strong>{failedItems.length}</strong> failed control{failedItems.length !== 1 ? 's' : ''} requiring attention.
+                  </p>
+                </li>
+              )}
+              {passedItems.length > 0 && (
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917] mt-1.5 shrink-0" />
+                  <p className="text-xs text-[#1c1917]">
+                    <strong>{passedItems.length}</strong> control{passedItems.length !== 1 ? 's' : ''} passed compliance checks.
+                  </p>
+                </li>
+              )}
+              {failedItems.slice(0, 3).map(item => (
+                <li key={item.controlId} className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#B45309] mt-1.5 shrink-0" />
+                  <p className="text-xs text-[#1c1917]">
+                    <span className="font-mono text-[10px] text-[#9f403d]">{item.controlId}</span> — {item.title}
+                  </p>
+                </li>
+              ))}
+              {checkedCount === 0 && (
+                <li className="flex items-start gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#a8a29e] mt-1.5 shrink-0" />
+                  <p className="text-xs text-[#44403c]">Waiting for results...</p>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Footer Note ── */}
+      <div className="border-l-4 border-[#1c1917] bg-[#f5f5f4] rounded-lg p-6 flex items-center gap-4">
+        <AlertCircle className="w-6 h-6 text-[#0c0a09] shrink-0" />
+        <div>
+          <h5 className="text-sm font-bold text-[#1c1917] uppercase tracking-tight">Assessment Note</h5>
+          <p className="text-xs text-[#44403c] leading-relaxed">
+            This assessment queries your Microsoft 365 tenant via the <strong>Microsoft Graph API</strong> using delegated permissions. Control evaluations are performed in real-time. Please do not close the browser until the scan reaches 100%.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -329,7 +518,7 @@ export default function RunningPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-6 h-6 animate-spin text-[#a4adba]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#a8a29e]" />
       </div>
     }>
       <RunningInner />

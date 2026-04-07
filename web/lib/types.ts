@@ -59,6 +59,8 @@ export interface FrameworkMeta {
   description: string
   controlCount: number
   implemented: boolean
+  category?: string
+  categoryLabel?: string
 }
 
 export interface ReportMeta {

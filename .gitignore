@@ -6,6 +6,10 @@ web/node_modules/
 dist/
 web/.next/
 
+# Sensitive local files
+env/
+scripts/migrate-encryption.ts
+
 # Environment / secrets — NEVER commit these
 .env
 .env.local

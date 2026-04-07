@@ -25,13 +25,36 @@ function supa() {
   return createClientSupabase()
 }
 
-// ── Edge Function helper ─────────────────────────────────────────────────
-// Calls Supabase Edge Functions with automatic auth (cookie-based session).
+// ── Get current user ID from session (no network call) ──────────────────────
+// Uses getSession() which reads from cookie/storage, unlike getUser() which
+// makes a network request to Supabase Auth and can hang on slow connections.
+async function requireUserId(): Promise<string> {
+  const { data: { session } } = await supa().auth.getSession()
+  if (!session?.user?.id) throw new ApiError('Not authenticated', 401)
+  return session.user.id
+}
+
+// ── API Route helper ─────────────────────────────────────────────────────
+// Calls local Next.js API routes (which handle server-side logic like Graph API).
+// These replace Supabase Edge Functions during development.
 async function invoke<T>(fnName: string, body?: object): Promise<T> {
-  const { data, error } = await supa().functions.invoke(fnName, {
-    body: body ?? {},
+  const res = await fetch(`/api/${fnName}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body ?? {}),
   })
-  if (error) throw new ApiError(error.message ?? `Edge function "${fnName}" failed`, 500)
+  const data = await res.json()
+  if (!res.ok) throw new ApiError(data.error ?? `API "${fnName}" failed`, res.status)
+  return data as T
+}
+
+// ── API Route helper (non-POST methods) ─────────────────────────────────
+async function invokeMethod<T>(path: string, method: string, body?: object): Promise<T> {
+  const opts: RequestInit = { method, headers: { 'Content-Type': 'application/json' } }
+  if (body && method !== 'GET') opts.body = JSON.stringify(body)
+  const res = await fetch(`/api/${path}`, opts)
+  const data = await res.json()
+  if (!res.ok) throw new ApiError(data.error ?? `API "${path}" failed`, res.status)
   return data as T
 }
 
@@ -39,16 +62,26 @@ async function invoke<T>(fnName: string, body?: object): Promise<T> {
 // Config status is derived from whether the user has any clients with credentials.
 
 export const getConfigStatus = async (): Promise<ConfigStatus & { anthropicConfigured?: boolean; clientCount?: number }> => {
-  const { data: clients, error } = await supa()
-    .from('clients')
-    .select('id, tenant_id, name')
-  if (error) throw new ApiError(error.message, 500)
-  const count = clients?.length ?? 0
+  // Fetch clients from server-side route (credentials are decrypted there)
+  const clients = await invokeMethod<Client[]>('clients', 'GET')
+  const count = clients.length
+
+  // Check if Anthropic API key is configured (server-side env var)
+  let anthropicConfigured = false
+  try {
+    const res = await fetch('/api/config-status', { method: 'GET' })
+    if (res.ok) {
+      const data = await res.json()
+      anthropicConfigured = !!data.anthropicConfigured
+    }
+  } catch { /* ignore */ }
+
   return {
     configured: count > 0,
-    tenantId: clients?.[0]?.tenant_id,
-    tenantName: clients?.[0]?.name,
+    tenantId: clients[0]?.tenantId,
+    tenantName: clients[0]?.name,
     clientCount: count,
+    anthropicConfigured,
   }
 }
 
@@ -65,86 +98,26 @@ export const testConfig = async (data?: {
 }
 
 // ── Clients (multi-tenant MSP) ────────────────────────────────────────────────
+// All client CRUD goes through server-side /api/clients which handles encryption.
 
 export const getClients = async (): Promise<Client[]> => {
-  const { data, error } = await supa()
-    .from('clients')
-    .select('*')
-    .order('added_at', { ascending: false })
-  if (error) throw new ApiError(error.message, 500)
-  return (data ?? []).map(row => ({
-    id: row.id,
-    name: row.name,
-    tenantId: row.tenant_id,
-    clientId: row.client_id,
-    clientSecret: row.client_secret?.replace(/(?<=.{4}).*/g, (m: string) => '\u2022'.repeat(m.length)) ?? '',
-    addedAt: row.added_at,
-    notes: row.notes,
-  }))
+  return invokeMethod<Client[]>('clients', 'GET')
 }
 
 export const addClient = async (data: {
   name: string; tenantId: string; clientId: string; clientSecret: string
 }): Promise<Client> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
-
-  const { data: row, error } = await sb
-    .from('clients')
-    .insert({
-      user_id: user.id,
-      external_id: crypto.randomUUID(),
-      name: data.name,
-      tenant_id: data.tenantId,
-      client_id: data.clientId,
-      client_secret: data.clientSecret,
-    })
-    .select()
-    .single()
-  if (error) throw new ApiError(error.message, 500)
-  return {
-    id: row.id,
-    name: row.name,
-    tenantId: row.tenant_id,
-    clientId: row.client_id,
-    clientSecret: row.client_secret?.replace(/(?<=.{4}).*/g, (m: string) => '\u2022'.repeat(m.length)) ?? '',
-    addedAt: row.added_at,
-    notes: row.notes,
-  }
+  return invoke('clients', data)
 }
 
 export const updateClient = async (id: string, data: Partial<{
   name: string; tenantId: string; clientId: string; clientSecret: string
 }>): Promise<Client> => {
-  const update: Record<string, unknown> = {}
-  if (data.name !== undefined) update.name = data.name
-  if (data.tenantId !== undefined) update.tenant_id = data.tenantId
-  if (data.clientId !== undefined) update.client_id = data.clientId
-  if (data.clientSecret !== undefined) update.client_secret = data.clientSecret
-
-  const { data: row, error } = await supa()
-    .from('clients')
-    .update(update)
-    .eq('id', id)
-    .select()
-    .single()
-  if (error) throw new ApiError(error.message, 500)
-  return {
-    id: row.id,
-    name: row.name,
-    tenantId: row.tenant_id,
-    clientId: row.client_id,
-    clientSecret: row.client_secret?.replace(/(?<=.{4}).*/g, (m: string) => '\u2022'.repeat(m.length)) ?? '',
-    addedAt: row.added_at,
-    notes: row.notes,
-  }
+  return invokeMethod<Client>('clients', 'PATCH', { id, ...data })
 }
 
 export const deleteClient = async (id: string): Promise<{ ok: boolean }> => {
-  const { error } = await supa().from('clients').delete().eq('id', id)
-  if (error) throw new ApiError(error.message, 500)
-  return { ok: true }
+  return invokeMethod<{ ok: boolean }>(`clients?id=${id}`, 'DELETE')
 }
 
 export const testClient = async (id: string): Promise<{ ok: boolean; error?: string }> => {
@@ -158,14 +131,9 @@ export const getFrameworks = async (): Promise<FrameworkMeta[]> => {
   try {
     return await invoke<FrameworkMeta[]>('list-frameworks')
   } catch {
-    // Fallback: return hardcoded frameworks if Edge Function doesn't exist yet
-    return [
-      { id: 'cmmc-l2', name: 'CMMC Level 2', version: '2.0', description: 'Cybersecurity Maturity Model Certification Level 2', controlCount: 110, implemented: true },
-      { id: 'nist-800-171', name: 'NIST SP 800-171', version: 'Rev 2', description: 'Protecting Controlled Unclassified Information', controlCount: 110, implemented: true },
-      { id: 'hipaa', name: 'HIPAA Security Rule', version: '2024', description: 'Health Insurance Portability and Accountability Act', controlCount: 54, implemented: false },
-      { id: 'finra', name: 'FINRA Cybersecurity', version: '2024', description: 'Financial Industry Regulatory Authority', controlCount: 42, implemented: false },
-      { id: 'ferpa', name: 'FERPA', version: '2024', description: 'Family Educational Rights and Privacy Act', controlCount: 38, implemented: false },
-    ]
+    // Fallback: return catalog directly if API call fails
+    const { FRAMEWORK_CATALOG } = await import('./framework-catalog')
+    return FRAMEWORK_CATALOG
   }
 }
 
@@ -213,12 +181,16 @@ export const deleteReport = async (id: string): Promise<{ ok: boolean }> => {
 
 export async function exportWordReport(reportId: string): Promise<string | null> {
   try {
-    const { data, error } = await supa().functions.invoke('generate-report', {
-      body: { reportId, format: 'word' },
+    const res = await fetch('/api/generate-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportId, format: 'word' }),
     })
-    if (error) return error.message ?? 'Export failed'
-    // Edge Function returns the file as a blob
-    const blob = data instanceof Blob ? data : new Blob([JSON.stringify(data)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Export failed' }))
+      return err.error ?? 'Export failed'
+    }
+    const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -233,15 +205,20 @@ export async function exportWordReport(reportId: string): Promise<string | null>
 
 export async function exportOPAReport(reportId: string): Promise<string | null> {
   try {
-    const { data, error } = await supa().functions.invoke('generate-report', {
-      body: { reportId, format: 'opa' },
+    const res = await fetch('/api/generate-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportId, format: 'opa' }),
     })
-    if (error) return error.message ?? 'Export failed'
-    const blob = data instanceof Blob ? data : new Blob([JSON.stringify(data)])
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Export failed' }))
+      return err.error ?? 'Export failed'
+    }
+    const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `OPA_${reportId}.docx`
+    a.download = `OPA_${reportId}.xlsx`
     document.body.appendChild(a); a.click()
     document.body.removeChild(a); URL.revokeObjectURL(url)
     return null
@@ -252,11 +229,16 @@ export async function exportOPAReport(reportId: string): Promise<string | null> 
 
 export async function exportEvidenceZip(reportId: string): Promise<string | null> {
   try {
-    const { data, error } = await supa().functions.invoke('generate-report', {
-      body: { reportId, format: 'zip' },
+    const res = await fetch('/api/generate-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportId, format: 'zip' }),
     })
-    if (error) return error.message ?? 'Export failed'
-    const blob = data instanceof Blob ? data : new Blob([JSON.stringify(data)])
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Export failed' }))
+      return err.error ?? 'Export failed'
+    }
+    const blob = await res.blob()
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -283,42 +265,9 @@ export const getAssessStreamUrl = (frameworkId: string, clientId?: string) => {
 // ── DIBCAC 320 Objectives ─────────────────────────────────────────────────────
 
 export const getReportObjectives = async (reportId: string): Promise<ObjectivesResponse> => {
-  const { data: rows, error } = await supa()
-    .from('objective_statuses')
-    .select('*')
-    .eq('report_id', reportId)
-  if (error) throw new ApiError(error.message, 500)
-
-  // The full objective definitions come from the report data
-  // For now, return the statuses. Phase 3 will add full enrichment.
-  const statuses: ObjectiveStatus[] = (rows ?? []).map(r => ({
-    objectiveId: r.objective_id,
-    status: r.status as ObjectiveStatusValue,
-    evidenceSource: r.evidence_source as any,
-    attestationText: r.attestation_text,
-    documentRef: r.document_ref,
-    documentName: r.document_name,
-    assessedAt: r.assessed_at,
-    assessedBy: r.assessed_by,
-  }))
-
-  // Try to get full objectives from Edge Function (enriches with definitions)
-  try {
-    return await invoke<ObjectivesResponse>('get-objectives', { reportId })
-  } catch {
-    // Fallback: return raw statuses without definitions
-    const summary = {
-      total: statuses.length,
-      met: statuses.filter(s => s.status === 'met').length,
-      partiallyMet: statuses.filter(s => s.status === 'partially_met').length,
-      notMet: statuses.filter(s => s.status === 'not_met').length,
-      requiresManual: statuses.filter(s => s.status === 'requires_manual').length,
-      requiresPhysical: statuses.filter(s => s.status === 'requires_physical').length,
-      notAssessed: statuses.filter(s => s.status === 'not_assessed').length,
-      coveragePercentage: statuses.length > 0 ? Math.round((statuses.filter(s => s.status === 'met').length / statuses.length) * 100) : 0,
-    }
-    return { reportId, summary, objectives: [] }
-  }
+  // Call the get-objectives API route which enriches stored statuses
+  // with full DIBCAC objective definitions from src/data/dibcac-objectives.ts
+  return invoke<ObjectivesResponse>('get-objectives', { reportId })
 }
 
 export const attestObjective = async (
@@ -331,11 +280,9 @@ export const attestObjective = async (
     documentName?: string
   }
 ): Promise<{ ok: boolean; objective: ObjectiveStatus; summary: DIBCACObjectiveSummary }> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
-  const { data: row, error } = await sb
+  const { data: row, error } = await supa()
     .from('objective_statuses')
     .upsert({
       report_id: reportId,
@@ -346,7 +293,7 @@ export const attestObjective = async (
       document_ref: data.documentRef,
       document_name: data.documentName,
       assessed_at: new Date().toISOString(),
-      assessed_by: user.id,
+      assessed_by: userId,
     }, { onConflict: 'report_id,objective_id' })
     .select()
     .single()
@@ -364,7 +311,7 @@ export const attestObjective = async (
   }
 
   // Recompute summary
-  const { data: all } = await sb
+  const { data: all } = await supa()
     .from('objective_statuses')
     .select('status')
     .eq('report_id', reportId)
@@ -403,17 +350,15 @@ export const resetObjectives = async (reportId: string): Promise<{ ok: boolean; 
 export const createInvitation = async (data: { clientName: string; email?: string }): Promise<{
   id: string; token: string; link: string; expiresAt: string
 }> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
   const token = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: row, error } = await sb
+  const { data: row, error } = await supa()
     .from('client_invitations')
     .insert({
-      user_id: user.id,
+      user_id: userId,
       token,
       client_name: data.clientName,
       email: data.email,
@@ -515,15 +460,13 @@ export async function getOnboardIntegrations(token: string): Promise<ClientInteg
 // ── Client Integrations: MSP-authenticated write endpoints ───────────────────
 
 export const saveClientIntegration = async (clientId: string, platform: string, config: Record<string, string>): Promise<{ ok: boolean }> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
-  const { error } = await sb
+  const { error } = await supa()
     .from('client_integrations')
     .upsert({
       client_id: clientId,
-      user_id: user.id,
+      user_id: userId,
       platform,
       config,
       status: 'connected',
@@ -558,17 +501,15 @@ export const getTeamInvites = async (): Promise<TeamInvite[]> => {
 export const createTeamInvite = async (data: { email: string }): Promise<{
   id: string; token: string; link: string; expiresAt: string; email: string
 }> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
   const token = crypto.randomUUID()
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 
-  const { data: row, error } = await sb
+  const { data: row, error } = await supa()
     .from('team_invitations')
     .insert({
-      owner_id: user.id,
+      owner_id: userId,
       email: data.email,
       token,
       status: 'pending',
@@ -628,12 +569,10 @@ export async function getTeamJoinInfo(token: string) {
 }
 
 export async function acceptTeamInvite(token: string, _authToken?: string | null) {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new Error('Sign in to accept this invite.')
+  const userId = await requireUserId()
 
   // Look up the invitation
-  const { data: inv, error: invErr } = await sb
+  const { data: inv, error: invErr } = await supa()
     .from('team_invitations')
     .select('id, owner_id, status')
     .eq('token', token)
@@ -642,26 +581,26 @@ export async function acceptTeamInvite(token: string, _authToken?: string | null
   if (inv.status === 'accepted') return { ok: true, alreadyAccepted: true }
 
   // Check if already a member
-  const { data: existing } = await sb
+  const { data: existing } = await supa()
     .from('team_memberships')
     .select('id')
     .eq('owner_id', inv.owner_id)
-    .eq('member_id', user.id)
+    .eq('member_id', userId)
     .maybeSingle()
   if (existing) return { ok: true, alreadyAccepted: true }
 
   // Create membership
-  const { error: memErr } = await sb
+  const { error: memErr } = await supa()
     .from('team_memberships')
     .insert({
       owner_id: inv.owner_id,
-      member_id: user.id,
+      member_id: userId,
       invitation_id: inv.id,
     })
   if (memErr) throw new Error(memErr.message)
 
   // Mark invitation as accepted
-  await sb.from('team_invitations').update({ status: 'accepted' }).eq('id', inv.id)
+  await supa().from('team_invitations').update({ status: 'accepted' }).eq('id', inv.id)
 
   return { ok: true, alreadyAccepted: false }
 }
@@ -752,15 +691,13 @@ export const getClientScoping = async (clientId: string): Promise<Record<string,
 }
 
 export const saveClientScoping = async (clientId: string, scoping: Record<string, boolean>): Promise<{ ok: boolean; scoping: Record<string, boolean> }> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
-  const { error } = await sb
+  const { error } = await supa()
     .from('client_scoping')
     .upsert({
       client_id: clientId,
-      user_id: user.id,
+      user_id: userId,
       scoping,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'client_id' })
@@ -870,27 +807,33 @@ export interface EvidenceFileMeta {
 }
 
 export const getEvidenceFiles = async (reportId: string, objectiveId: string): Promise<EvidenceFileMeta[]> => {
-  const { data, error } = await supa()
-    .from('evidence_files')
-    .select('*')
-    .eq('report_id', reportId)
-    .eq('objective_id', objectiveId)
-    .order('uploaded_at', { ascending: false })
-  if (error) throw new ApiError(error.message, 500)
-  return (data ?? []).map(row => ({
-    id: row.id,
-    fileName: row.file_name,
-    originalName: row.original_name,
-    fileSize: row.file_size,
-    mimeType: row.mime_type,
-    uploadedAt: row.uploaded_at,
-  }))
+  try {
+    const { data, error } = await supa()
+      .from('evidence_files')
+      .select('*')
+      .eq('report_id', reportId)
+      .eq('objective_id', objectiveId)
+      .order('uploaded_at', { ascending: false })
+    if (error) {
+      console.warn('[evidence_files] query failed:', error.message)
+      return []
+    }
+    return (data ?? []).map(row => ({
+      id: row.id,
+      fileName: row.file_name,
+      originalName: row.original_name,
+      fileSize: row.file_size,
+      mimeType: row.mime_type,
+      uploadedAt: row.uploaded_at,
+    }))
+  } catch (e) {
+    console.warn('[evidence_files] unexpected error:', e)
+    return []
+  }
 }
 
 export async function uploadEvidenceFile(reportId: string, objectiveId: string, file: File): Promise<EvidenceFileMeta> {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
   // Read file content as base64 for storage
   const buffer = await file.arrayBuffer()
@@ -898,12 +841,12 @@ export async function uploadEvidenceFile(reportId: string, objectiveId: string, 
 
   const fileName = `${crypto.randomUUID()}_${file.name}`
 
-  const { data: row, error } = await sb
+  const { data: row, error } = await supa()
     .from('evidence_files')
     .insert({
       report_id: reportId,
       objective_id: objectiveId,
-      user_id: user.id,
+      user_id: userId,
       file_name: fileName,
       original_name: file.name,
       file_size: file.size,
@@ -951,21 +894,19 @@ export function downloadEvidenceFile(reportId: string, objectiveId: string, file
 
 // ── User Profile ──────────────────────────────────────────────────────────
 export const getProfile = async (): Promise<UserProfile> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
-  const { data: row, error } = await sb
+  const { data: row, error } = await supa()
     .from('user_profiles')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', userId)
     .maybeSingle()
   if (error) throw new ApiError(error.message, 500)
   if (!row) {
     // Return a default profile if none exists yet
     return {
       id: '',
-      userId: user.id,
+      userId,
       accountType: 'msp',
       companyName: '',
       onboardedAt: new Date().toISOString(),
@@ -986,14 +927,12 @@ export const getProfile = async (): Promise<UserProfile> => {
 export const saveProfile = async (data: {
   companyName: string; accountType: string; role?: string; orgSize?: string; industry?: string
 }): Promise<UserProfile> => {
-  const sb = supa()
-  const { data: { user } } = await sb.auth.getUser()
-  if (!user) throw new ApiError('Not authenticated', 401)
+  const userId = await requireUserId()
 
-  const { data: row, error } = await sb
+  const { data: row, error } = await supa()
     .from('user_profiles')
     .upsert({
-      user_id: user.id,
+      user_id: userId,
       account_type: data.accountType,
       company_name: data.companyName,
       role: data.role,
