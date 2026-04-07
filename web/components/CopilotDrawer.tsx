@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from 're
 import {
   X, Sparkles, Send, Square, Building2, ChevronDown, Loader2,
   CheckCircle2, AlertCircle, Search, Brain, Plus, MessageSquare,
-  Clock, Trash2, ArrowLeft,
+  Clock, Trash2, ArrowLeft, Maximize2, Minimize2,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useCopilot, type CopilotConversation } from '@/contexts/CopilotContext'
@@ -26,6 +26,7 @@ type View = 'chat' | 'history'
 export function CopilotDrawer() {
   const {
     close, pageContext, activeClient, allClients, setActiveClientId,
+    isExpanded, toggleExpand,
     activeConversationId, setActiveConversationId,
     conversations, refreshConversations,
   } = useCopilot()
@@ -68,11 +69,13 @@ export function CopilotDrawer() {
     setTimeout(() => textareaRef.current?.focus(), 150)
   }, [])
 
-  // Escape key
+  // Escape key — collapse before closing
   useEffect(() => {
     const handler = (e: globalThis.KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (view === 'history') {
+        if (isExpanded) {
+          toggleExpand()
+        } else if (view === 'history') {
           setView('chat')
         } else {
           close()
@@ -81,7 +84,19 @@ export function CopilotDrawer() {
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [close, view])
+  }, [close, view, isExpanded, toggleExpand])
+
+  // Ctrl+Shift+E to toggle fullscreen
+  useEffect(() => {
+    const handler = (e: globalThis.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault()
+        toggleExpand()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [toggleExpand])
 
   // Close client picker on outside click
   useEffect(() => {
@@ -283,7 +298,11 @@ export function CopilotDrawer() {
   }
 
   return (
-    <div className="w-[420px] shrink-0 h-screen flex flex-col bg-white border-l border-[#e7e5e4]">
+    <div className={`flex flex-col bg-white transition-all duration-300 ease-in-out ${
+      isExpanded
+        ? 'fixed inset-0 z-50'
+        : 'w-[420px] shrink-0 h-screen border-l border-[#e7e5e4]'
+    }`}>
       {/* Header */}
       <div
         className="shrink-0 flex items-center justify-between px-5 h-14 border-b border-[#e7e5e4]"
@@ -326,6 +345,17 @@ export function CopilotDrawer() {
             </>
           )}
           <button
+            onClick={toggleExpand}
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+            title={isExpanded ? 'Collapse to drawer' : 'Expand to fullscreen'}
+          >
+            {isExpanded ? (
+              <Minimize2 className="w-[18px] h-[18px]" strokeWidth={1.5} />
+            ) : (
+              <Maximize2 className="w-[18px] h-[18px]" strokeWidth={1.5} />
+            )}
+          </button>
+          <button
             onClick={close}
             className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
           >
@@ -335,8 +365,8 @@ export function CopilotDrawer() {
       </div>
 
       {/* Org scope bar */}
-      <div className="shrink-0 px-4 py-2 border-b border-[#f5f5f4] bg-[#fafaf9]">
-        <div className="relative" ref={pickerRef}>
+      <div className={`shrink-0 px-4 py-2 border-b border-[#f5f5f4] bg-[#fafaf9] ${isExpanded ? 'flex justify-center' : ''}`}>
+        <div className={`relative ${isExpanded ? 'w-full max-w-3xl' : ''}`} ref={pickerRef}>
           <button
             onClick={() => setShowClientPicker(s => !s)}
             className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-left hover:bg-[#f5f5f4] transition-colors"
@@ -382,7 +412,7 @@ export function CopilotDrawer() {
 
       {/* ── History View ─────────────────────────────────────────────── */}
       {view === 'history' && (
-        <div className="flex-1 overflow-y-auto">
+        <div className={`flex-1 overflow-y-auto ${isExpanded ? 'mx-auto w-full max-w-3xl' : ''}`}>
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-6">
               <MessageSquare className="w-10 h-10 text-[#d6d3d1] mb-3" strokeWidth={1.5} />
@@ -453,20 +483,20 @@ export function CopilotDrawer() {
       {view === 'chat' && (
         <>
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <div className={`flex-1 overflow-y-auto py-4 space-y-3 ${isExpanded ? 'px-4 mx-auto w-full max-w-3xl' : 'px-5'}`}>
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center px-6">
                 <div className="w-12 h-12 rounded-2xl bg-[#f5f5f4] flex items-center justify-center mb-4">
                   <Sparkles className="w-6 h-6 text-[#a8a29e]" strokeWidth={1.5} />
                 </div>
                 <p className="text-[15px] font-medium text-[#1c1917] mb-1">Hi, I&apos;m Atlas</p>
-                <p className="text-[13px] text-[#78716c] leading-relaxed max-w-[280px] mb-5">
+                <p className={`text-[13px] text-[#78716c] leading-relaxed mb-5 ${isExpanded ? 'max-w-[480px]' : 'max-w-[280px]'}`}>
                   I have live access to{' '}
                   <span className="font-medium text-[#1c1917]">{activeClient?.name || 'your tenant'}</span>.
                   Ask me anything about your compliance posture or environment.
                 </p>
                 {/* Quick-start prompts */}
-                <div className="flex flex-col gap-2 w-full max-w-[300px]">
+                <div className={`flex flex-col gap-2 w-full ${isExpanded ? 'max-w-[480px]' : 'max-w-[300px]'}`}>
                   {[
                     'How many users have MFA enabled?',
                     'Show me all conditional access policies',
@@ -552,7 +582,7 @@ export function CopilotDrawer() {
           </div>
 
           {/* Input bar */}
-          <div className="shrink-0 border-t border-[#e7e5e4] px-4 py-3 bg-white">
+          <div className={`shrink-0 border-t border-[#e7e5e4] py-3 bg-white ${isExpanded ? 'px-4 mx-auto w-full max-w-3xl' : 'px-4'}`}>
             <div className="flex items-end gap-2 bg-[#f5f5f4] rounded-xl px-3 py-2">
               <textarea
                 ref={textareaRef}

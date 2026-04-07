@@ -29,6 +29,9 @@ interface CopilotState {
   activeClient: Client | null
   allClients: Client[]
   setActiveClientId: (id: string) => void
+  // Fullscreen mode
+  isExpanded: boolean
+  toggleExpand: () => void
   // Conversation persistence
   activeConversationId: string | null
   setActiveConversationId: (id: string | null) => void
@@ -43,6 +46,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   const [pageContext, setPageContext] = useState<CopilotPageContext>({})
   const [allClients, setAllClients] = useState<Client[]>([])
   const [activeClientId, setActiveClientIdState] = useState<string | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null)
   const [conversations, setConversations] = useState<CopilotConversation[]>([])
 
@@ -111,14 +115,16 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   }, [isOpen, activeClientId, refreshConversations])
 
   const open = useCallback(() => setIsOpen(true), [])
-  const close = useCallback(() => setIsOpen(false), [])
+  const close = useCallback(() => { setIsOpen(false); setIsExpanded(false) }, [])
   const toggle = useCallback(() => setIsOpen(s => !s), [])
+  const toggleExpand = useCallback(() => setIsExpanded(s => !s), [])
   const setCopilotContext = useCallback((ctx: CopilotPageContext) => setPageContext(ctx), [])
   const setActiveClientId = useCallback((id: string) => setActiveClientIdState(id), [])
 
   return (
     <CopilotCtx.Provider value={{
       isOpen, open, close, toggle,
+      isExpanded, toggleExpand,
       pageContext, setCopilotContext,
       activeClient, allClients, setActiveClientId,
       activeConversationId, setActiveConversationId,
