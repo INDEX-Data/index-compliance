@@ -49,7 +49,7 @@ export function ComplianceSummaryCards({ summary, className }: Props) {
       {cards.map(({ label, value, pct, color, icon: Icon, danger }) => (
         <div
           key={label}
-          className={`bg-[#fafaf9] p-5 rounded-xl ${danger ? 'border-l-4 border-[#9f403d]' : ''}`}
+          className={`bg-white p-5 rounded-xl border border-[#e7e5e4] shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}
         >
           <div className="flex justify-between items-start mb-4">
             <p className="text-xs font-bold text-[#44403c] uppercase tracking-wider">{label}</p>

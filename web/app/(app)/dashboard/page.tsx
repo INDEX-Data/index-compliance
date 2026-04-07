@@ -386,7 +386,7 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, accent, danger, progress, footer }: StatCardProps) {
   return (
-    <div className={`bg-[#fafaf9] p-6 rounded-xl flex flex-col justify-between group hover:bg-[#f5f5f4] transition-colors duration-300 ${danger ? 'border-l-4 border-[#9f403d]' : ''}`}>
+    <div className={`bg-white p-6 rounded-xl flex flex-col justify-between group border border-[#e7e5e4] shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}>
       <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${danger ? 'text-[#9f403d]' : 'text-[#44403c]'}`}>
         {label}
       </span>
