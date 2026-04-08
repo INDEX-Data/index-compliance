@@ -7,7 +7,7 @@ import {
   Clock, Trash2, ArrowLeft, Maximize2, Minimize2,
   Copy, ThumbsUp, ThumbsDown, Share2, RefreshCw, MoreHorizontal,
   FileText, Zap, Download, ChevronRight, Shield, Link2,
-  BookOpen, Activity,
+  BookOpen, Activity, Upload, XCircle,
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { useCopilot, type CopilotConversation } from '@/contexts/CopilotContext'
@@ -92,21 +92,49 @@ function ActionChips({ content, onChipClick }: { content: string; onChipClick: (
 
 // ─── Reference & Context Panel ───────────────────────────────────────────────
 
-function ReferencePanel() {
-  const [tab, setTab] = useState<'documents' | 'live'>('documents')
+interface UploadedFile {
+  id: string
+  name: string
+  size: number
+}
 
-  const documents = [
-    { title: 'NIST 800-171 Rev 2', section: '3.5 - Identification and Authentication', relevance: 95 },
-    { title: 'NIST 800-171 Rev 2', section: '3.5 - Identification and Authentication', relevance: 95 },
-    { title: 'NIST 800-171 Rev 2', section: '3.5 - Identification and Authentication', relevance: 95 },
-  ]
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function ReferencePanel({ activeClient }: { activeClient: { name: string; tenantId?: string } | null }) {
+  const [tab, setTab] = useState<'documents' | 'live'>('documents')
+  const [files, setFiles] = useState<UploadedFile[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const ACCEPTED = '.pdf,.docx,.txt,.csv,.xlsx'
+
+  const addFiles = (fileList: FileList) => {
+    const newFiles: UploadedFile[] = Array.from(fileList).map(f => ({
+      id: crypto.randomUUID(),
+      name: f.name,
+      size: f.size,
+    }))
+    setFiles(prev => [...prev, ...newFiles])
+  }
+
+  const removeFile = (id: string) => setFiles(prev => prev.filter(f => f.id !== id))
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files)
+  }
 
   return (
     <div className="w-[280px] shrink-0 flex flex-col h-full border-l border-[#e7e5e4]">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
         <h3 className="text-[15px] font-semibold text-[#1c1917]">Reference & Context</h3>
-        <p className="text-[11px] text-[#a8a29e] mt-0.5">Supporting documents and live data</p>
+        <p className="text-[11px] text-[#a8a29e] mt-0.5">Upload documents or view live data</p>
       </div>
 
       {/* Tab switcher */}
@@ -132,43 +160,99 @@ function ReferencePanel() {
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-5 space-y-3">
         {tab === 'documents' ? (
-          documents.map((doc, i) => (
-            <button
-              key={i}
-              className="w-full flex items-start gap-3 p-3 rounded-xl border border-[#e7e5e4] hover:bg-[#fafaf9] transition-colors text-left group"
+          <>
+            {/* Drop zone */}
+            <div
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={`flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+                isDragging
+                  ? 'border-[#1c1917] bg-[#f5f5f4]'
+                  : 'border-[#e7e5e4] hover:border-[#d6d3d1] hover:bg-[#fafaf9]'
+              }`}
             >
-              <div className="w-8 h-8 rounded-lg bg-[#f5f5f4] flex items-center justify-center shrink-0 mt-0.5">
-                <FileText className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+              <Upload className={`w-6 h-6 ${isDragging ? 'text-[#1c1917]' : 'text-[#a8a29e]'}`} strokeWidth={1.5} />
+              <p className="text-[12px] text-[#78716c] text-center">
+                Drop files here or <span className="text-[#1c1917] font-medium underline">browse</span>
+              </p>
+              <p className="text-[10px] text-[#a8a29e]">PDF, DOCX, TXT, CSV, XLSX</p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED}
+                multiple
+                className="hidden"
+                onChange={(e) => { if (e.target.files?.length) addFiles(e.target.files); e.target.value = '' }}
+              />
+            </div>
+
+            {/* Uploaded files list */}
+            {files.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-wider">
+                  Uploaded ({files.length})
+                </p>
+                {files.map(f => (
+                  <div key={f.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[#e7e5e4] group">
+                    <div className="w-7 h-7 rounded-md bg-[#f5f5f4] flex items-center justify-center shrink-0">
+                      <FileText className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-medium text-[#1c1917] truncate">{f.name}</p>
+                      <p className="text-[10px] text-[#a8a29e]">{formatFileSize(f.size)}</p>
+                    </div>
+                    <button
+                      onClick={() => removeFile(f.id)}
+                      className="shrink-0 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[#a8a29e] hover:text-red-500 transition-all"
+                    >
+                      <XCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-medium text-[#1c1917]">{doc.title}</p>
-                <p className="text-[11px] text-[#a8a29e] mt-0.5 truncate">{doc.section}</p>
-                <p className="text-[11px] font-medium text-[#78716c] mt-1">{doc.relevance}% Relevance</p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-[#d6d3d1] group-hover:text-[#a8a29e] shrink-0 mt-1 transition-colors" strokeWidth={1.5} />
-            </button>
-          ))
+            )}
+
+            {files.length === 0 && (
+              <p className="text-[11px] text-[#a8a29e] text-center py-2">
+                Add policies, plans, or compliance documents for Atlas to reference during your conversation.
+              </p>
+            )}
+          </>
         ) : (
-          <div className="space-y-3">
-            {[
-              { label: 'Azure AD Users', status: 'Live', icon: Shield },
-              { label: 'Conditional Access', status: 'Live', icon: Link2 },
-              { label: 'Security Alerts', status: 'Live', icon: Activity },
-            ].map((item, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#e7e5e4]">
-                <div className="w-8 h-8 rounded-lg bg-[#f5f5f4] flex items-center justify-center shrink-0">
-                  <item.icon className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-[#1c1917]">{item.label}</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span className="text-[11px] text-emerald-600 font-medium">{item.status}</span>
+          /* Live data tab */
+          activeClient?.tenantId ? (
+            <div className="space-y-3">
+              {[
+                { label: 'Microsoft Graph', desc: 'Users, policies, device management', icon: Shield },
+                { label: 'Security & Compliance', desc: 'Alerts, secure score, incidents', icon: Activity },
+                { label: 'Conditional Access', desc: 'Policies, named locations', icon: Link2 },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#e7e5e4]">
+                  <div className="w-8 h-8 rounded-lg bg-[#f5f5f4] flex items-center justify-center shrink-0">
+                    <item.icon className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-medium text-[#1c1917]">{item.label}</p>
+                    <p className="text-[10px] text-[#a8a29e] mt-0.5">{item.desc}</p>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-[10px] text-emerald-600 font-medium">Connected via {activeClient.name}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Activity className="w-8 h-8 text-[#d6d3d1] mb-2" strokeWidth={1.5} />
+              <p className="text-[12px] text-[#78716c]">No integrations connected</p>
+              <p className="text-[10px] text-[#a8a29e] mt-1 max-w-[200px]">
+                Connect a Microsoft 365 tenant to see live data from your environment.
+              </p>
+            </div>
+          )
         )}
       </div>
     </div>
@@ -224,20 +308,26 @@ function ExpandedSidebar({
       <div className="px-3 mb-4">
         {[
           { icon: Sparkles, label: 'Compliance assistant', active: true },
-          { icon: Link2, label: 'Integrations' },
-          { icon: BookOpen, label: 'Regulations' },
-          { icon: FileText, label: 'Reports' },
+          { icon: Link2, label: 'Integrations', comingSoon: true },
+          { icon: BookOpen, label: 'Regulations', comingSoon: true },
+          { icon: FileText, label: 'Reports', comingSoon: true },
         ].map(item => (
           <button
             key={item.label}
+            disabled={item.comingSoon}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${
               item.active
                 ? 'text-[#1c1917] font-medium bg-white border border-[#e7e5e4] shadow-sm'
-                : 'text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4]'
+                : item.comingSoon
+                  ? 'text-[#a8a29e] cursor-default'
+                  : 'text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4]'
             }`}
           >
             <item.icon className="w-4 h-4" strokeWidth={1.5} />
-            {item.label}
+            <span className="flex-1 text-left">{item.label}</span>
+            {item.comingSoon && (
+              <span className="text-[9px] font-medium text-[#a8a29e] bg-[#f5f5f4] px-1.5 py-0.5 rounded-full">Soon</span>
+            )}
           </button>
         ))}
       </div>
@@ -799,7 +889,7 @@ export function CopilotDrawer() {
         </div>
 
         {/* Right reference panel */}
-        <ReferencePanel />
+        <ReferencePanel activeClient={activeClient} />
       </div>
     )
   }
