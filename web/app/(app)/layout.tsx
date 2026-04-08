@@ -4,6 +4,7 @@ import { createServerSupabase } from '@/lib/supabase'
 import { Sidebar } from '@/components/Sidebar'
 import { TopNavbar } from '@/components/TopNavbar'
 import { CopilotShell } from '@/components/CopilotShell'
+import { InactivityGuard } from '@/components/InactivityGuard'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createServerSupabase()
@@ -20,6 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <CopilotShell>
+      <InactivityGuard />
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <TopNavbar />

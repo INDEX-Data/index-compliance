@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { createClientSupabase } from '@/lib/supabase'
@@ -16,6 +16,8 @@ const FRAMEWORKS = [
 
 export default function SignInPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const inactivityLogout = searchParams.get('reason') === 'inactivity'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -93,6 +95,12 @@ export default function SignInPage() {
           <p className="text-sm text-[#78716c] mb-6">
             Sign in to your account to continue
           </p>
+
+          {inactivityLogout && (
+            <div className="bg-[#FEF9C3] border border-[#FDE68A] rounded-lg px-3 py-2 text-sm text-[#92400E] mb-4">
+              You were signed out due to inactivity. Please sign in again.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
