@@ -1,9 +1,12 @@
 // =============================================================================
-// Current State Baseline — Industry Best Practices for Microsoft 365 Security
+// Current State Baseline — Full M365 Tenant Inventory
 //
-// A framework-agnostic assessment of M365 security posture covering identity,
-// device, data protection, monitoring, and configuration management.
-// Reuses existing Graph API endpoints and compliance engine evaluators.
+// Pulls everything available from the connected Microsoft Graph API and reports
+// on it. No opinions, no pass/fail judgments — just a raw data snapshot of the
+// tenant's current security configuration and posture.
+//
+// Each control maps to a data area and collects everything the Graph permissions
+// allow. The evaluate_evidence_exists evaluator simply confirms data was returned.
 // =============================================================================
 
 import type { ComplianceControl, FrameworkId } from "../types.js";
@@ -13,258 +16,191 @@ const FW: FrameworkId = "BASELINE";
 export const baselineControls: ComplianceControl[] = [
 
   // ===========================================================================
-  // IDENTITY & ACCESS — 6 controls
+  // IDENTITY & ACCESS — 6 areas
   // ===========================================================================
 
   {
     controlId: "BL-IAM-01",
-    title: "MFA Enforcement",
-    description: "Multi-factor authentication is enforced for all users via Conditional Access policies.",
+    title: "Conditional Access Policies",
+    description: "Inventory of all Conditional Access policies configured in the tenant, including their state, conditions, and grant controls.",
     frameworkId: FW, family: "Identity & Access",
     evidenceQueries: [
-      { id: "bl.iam.01-ca", description: "Conditional Access policies enforcing MFA", endpoint: "/identity/conditionalAccess/policies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
-      { id: "bl.iam.01-reg", description: "MFA registration status across users", endpoint: "/reports/authenticationMethods/userRegistrationDetails", method: "GET", category: "identityProtection", requiredPermissions: ["UserAuthenticationMethod.Read.All"], topN: 100 },
+      { id: "bl.iam.01-ca", description: "All Conditional Access policies", endpoint: "/identity/conditionalAccess/policies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Conditional Access policies enforce MFA for all users", customEvaluator: "evaluate_mfa_enforcement" },
+    evaluationCriteria: { type: "custom", passingCondition: "Conditional Access policies retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-IAM-02",
-    title: "MFA Coverage",
-    description: "At least 90% of users have registered for multi-factor authentication.",
+    title: "MFA Registration Status",
+    description: "Authentication method registration details for all users — who has MFA registered, what methods they use, and registration gaps.",
     frameworkId: FW, family: "Identity & Access",
     evidenceQueries: [
       { id: "bl.iam.02-reg", description: "User MFA registration details", endpoint: "/reports/authenticationMethods/userRegistrationDetails", method: "GET", category: "identityProtection", requiredPermissions: ["UserAuthenticationMethod.Read.All"], topN: 999 },
+      { id: "bl.iam.02-methods", description: "Authentication methods policy", endpoint: "/policies/authenticationMethodsPolicy", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "90%+ of users have registered for MFA", customEvaluator: "evaluate_mfa_coverage" },
+    evaluationCriteria: { type: "custom", passingCondition: "MFA registration data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-IAM-03",
-    title: "Privileged Role Limits",
-    description: "Global Administrator accounts are limited (5 or fewer) and granular roles are used.",
+    title: "Directory Roles & Assignments",
+    description: "All privileged role assignments and role definitions — who has what access, Global Admins count, and role scope.",
     frameworkId: FW, family: "Identity & Access",
     evidenceQueries: [
-      { id: "bl.iam.03-roles", description: "Directory role assignments", endpoint: "/roleManagement/directory/roleAssignments", method: "GET", category: "roleAssignments", requiredPermissions: ["RoleManagement.Read.Directory"] },
-      { id: "bl.iam.03-defs", description: "Role definitions", endpoint: "/roleManagement/directory/roleDefinitions", method: "GET", category: "roleAssignments", requiredPermissions: ["RoleManagement.Read.Directory"], topN: 20 },
+      { id: "bl.iam.03-assign", description: "Directory role assignments", endpoint: "/roleManagement/directory/roleAssignments", method: "GET", category: "roleAssignments", requiredPermissions: ["RoleManagement.Read.Directory"] },
+      { id: "bl.iam.03-defs", description: "Role definitions", endpoint: "/roleManagement/directory/roleDefinitions", method: "GET", category: "roleAssignments", requiredPermissions: ["RoleManagement.Read.Directory"], topN: 50 },
+      { id: "bl.iam.03-elig", description: "PIM role eligibility schedules", endpoint: "/roleManagement/directory/roleEligibilitySchedules", method: "GET", category: "roleAssignments", requiredPermissions: ["RoleManagement.Read.Directory"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Global Admin count is 5 or fewer; granular roles used", customEvaluator: "evaluate_rbac" },
+    evaluationCriteria: { type: "custom", passingCondition: "Directory role data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-IAM-04",
-    title: "Conditional Access Policies",
-    description: "Conditional Access policies are configured to control access based on conditions (location, device, risk).",
+    title: "Guest & External Access",
+    description: "Guest users in the directory, authorization policy settings for external collaboration, and invite restrictions.",
     frameworkId: FW, family: "Identity & Access",
     evidenceQueries: [
-      { id: "bl.iam.04-ca", description: "Conditional Access policies", endpoint: "/identity/conditionalAccess/policies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
+      { id: "bl.iam.04-guests", description: "Guest users in directory", endpoint: "/users", method: "GET", category: "identityProtection", requiredPermissions: ["User.Read.All"], filterExpression: "userType eq 'Guest'", topN: 100 },
+      { id: "bl.iam.04-authz", description: "Authorization policy (guest settings)", endpoint: "/policies/authorizationPolicy", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Multiple Conditional Access policies are active and enabled", customEvaluator: "evaluate_policy_exists" },
+    evaluationCriteria: { type: "custom", passingCondition: "Guest access data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-IAM-05",
-    title: "Guest Access Controls",
-    description: "External/guest user access is governed by policies restricting permissions and access scope.",
+    title: "Authentication Methods Policy",
+    description: "Tenant-wide authentication methods configuration — which methods are enabled, FIDO2, passwordless, SMS, etc.",
     frameworkId: FW, family: "Identity & Access",
     evidenceQueries: [
-      { id: "bl.iam.05-auth", description: "Authorization policy for guest access", endpoint: "/policies/authorizationPolicy", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
-      { id: "bl.iam.05-guests", description: "Guest users in directory", endpoint: "/users", method: "GET", category: "identityProtection", requiredPermissions: ["User.Read.All"], filterExpression: "userType eq 'Guest'", topN: 50 },
+      { id: "bl.iam.05-methods", description: "Authentication methods policy", endpoint: "/policies/authenticationMethodsPolicy", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
+      { id: "bl.iam.05-strength", description: "Authentication strength policies", endpoint: "/policies/authenticationStrengthPolicies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Guest access is restricted; guest invite settings are not 'everyone'", customEvaluator: "evaluate_guest_access" },
+    evaluationCriteria: { type: "custom", passingCondition: "Authentication methods policy retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-IAM-06",
-    title: "Legacy Authentication Blocking",
-    description: "Legacy authentication protocols (IMAP, POP3, SMTP) are blocked via Conditional Access.",
+    title: "Named Locations",
+    description: "Trusted and named locations configured for Conditional Access — IP ranges, countries, and compliance boundaries.",
     frameworkId: FW, family: "Identity & Access",
     evidenceQueries: [
-      { id: "bl.iam.06-ca", description: "Conditional Access policies blocking legacy auth", endpoint: "/identity/conditionalAccess/policies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
+      { id: "bl.iam.06-locs", description: "Named locations for Conditional Access", endpoint: "/identity/conditionalAccess/namedLocations", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "A Conditional Access policy blocks legacy authentication protocols", customEvaluator: "evaluate_configuration_management" },
+    evaluationCriteria: { type: "custom", passingCondition: "Named locations data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   // ===========================================================================
-  // DEVICE SECURITY — 4 controls
+  // DEVICES & ENDPOINTS — 2 areas
   // ===========================================================================
 
   {
     controlId: "BL-DEV-01",
-    title: "Device Compliance Policies",
-    description: "Device compliance policies are configured to enforce security baselines on managed devices.",
-    frameworkId: FW, family: "Device Security",
+    title: "Device Compliance & Managed Devices",
+    description: "Device compliance policies and inventory of all Intune-managed devices — compliance state, OS versions, encryption status.",
+    frameworkId: FW, family: "Devices & Endpoints",
     evidenceQueries: [
       { id: "bl.dev.01-pol", description: "Device compliance policies", endpoint: "/deviceManagement/deviceCompliancePolicies", method: "GET", category: "deviceCompliance", requiredPermissions: ["DeviceManagementConfiguration.Read.All"] },
+      { id: "bl.dev.01-devices", description: "Managed devices inventory", endpoint: "/deviceManagement/managedDevices", method: "GET", category: "deviceCompliance", requiredPermissions: ["DeviceManagementManagedDevices.Read.All"], topN: 200 },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Device compliance policies are configured and active", customEvaluator: "evaluate_device_compliance" },
+    evaluationCriteria: { type: "custom", passingCondition: "Device management data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-DEV-02",
-    title: "Managed Device Coverage",
-    description: "Devices accessing corporate resources are enrolled in device management (Intune).",
-    frameworkId: FW, family: "Device Security",
+    title: "Device Configuration Profiles",
+    description: "Intune device configuration profiles — security baselines, restrictions, Wi-Fi, VPN, and other device settings.",
+    frameworkId: FW, family: "Devices & Endpoints",
     evidenceQueries: [
-      { id: "bl.dev.02-devices", description: "Managed devices inventory", endpoint: "/deviceManagement/managedDevices", method: "GET", category: "deviceCompliance", requiredPermissions: ["DeviceManagementManagedDevices.Read.All"], topN: 100 },
+      { id: "bl.dev.02-configs", description: "Device configuration profiles", endpoint: "/deviceManagement/deviceConfigurations", method: "GET", category: "deviceCompliance", requiredPermissions: ["DeviceManagementConfiguration.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Devices are enrolled in Intune/MDM for management", customEvaluator: "evaluate_asset_inventory" },
-  },
-
-  {
-    controlId: "BL-DEV-03",
-    title: "Device Encryption",
-    description: "Managed devices have encryption (BitLocker/FileVault) enabled and enforced.",
-    frameworkId: FW, family: "Device Security",
-    evidenceQueries: [
-      { id: "bl.dev.03-devices", description: "Managed devices with encryption status", endpoint: "/deviceManagement/managedDevices", method: "GET", category: "deviceCompliance", requiredPermissions: ["DeviceManagementManagedDevices.Read.All"], topN: 100, selectFields: ["id", "deviceName", "isEncrypted", "complianceState", "operatingSystem"] },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Managed devices have encryption enabled", customEvaluator: "evaluate_device_compliance" },
-  },
-
-  {
-    controlId: "BL-DEV-04",
-    title: "OS Update Compliance",
-    description: "Managed devices are running supported, up-to-date operating system versions.",
-    frameworkId: FW, family: "Device Security",
-    evidenceQueries: [
-      { id: "bl.dev.04-devices", description: "Managed devices OS version info", endpoint: "/deviceManagement/managedDevices", method: "GET", category: "deviceCompliance", requiredPermissions: ["DeviceManagementManagedDevices.Read.All"], topN: 100, selectFields: ["id", "deviceName", "operatingSystem", "osVersion", "complianceState"] },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Devices are running current, supported OS versions", customEvaluator: "evaluate_device_compliance" },
+    evaluationCriteria: { type: "custom", passingCondition: "Device configuration data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   // ===========================================================================
-  // DATA PROTECTION — 4 controls
+  // DATA PROTECTION — 2 areas
   // ===========================================================================
 
   {
     controlId: "BL-DAT-01",
     title: "Sensitivity Labels",
-    description: "Microsoft Purview sensitivity labels are deployed to classify and protect sensitive data.",
+    description: "Microsoft Purview sensitivity labels configured in the tenant — classification taxonomy, auto-labeling rules, and protection settings.",
     frameworkId: FW, family: "Data Protection",
     evidenceQueries: [
-      { id: "bl.dat.01-labels", description: "Sensitivity labels configured in tenant", endpoint: "/security/informationProtection/sensitivityLabels", method: "GET", category: "sensitivityLabels", requiredPermissions: ["InformationProtectionPolicy.Read.All"], apiVersion: "beta" },
+      { id: "bl.dat.01-labels", description: "Sensitivity labels", endpoint: "/security/informationProtection/sensitivityLabels", method: "GET", category: "sensitivityLabels", requiredPermissions: ["InformationProtectionPolicy.Read.All"], apiVersion: "beta" },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Sensitivity labels are configured and published", customEvaluator: "evaluate_sensitivity_labels" },
+    evaluationCriteria: { type: "custom", passingCondition: "Sensitivity labels data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   {
     controlId: "BL-DAT-02",
-    title: "Data Loss Prevention Policies",
-    description: "DLP policies are configured to prevent sensitive data from leaving the organization.",
+    title: "Secure Score — Data Protection",
+    description: "Microsoft Secure Score data including current score, max score, and improvement actions for data protection controls.",
     frameworkId: FW, family: "Data Protection",
     evidenceQueries: [
-      { id: "bl.dat.02-score", description: "Secure Score for DLP controls", endpoint: "/security/secureScores", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 1 },
+      { id: "bl.dat.02-score", description: "Current Secure Score", endpoint: "/security/secureScores", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 1 },
+      { id: "bl.dat.02-profiles", description: "Secure Score control profiles", endpoint: "/security/secureScoreControlProfiles", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"] },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "DLP policies are active and covering key data types", customEvaluator: "evaluate_dlp_policies" },
-  },
-
-  {
-    controlId: "BL-DAT-03",
-    title: "External Sharing Restrictions",
-    description: "SharePoint and OneDrive external sharing is restricted to approved domains or disabled.",
-    frameworkId: FW, family: "Data Protection",
-    evidenceQueries: [
-      { id: "bl.dat.03-ca", description: "Conditional Access policies governing app access", endpoint: "/identity/conditionalAccess/policies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
-      { id: "bl.dat.03-score", description: "Secure Score for sharing controls", endpoint: "/security/secureScores", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 1 },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "External sharing is restricted or governed by policies", customEvaluator: "evaluate_dlp_policies" },
-  },
-
-  {
-    controlId: "BL-DAT-04",
-    title: "Mail Transport Rules",
-    description: "Exchange mail flow rules are configured to protect sensitive information in transit.",
-    frameworkId: FW, family: "Data Protection",
-    evidenceQueries: [
-      { id: "bl.dat.04-score", description: "Secure Score for mail transport security", endpoint: "/security/secureScores", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 1 },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Mail transport rules protect sensitive data in transit", customEvaluator: "evaluate_configuration_management" },
+    evaluationCriteria: { type: "custom", passingCondition: "Secure Score data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   // ===========================================================================
-  // MONITORING & LOGGING — 4 controls
+  // SECURITY POSTURE — 2 areas
+  // ===========================================================================
+
+  {
+    controlId: "BL-SEC-01",
+    title: "Security Alerts",
+    description: "Active and recent security alerts from Microsoft Defender, Identity Protection, and other security services.",
+    frameworkId: FW, family: "Security Posture",
+    evidenceQueries: [
+      { id: "bl.sec.01-alerts", description: "Security alerts (v2)", endpoint: "/security/alerts_v2", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 50, apiVersion: "beta" },
+    ],
+    evaluationCriteria: { type: "custom", passingCondition: "Security alerts data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
+  },
+
+  {
+    controlId: "BL-SEC-02",
+    title: "Identity Risk Detections",
+    description: "Risky users flagged by Identity Protection and individual risk detection events — leaked credentials, impossible travel, etc.",
+    frameworkId: FW, family: "Security Posture",
+    evidenceQueries: [
+      { id: "bl.sec.02-risky", description: "Risky users", endpoint: "/identityProtection/riskyUsers", method: "GET", category: "identityProtection", requiredPermissions: ["IdentityRiskyUser.Read.All"], topN: 50 },
+      { id: "bl.sec.02-detections", description: "Risk detections", endpoint: "/identityProtection/riskDetections", method: "GET", category: "identityProtection", requiredPermissions: ["IdentityRiskEvent.Read.All"], topN: 50 },
+    ],
+    evaluationCriteria: { type: "custom", passingCondition: "Identity risk data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
+  },
+
+  // ===========================================================================
+  // AUDIT & MONITORING — 1 area
   // ===========================================================================
 
   {
     controlId: "BL-MON-01",
-    title: "Audit Logging",
-    description: "Unified audit logging is enabled and capturing authentication and administrative events.",
-    frameworkId: FW, family: "Monitoring & Logging",
+    title: "Audit & Sign-In Logs",
+    description: "Recent sign-in activity and directory audit logs — authentication events, admin actions, and configuration changes.",
+    frameworkId: FW, family: "Audit & Monitoring",
     evidenceQueries: [
-      { id: "bl.mon.01-signins", description: "Recent sign-in logs confirming audit capture", endpoint: "/auditLogs/signIns", method: "GET", category: "auditLog", requiredPermissions: ["AuditLog.Read.All"], topN: 10 },
-      { id: "bl.mon.01-dir", description: "Directory audit logs", endpoint: "/auditLogs/directoryAudits", method: "GET", category: "auditLog", requiredPermissions: ["AuditLog.Read.All"], topN: 10 },
+      { id: "bl.mon.01-signins", description: "Recent sign-in logs", endpoint: "/auditLogs/signIns", method: "GET", category: "auditLog", requiredPermissions: ["AuditLog.Read.All"], topN: 50 },
+      { id: "bl.mon.01-dir", description: "Directory audit logs", endpoint: "/auditLogs/directoryAudits", method: "GET", category: "auditLog", requiredPermissions: ["AuditLog.Read.All"], topN: 50 },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Audit logs are actively capturing sign-in and directory events", customEvaluator: "evaluate_audit_logging" },
-  },
-
-  {
-    controlId: "BL-MON-02",
-    title: "Security Alerts Configuration",
-    description: "Security alerting is active for detecting suspicious sign-ins, risky users, and threats.",
-    frameworkId: FW, family: "Monitoring & Logging",
-    evidenceQueries: [
-      { id: "bl.mon.02-alerts", description: "Active security alerts", endpoint: "/security/alerts_v2", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 20, apiVersion: "beta" },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Security alerting is configured and operational", customEvaluator: "evaluate_security_monitoring" },
-  },
-
-  {
-    controlId: "BL-MON-03",
-    title: "Risky Sign-In Detection",
-    description: "Azure AD Identity Protection detects and reports risky sign-in attempts.",
-    frameworkId: FW, family: "Monitoring & Logging",
-    evidenceQueries: [
-      { id: "bl.mon.03-risky", description: "Risky sign-in detections", endpoint: "/identityProtection/riskyUsers", method: "GET", category: "identityProtection", requiredPermissions: ["IdentityRiskyUser.Read.All"], topN: 20 },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Identity Protection is active and detecting risky sign-ins", customEvaluator: "evaluate_security_monitoring" },
-  },
-
-  {
-    controlId: "BL-MON-04",
-    title: "Microsoft Secure Score",
-    description: "Organization's Microsoft Secure Score is tracked and demonstrates security posture awareness.",
-    frameworkId: FW, family: "Monitoring & Logging",
-    evidenceQueries: [
-      { id: "bl.mon.04-score", description: "Current Secure Score", endpoint: "/security/secureScores", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 1 },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Secure Score is available and being tracked", customEvaluator: "evaluate_risk_assessment" },
+    evaluationCriteria: { type: "custom", passingCondition: "Audit log data retrieved from tenant", customEvaluator: "evaluate_evidence_exists" },
   },
 
   // ===========================================================================
-  // CONFIGURATION MANAGEMENT — 3 controls
+  // TENANT CONFIGURATION — 1 area
   // ===========================================================================
 
   {
     controlId: "BL-CFG-01",
-    title: "Security Defaults or Conditional Access",
-    description: "Tenant has either Security Defaults enabled or Conditional Access policies as a baseline security layer.",
-    frameworkId: FW, family: "Configuration Management",
+    title: "Tenant Configuration & Applications",
+    description: "Organization settings, registered applications, and service principals — tenant-level configuration and app registrations.",
+    frameworkId: FW, family: "Tenant Configuration",
     evidenceQueries: [
-      { id: "bl.cfg.01-ca", description: "Conditional Access policies", endpoint: "/identity/conditionalAccess/policies", method: "GET", category: "conditionalAccess", requiredPermissions: ["Policy.Read.All"] },
+      { id: "bl.cfg.01-org", description: "Organization settings", endpoint: "/organization", method: "GET", category: "conditionalAccess", requiredPermissions: ["Organization.Read.All"] },
+      { id: "bl.cfg.01-apps", description: "App registrations", endpoint: "/applications", method: "GET", category: "conditionalAccess", requiredPermissions: ["Application.Read.All"], topN: 100 },
+      { id: "bl.cfg.01-sp", description: "Service principals", endpoint: "/servicePrincipals", method: "GET", category: "conditionalAccess", requiredPermissions: ["Application.Read.All"], topN: 100 },
     ],
-    evaluationCriteria: { type: "custom", passingCondition: "Security Defaults or Conditional Access policies are active", customEvaluator: "evaluate_configuration_management" },
-  },
-
-  {
-    controlId: "BL-CFG-02",
-    title: "Anti-Phishing Protection",
-    description: "Anti-phishing policies are configured to protect against impersonation and spoofing attacks.",
-    frameworkId: FW, family: "Configuration Management",
-    evidenceQueries: [
-      { id: "bl.cfg.02-score", description: "Secure Score for anti-phishing", endpoint: "/security/secureScores", method: "GET", category: "identityProtection", requiredPermissions: ["SecurityEvents.Read.All"], topN: 1 },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Anti-phishing policies are active and configured", customEvaluator: "evaluate_configuration_management" },
-  },
-
-  {
-    controlId: "BL-CFG-03",
-    title: "Password Policy",
-    description: "Password policies enforce complexity requirements and banned password lists.",
-    frameworkId: FW, family: "Configuration Management",
-    evidenceQueries: [
-      { id: "bl.cfg.03-org", description: "Organization password policies", endpoint: "/organization", method: "GET", category: "conditionalAccess", requiredPermissions: ["Organization.Read.All"] },
-    ],
-    evaluationCriteria: { type: "custom", passingCondition: "Password policies enforce security requirements", customEvaluator: "evaluate_evidence_exists" },
+    evaluationCriteria: { type: "custom", passingCondition: "Tenant configuration data retrieved", customEvaluator: "evaluate_evidence_exists" },
   },
 ];
