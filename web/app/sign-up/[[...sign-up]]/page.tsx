@@ -36,6 +36,12 @@ export default function SignUpPage() {
       return
     }
 
+    const allowedDomain = process.env.NEXT_PUBLIC_ALLOWED_DOMAIN
+    if (allowedDomain && !email.toLowerCase().endsWith(`@${allowedDomain.toLowerCase()}`)) {
+      setError(`Sign-up is restricted to @${allowedDomain} email addresses`)
+      return
+    }
+
     setLoading(true)
 
     const supabase = createClientSupabase()
@@ -139,7 +145,7 @@ export default function SignUpPage() {
                     onChange={e => setEmail(e.target.value)}
                     required
                     className="w-full px-3 py-2.5 bg-white border border-[#e7e5e4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
-                    placeholder="you@company.com"
+                    placeholder={process.env.NEXT_PUBLIC_ALLOWED_DOMAIN ? `you@${process.env.NEXT_PUBLIC_ALLOWED_DOMAIN}` : 'you@company.com'}
                   />
                 </div>
                 <div>

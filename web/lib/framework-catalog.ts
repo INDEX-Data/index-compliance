@@ -11,6 +11,7 @@
 import type { FrameworkMeta } from './types'
 
 export type FrameworkCategory =
+  | 'baseline'
   | 'defense_gov'
   | 'financial'
   | 'healthcare'
@@ -23,6 +24,18 @@ export interface CatalogEntry extends FrameworkMeta {
 }
 
 export const FRAMEWORK_CATALOG: CatalogEntry[] = [
+  // ── Baseline Assessment ───────────────────────────────────────────────────
+  {
+    id: 'baseline',
+    name: 'Current State',
+    version: '1.0',
+    description: 'Industry best practices baseline for your Microsoft 365 security posture',
+    controlCount: 21,
+    implemented: true,
+    category: 'baseline',
+    categoryLabel: 'Baseline Assessment',
+  },
+
   // ── Defense & Government ──────────────────────────────────────────────────
   {
     id: 'cmmc-l2',
@@ -206,6 +219,7 @@ export const FRAMEWORK_CATALOG: CatalogEntry[] = [
 
 /** Unique category labels in display order */
 export const CATEGORY_ORDER: FrameworkCategory[] = [
+  'baseline',
   'defense_gov',
   'financial',
   'healthcare',

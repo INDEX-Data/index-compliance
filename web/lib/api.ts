@@ -909,6 +909,7 @@ export const getProfile = async (): Promise<UserProfile> => {
       userId,
       accountType: 'msp',
       companyName: '',
+      fullName: undefined,
       onboardedAt: new Date().toISOString(),
     }
   }
@@ -917,6 +918,7 @@ export const getProfile = async (): Promise<UserProfile> => {
     userId: row.user_id,
     accountType: row.account_type as UserProfile['accountType'],
     companyName: row.company_name,
+    fullName: row.full_name ?? undefined,
     role: row.role,
     orgSize: row.org_size,
     industry: row.industry,
@@ -925,7 +927,7 @@ export const getProfile = async (): Promise<UserProfile> => {
 }
 
 export const saveProfile = async (data: {
-  companyName: string; accountType: string; role?: string; orgSize?: string; industry?: string
+  companyName: string; accountType: string; fullName?: string; role?: string; orgSize?: string; industry?: string
 }): Promise<UserProfile> => {
   const userId = await requireUserId()
 
@@ -935,6 +937,7 @@ export const saveProfile = async (data: {
       user_id: userId,
       account_type: data.accountType,
       company_name: data.companyName,
+      full_name: data.fullName ?? null,
       role: data.role,
       org_size: data.orgSize,
       industry: data.industry,
@@ -948,6 +951,7 @@ export const saveProfile = async (data: {
     userId: row.user_id,
     accountType: row.account_type as UserProfile['accountType'],
     companyName: row.company_name,
+    fullName: row.full_name ?? undefined,
     role: row.role,
     orgSize: row.org_size,
     industry: row.industry,

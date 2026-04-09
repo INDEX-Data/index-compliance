@@ -14,6 +14,7 @@ import type { FrameworkMeta as FrameworkInfo, Client } from '@/lib/types'
 
 // Official logos/badges per framework
 const FRAMEWORK_LOGOS: Record<string, string> = {
+  'baseline':        '/atlas-logo.svg',
   'nist-csf':        '/frameworks/nist.png',
   'cmmc-l2':         '/frameworks/cmmc.svg',
   'nist-800-171':    '/frameworks/nist.png',
@@ -34,6 +35,7 @@ const FRAMEWORK_LOGOS: Record<string, string> = {
 }
 
 const CATEGORY_LABELS: Record<FrameworkCategory, string> = {
+  baseline:         'Baseline Assessment',
   defense_gov:      'Defense & Government',
   financial:        'Financial Services',
   healthcare:       'Healthcare & Life Sciences',

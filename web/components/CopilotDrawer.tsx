@@ -12,6 +12,7 @@ import {
 import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import { useCopilot, type CopilotConversation } from '@/contexts/CopilotContext'
+import { getProfile } from '@/lib/api'
 
 interface AgentStep {
   type: 'thinking' | 'tool_start' | 'tool_done' | 'tool_error' | 'responding'
@@ -411,6 +412,12 @@ export function CopilotDrawer() {
   const [view, setView] = useState<View>('chat')
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
+  const [profileCompany, setProfileCompany] = useState('')
+
+  // Fetch user profile for company name in greetings
+  useEffect(() => {
+    getProfile().then(p => { if (p.companyName) setProfileCompany(p.companyName) }).catch(() => {})
+  }, [])
   const [isStreaming, setIsStreaming] = useState(false)
   const [showClientPicker, setShowClientPicker] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -679,14 +686,11 @@ export function CopilotDrawer() {
     <>
       {messages.length === 0 && (
         <div className="flex flex-col items-center justify-center h-full text-center px-6">
-          <div className={`rounded-2xl bg-[#f5f5f4] flex items-center justify-center mb-4 ${expanded ? 'w-16 h-16' : 'w-12 h-12'}`}>
-            <Sparkles className={`text-[#a8a29e] ${expanded ? 'w-8 h-8' : 'w-6 h-6'}`} strokeWidth={1.5} />
-          </div>
           <p className={`font-medium text-[#1c1917] mb-1 ${expanded ? 'text-xl' : 'text-[15px]'}`}>Hi, I&apos;m Atlas</p>
           <p className={`text-[13px] text-[#78716c] leading-relaxed mb-5 ${expanded ? 'max-w-[520px]' : 'max-w-[280px]'}`}>
             I have live access to{' '}
             <span className="font-medium text-[#1c1917]">{activeClient?.name || 'your tenant'}</span>.
-            Ask me anything about your compliance posture or environment.
+            Ask me anything about {profileCompany ? `${profileCompany}'s` : 'your'} compliance posture or environment.
           </p>
           <div className={`flex flex-col gap-2 w-full ${expanded ? 'max-w-[520px]' : 'max-w-[300px]'}`}>
             {[

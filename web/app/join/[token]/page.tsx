@@ -178,6 +178,12 @@ export default function JoinPage() {
                 {authLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</> : 'Sign In'}
               </button>
             </form>
+            <p className="text-sm text-[#78716c] text-center px-6 pb-6">
+              Don&apos;t have an account?{' '}
+              <a href="/sign-up" className="text-[#1c1d1f] font-medium hover:underline">
+                Sign up
+              </a>
+            </p>
           </div>
         )}
 

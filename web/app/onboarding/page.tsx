@@ -32,6 +32,7 @@ export default function OnboardingPage() {
   const [accountType, setAccountType] = useState<'org' | 'msp' | null>(null)
 
   // Step 2
+  const [fullName,    setFullName]    = useState('')
   const [companyName, setCompanyName] = useState('')
   const [role,        setRole]        = useState('')
   const [industry,    setIndustry]    = useState('')
@@ -79,19 +80,24 @@ export default function OnboardingPage() {
   }
 
   async function handleFinish() {
-    if (!accountType || !companyName.trim()) return
+    if (!accountType || !companyName.trim() || !fullName.trim()) return
     setSaving(true)
     setError(null)
     try {
       // STEP 1: Complete onboarding gate — sets cookie + user metadata
-      const flagRes = await fetch('/onboard-finish', { method: 'POST', redirect: 'error' })
+      const flagRes = await fetch('/onboard-finish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName: fullName.trim() }),
+        redirect: 'error',
+      })
       if (!flagRes.ok) {
         const body = await flagRes.json().catch(() => ({}))
         throw new Error((body as any).error ?? 'Failed to complete workspace setup')
       }
 
       // STEP 2: Save profile to database
-      await saveProfile({ companyName: companyName.trim(), accountType, role, orgSize, industry })
+      await saveProfile({ companyName: companyName.trim(), fullName: fullName.trim(), accountType, role, orgSize, industry })
 
       // Hard navigation so the browser sends the fresh idx_onboarded cookie.
       window.location.href = accountType === 'msp' ? '/clients' : '/dashboard'
@@ -317,6 +323,25 @@ export default function OnboardingPage() {
 
                 <div className="space-y-6">
 
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5
+                                      uppercase tracking-wide">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={fullName}
+                      onChange={e => setFullName(e.target.value)}
+                      placeholder="John Smith"
+                      autoFocus
+                      className="w-full px-3.5 py-2.5 rounded-lg border border-[#e7e5e4] bg-white
+                                 text-[14px] text-[#1c1d1f] placeholder-[#a8a29e]
+                                 focus:outline-none focus:border-[#1c1d1f] focus:ring-2
+                                 focus:ring-[#1c1d1f]/10 transition-colors"
+                    />
+                  </div>
+
                   {/* Company Name */}
                   <div>
                     <label className="block text-[12px] font-semibold text-[#1c1d1f] mb-1.5
@@ -328,7 +353,6 @@ export default function OnboardingPage() {
                       value={companyName}
                       onChange={e => setCompanyName(e.target.value)}
                       placeholder="Acme Defense Corp"
-                      autoFocus
                       className="w-full px-3.5 py-2.5 rounded-lg border border-[#e7e5e4] bg-white
                                  text-[14px] text-[#1c1d1f] placeholder-[#a8a29e]
                                  focus:outline-none focus:border-[#1c1d1f] focus:ring-2
@@ -411,7 +435,7 @@ export default function OnboardingPage() {
                   </button>
                   <button
                     onClick={handleFinish}
-                    disabled={!companyName.trim() || saving}
+                    disabled={!fullName.trim() || !companyName.trim() || saving}
                     className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl
                                text-[14px] font-semibold text-white transition-all
                                disabled:opacity-40 disabled:cursor-not-allowed

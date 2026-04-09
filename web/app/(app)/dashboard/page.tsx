@@ -554,6 +554,13 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function getTimeGreeting(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Good morning'
+  if (h < 18) return 'Good afternoon'
+  return 'Good evening'
+}
+
 export default function DashboardPage() {
   const [loading,          setLoading]          = useState(true)
   const [reports,          setReports]          = useState<ReportMeta[]>([])
@@ -563,9 +570,10 @@ export default function DashboardPage() {
   const [accountType,      setAccountType]      = useState<'org' | 'msp'>('org')
   const [userName,         setUserName]         = useState('')
   const [companyName,      setCompanyName]      = useState('')
+  const [greeting,         setGreeting]         = useState('Good morning')
 
   useEffect(() => {
-    // Grab display name from Supabase session
+    // Grab display name from Supabase session (used for greeting)
     const supabase = createClientSupabase()
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -574,6 +582,8 @@ export default function DashboardPage() {
         setUserName(name)
       }
     })
+
+    setGreeting(getTimeGreeting())
 
     // Safety timeout: if data loading takes more than 8s, clear spinner anyway
     const timeout = setTimeout(() => {
@@ -590,6 +600,7 @@ export default function DashboardPage() {
         setFirstClientName(clients[0]?.name ?? '')
         setAccountType(profile.accountType as 'org' | 'msp')
         setCompanyName(profile.companyName ?? '')
+        if (profile.fullName) setUserName(profile.fullName)
       })
       .catch((err) => {
         console.error('[Dashboard] Data load error:', err)
@@ -647,10 +658,10 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#1c1917]">
-              Dashboard
+              {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
             </h1>
             <p className="text-sm text-[#44403c] mt-1">
-              Overview of your compliance posture across all frameworks.
+              {companyName ? `${companyName} compliance overview` : 'Overview of your compliance posture across all frameworks.'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -676,7 +687,7 @@ export default function DashboardPage() {
       ) : (
         <div className="max-w-4xl">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#1c1917]">
-            Welcome{userName ? `, ${userName}` : ''}
+            {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
           </h1>
           <p className="text-[#78716c] font-medium text-base mt-1">
             Let{'\u2019'}s get your compliance monitoring set up.

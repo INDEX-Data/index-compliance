@@ -7,6 +7,7 @@ import { decryptIfNeeded } from '@/lib/crypto'
 import { GraphClient } from '@src/services/graph-client.js'
 import { assessControl, buildSummary } from '@src/services/compliance-engine.js'
 import { cmmcL2Controls } from '@src/data/cmmc-l2-controls.js'
+import { baselineControls } from '@src/data/baseline-controls.js'
 import {
   DIBCAC_OBJECTIVES,
 } from '@src/data/dibcac-objectives.js'
@@ -16,6 +17,7 @@ import type { ComplianceControl, ControlAssessment, ObjectiveStatus, ObjectiveSt
 
 function getFrameworkControls(frameworkId: string): { name: string; controls: ComplianceControl[] } | null {
   const frameworks: Record<string, { name: string; controls: ComplianceControl[] }> = {
+    'baseline': { name: 'Current State Baseline', controls: baselineControls },
     'cmmc-l2': { name: 'CMMC Level 2', controls: cmmcL2Controls },
   }
   return frameworks[frameworkId] ?? null

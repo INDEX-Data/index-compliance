@@ -227,6 +227,7 @@ export interface UserProfile {
   userId: string
   accountType: 'org' | 'msp'
   companyName: string
+  fullName?: string
   role?: string
   orgSize?: string
   industry?: string
