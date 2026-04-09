@@ -1,5 +1,5 @@
 // =============================================================================
-// INDEX DSaaS — Word Document Report Generator
+// INDEX — Word Document Report Generator
 // Calls Claude AI for narrative analysis, then builds a professional .docx
 // =============================================================================
 
@@ -25,22 +25,32 @@ import {
 } from "docx";
 import type { ComplianceReport, ControlAssessment } from "../types.js";
 
-// ── Color palette (no # prefix — docx requirement) ───────────────────────────
+// ── Color palette — INDEX Brand Guidelines ──────────────────────────────────
+// Primary: Black #000000, White #FFFFFF, Orange #ED6325
+// Grayscale: Cloud→Phantom scale per brand spec
+// (no # prefix — docx requirement)
 const C = {
-  navy:       "0f172a",
-  navyMid:    "1e3a5f",
-  white:      "FFFFFF",
-  passGreen:  "059669",
-  passLight:  "d1fae5",
-  amber:      "b45309",
-  amberLight: "fef3c7",
-  failRed:    "dc2626",
-  failLight:  "fee2e2",
-  slate:      "64748b",
-  slateLight: "f1f5f9",
-  body:       "1e293b",
-  border:     "e2e8f0",
+  black:      "000000",   // Primary black
+  phantom:    "1E1E24",   // Near-black (headings, deep text)
+  arsenic:    "40424D",   // Dark grey (subheadings)
+  graphite:   "6E7180",   // Mid grey (secondary text)
+  space:      "9DA2B3",   // Muted (captions, labels)
+  steel:      "BCBFCC",   // Light grey (borders)
+  smoke:      "D3D6E0",   // Lighter grey (subtle borders)
+  cloud:      "EDEFF7",   // Near-white (backgrounds)
+  white:      "FFFFFF",   // White
+  orange:     "ED6325",   // INDEX brand orange (accent)
+  passGreen:  "059669",   // Status: pass
+  passLight:  "ECFDF5",   // Status: pass background
+  amber:      "b45309",   // Status: partial
+  amberLight: "fef3c7",   // Status: partial background
+  failRed:    "dc2626",   // Status: fail
+  failLight:  "fee2e2",   // Status: fail background
 } as const;
+
+// ── Brand font — Manrope ────────────────────────────────────────────────────
+// Manrope is the INDEX brand typeface. Falls back to Calibri if not installed.
+const FONT = "Manrope";
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
@@ -49,7 +59,7 @@ function statusFill(status: ControlAssessment["status"]): string {
     case "pass":          return C.passLight;
     case "partial":       return C.amberLight;
     case "fail":          return C.failLight;
-    default:              return C.slateLight;
+    default:              return C.cloud;
   }
 }
 
@@ -58,7 +68,7 @@ function statusTextColor(status: ControlAssessment["status"]): string {
     case "pass":          return C.passGreen;
     case "partial":       return C.amber;
     case "fail":          return C.failRed;
-    default:              return C.slate;
+    default:              return C.graphite;
   }
 }
 
@@ -200,31 +210,31 @@ function pt(before = 0, after = 0) {
 
 function heading1(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, bold: true, color: C.navy, size: 36, font: "Calibri" })],
+    children: [new TextRun({ text, bold: true, color: C.black, size: 36, font: FONT })],
     spacing: pt(14, 6),
     border: {
-      bottom: { color: C.border, size: 4, space: 6, style: BorderStyle.SINGLE },
+      bottom: { color: C.steel, size: 4, space: 6, style: BorderStyle.SINGLE },
     },
   });
 }
 
 function heading2(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, bold: true, color: C.navyMid, size: 28, font: "Calibri" })],
+    children: [new TextRun({ text, bold: true, color: C.arsenic, size: 28, font: FONT })],
     spacing: pt(10, 4),
   });
 }
 
 function bodyPara(text: string, afterPt = 6): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, color: C.body, size: 22, font: "Calibri" })],
+    children: [new TextRun({ text, color: C.phantom, size: 22, font: FONT })],
     spacing: pt(0, afterPt),
   });
 }
 
 function indentedPara(text: string): Paragraph {
   return new Paragraph({
-    children: [new TextRun({ text, color: C.body, size: 20, font: "Calibri" })],
+    children: [new TextRun({ text, color: C.phantom, size: 20, font: FONT })],
     indent:  { left: convertInchesToTwip(0.25) },
     spacing: pt(0, 6),
   });
@@ -243,9 +253,9 @@ function emptyLine(afterPt = 6): Paragraph {
 function thCell(text: string, widthPct?: number): TableCell {
   return new TableCell({
     ...(widthPct !== undefined && { width: { size: widthPct, type: WidthType.PERCENTAGE } }),
-    shading: { type: ShadingType.CLEAR, color: "auto", fill: C.navyMid },
+    shading: { type: ShadingType.CLEAR, color: "auto", fill: C.black },
     children: [new Paragraph({
-      children: [new TextRun({ text, bold: true, color: C.white, size: 18, font: "Calibri" })],
+      children: [new TextRun({ text, bold: true, color: C.white, size: 18, font: FONT })],
     })],
   });
 }
@@ -254,23 +264,23 @@ function tdCell(
   text: string,
   opts: { fill?: string; color?: string; bold?: boolean; widthPct?: number } = {},
 ): TableCell {
-  const { fill = C.white, color = C.body, bold = false, widthPct } = opts;
+  const { fill = C.white, color = C.phantom, bold = false, widthPct } = opts;
   return new TableCell({
     ...(widthPct !== undefined && { width: { size: widthPct, type: WidthType.PERCENTAGE } }),
     shading: { type: ShadingType.CLEAR, color: "auto", fill },
     children: [new Paragraph({
-      children: [new TextRun({ text, bold, color, size: 18, font: "Calibri" })],
+      children: [new TextRun({ text, bold, color, size: 18, font: FONT })],
     })],
   });
 }
 
 const tableBorders = {
-  top:              { style: BorderStyle.SINGLE, size: 1, color: C.border },
-  bottom:           { style: BorderStyle.SINGLE, size: 1, color: C.border },
-  left:             { style: BorderStyle.SINGLE, size: 1, color: C.border },
-  right:            { style: BorderStyle.SINGLE, size: 1, color: C.border },
-  insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: C.border },
-  insideVertical:   { style: BorderStyle.SINGLE, size: 1, color: C.border },
+  top:              { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  bottom:           { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  left:             { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  right:            { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  insideVertical:   { style: BorderStyle.SINGLE, size: 1, color: C.steel },
 };
 
 function makeTable(rows: TableRow[]): Table {
@@ -297,38 +307,38 @@ function buildCoverPage(report: ComplianceReport): Paragraph[] {
 
     // Branding
     new Paragraph({
-      children: [new TextRun({ text: "INDEX DSaaS", bold: true, color: C.navy, size: 56, font: "Calibri" })],
+      children: [new TextRun({ text: "INDEX", bold: true, color: C.black, size: 56, font: FONT })],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 2),
     }),
     new Paragraph({
-      children: [new TextRun({ text: "Compliance Assessment Platform", color: C.slate, size: 24, font: "Calibri" })],
+      children: [new TextRun({ text: "Compliance Assessment Platform", color: C.graphite, size: 24, font: FONT })],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 16),
     }),
 
     // Divider
     new Paragraph({
-      border:   { bottom: { color: C.navyMid, size: 8, space: 10, style: BorderStyle.SINGLE } },
+      border:   { bottom: { color: C.orange, size: 8, space: 10, style: BorderStyle.SINGLE } },
       spacing:  pt(0, 10),
       text:     "",
     }),
 
     // Report title
     new Paragraph({
-      children: [new TextRun({ text: report.frameworkName, bold: true, color: C.navy, size: 64, font: "Calibri" })],
+      children: [new TextRun({ text: report.frameworkName, bold: true, color: C.black, size: 64, font: FONT })],
       alignment: AlignmentType.CENTER,
       spacing:   pt(12, 4),
     }),
     new Paragraph({
-      children: [new TextRun({ text: "COMPLIANCE GAP ASSESSMENT", bold: true, color: C.navyMid, size: 36, font: "Calibri" })],
+      children: [new TextRun({ text: "COMPLIANCE GAP ASSESSMENT", bold: true, color: C.arsenic, size: 36, font: FONT })],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 16),
     }),
 
     // Divider
     new Paragraph({
-      border:  { bottom: { color: C.navyMid, size: 8, space: 10, style: BorderStyle.SINGLE } },
+      border:  { bottom: { color: C.orange, size: 8, space: 10, style: BorderStyle.SINGLE } },
       spacing: pt(0, 14),
       text:    "",
     }),
@@ -336,24 +346,24 @@ function buildCoverPage(report: ComplianceReport): Paragraph[] {
     // Metadata lines
     new Paragraph({
       children: [
-        new TextRun({ text: "Prepared for:   ", bold: true, color: C.slate, size: 24, font: "Calibri" }),
-        new TextRun({ text: report.tenantDisplayName,         color: C.body,  size: 24, font: "Calibri" }),
+        new TextRun({ text: "Prepared for:   ", bold: true, color: C.graphite, size: 24, font: FONT }),
+        new TextRun({ text: report.tenantDisplayName,         color: C.phantom,  size: 24, font: FONT }),
       ],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 4),
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: "Assessment Date:   ", bold: true, color: C.slate, size: 24, font: "Calibri" }),
-        new TextRun({ text: dateStr,                           color: C.body,  size: 24, font: "Calibri" }),
+        new TextRun({ text: "Assessment Date:   ", bold: true, color: C.graphite, size: 24, font: FONT }),
+        new TextRun({ text: dateStr,                           color: C.phantom,  size: 24, font: FONT }),
       ],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 4),
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: "Report ID:   ", bold: true, color: C.slate,  size: 22, font: "Calibri" }),
-        new TextRun({ text: report.reportId,    color: C.body,  size: 20, font: "Courier New" }),
+        new TextRun({ text: "Report ID:   ", bold: true, color: C.graphite,  size: 22, font: FONT }),
+        new TextRun({ text: report.reportId,    color: C.phantom,  size: 20, font: "Courier New" }),
       ],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 14),
@@ -362,8 +372,8 @@ function buildCoverPage(report: ComplianceReport): Paragraph[] {
     // Risk / score callout
     new Paragraph({
       children: [
-        new TextRun({ text: `  RISK RATING: ${report.summary.riskScore.toUpperCase()}  `, bold: true, color: riskColor,  size: 32, font: "Calibri" }),
-        new TextRun({ text: `    COMPLIANCE SCORE: ${report.summary.compliancePercentage}%  `,  bold: true, color: C.navyMid, size: 32, font: "Calibri" }),
+        new TextRun({ text: `  RISK RATING: ${report.summary.riskScore.toUpperCase()}  `, bold: true, color: riskColor,  size: 32, font: FONT }),
+        new TextRun({ text: `    COMPLIANCE SCORE: ${report.summary.compliancePercentage}%  `,  bold: true, color: C.black, size: 32, font: FONT }),
       ],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 18),
@@ -371,12 +381,12 @@ function buildCoverPage(report: ComplianceReport): Paragraph[] {
 
     // Classification
     new Paragraph({
-      children: [new TextRun({ text: "CONFIDENTIAL — FOR AUTHORIZED USE ONLY", bold: true, color: C.failRed, size: 20, font: "Calibri" })],
+      children: [new TextRun({ text: "CONFIDENTIAL — FOR AUTHORIZED USE ONLY", bold: true, color: C.failRed, size: 20, font: FONT })],
       alignment: AlignmentType.CENTER,
       spacing:   pt(0, 4),
     }),
     new Paragraph({
-      children: [new TextRun({ text: "Generated by INDEX DSaaS + Claude AI", color: C.slate, size: 18, font: "Calibri", italics: true })],
+      children: [new TextRun({ text: "Generated by INDEX + Claude AI", color: C.graphite, size: 18, font: FONT, italics: true })],
       alignment: AlignmentType.CENTER,
     }),
 
@@ -418,9 +428,9 @@ function buildMetricsSection(report: ComplianceReport): (Paragraph | Table)[] {
       children: [thCell("Metric", 45), thCell("Count", 25), thCell("Notes", 30)],
     }),
     new TableRow({ children: [
-      tdCell("Total Controls",      { fill: C.slateLight }),
-      tdCell(String(summary.totalControls), { fill: C.slateLight, bold: true }),
-      tdCell("All controls assessed in this report", { fill: C.slateLight }),
+      tdCell("Total Controls",      { fill: C.cloud }),
+      tdCell(String(summary.totalControls), { fill: C.cloud, bold: true }),
+      tdCell("All controls assessed in this report", { fill: C.cloud }),
     ]}),
     new TableRow({ children: [
       tdCell("Passed"),
@@ -428,9 +438,9 @@ function buildMetricsSection(report: ComplianceReport): (Paragraph | Table)[] {
       tdCell("Controls meeting all requirements"),
     ]}),
     new TableRow({ children: [
-      tdCell("Partial Compliance", { fill: C.slateLight }),
-      tdCell(pct(summary.partial), { fill: C.slateLight, color: C.amber, bold: true }),
-      tdCell("Controls partially meeting requirements", { fill: C.slateLight }),
+      tdCell("Partial Compliance", { fill: C.cloud }),
+      tdCell(pct(summary.partial), { fill: C.cloud, color: C.amber, bold: true }),
+      tdCell("Controls partially meeting requirements", { fill: C.cloud }),
     ]}),
     new TableRow({ children: [
       tdCell("Failed"),
@@ -438,14 +448,14 @@ function buildMetricsSection(report: ComplianceReport): (Paragraph | Table)[] {
       tdCell("Controls not meeting requirements"),
     ]}),
     new TableRow({ children: [
-      tdCell("Not Assessed",       { fill: C.slateLight }),
-      tdCell(pct(summary.notAssessed), { fill: C.slateLight }),
-      tdCell("Require manual verification", { fill: C.slateLight }),
+      tdCell("Not Assessed",       { fill: C.cloud }),
+      tdCell(pct(summary.notAssessed), { fill: C.cloud }),
+      tdCell("Require manual verification", { fill: C.cloud }),
     ]}),
     new TableRow({ children: [
-      tdCell("Compliance Score",   { fill: C.navyMid, color: C.white, bold: true }),
-      tdCell(`${summary.compliancePercentage}%`, { fill: C.navyMid, color: C.white, bold: true }),
-      tdCell(`Risk Level: ${summary.riskScore.toUpperCase()}`, { fill: C.navyMid, color: C.white, bold: true }),
+      tdCell("Compliance Score",   { fill: C.black, color: C.white, bold: true }),
+      tdCell(`${summary.compliancePercentage}%`, { fill: C.black, color: C.white, bold: true }),
+      tdCell(`Risk Level: ${summary.riskScore.toUpperCase()}`, { fill: C.black, color: C.white, bold: true }),
     ]}),
   ]);
 
@@ -464,14 +474,14 @@ function buildMetricsSection(report: ComplianceReport): (Paragraph | Table)[] {
     ...Object.entries(fam)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([family, c], i) => {
-        const fill = i % 2 === 0 ? C.white : C.slateLight;
+        const fill = i % 2 === 0 ? C.white : C.cloud;
         return new TableRow({ children: [
           tdCell(family,         { fill }),
           tdCell(String(c.total),  { fill, bold: true }),
-          tdCell(String(c.pass),   { fill, color: c.pass    > 0 ? C.passGreen : C.body }),
-          tdCell(String(c.partial),{ fill, color: c.partial > 0 ? C.amber     : C.body }),
-          tdCell(String(c.fail),   { fill, color: c.fail    > 0 ? C.failRed   : C.body }),
-          tdCell(String(c.na),     { fill, color: C.slate }),
+          tdCell(String(c.pass),   { fill, color: c.pass    > 0 ? C.passGreen : C.phantom }),
+          tdCell(String(c.partial),{ fill, color: c.partial > 0 ? C.amber     : C.phantom }),
+          tdCell(String(c.fail),   { fill, color: c.fail    > 0 ? C.failRed   : C.phantom }),
+          tdCell(String(c.na),     { fill, color: C.graphite }),
         ]});
       }),
   ];
@@ -526,11 +536,11 @@ function buildFamilyAnalysis(
     // Stats summary line
     children.push(new Paragraph({
       children: [
-        new TextRun({ text: `${assessments.length} controls  •  `, size: 20, font: "Calibri", color: C.slate }),
-        new TextRun({ text: `${pass} pass  `,    size: 20, font: "Calibri", color: C.passGreen, bold: true }),
-        new TextRun({ text: `${partial} partial  `, size: 20, font: "Calibri", color: C.amber,    bold: true }),
-        new TextRun({ text: `${fail} fail`,     size: 20, font: "Calibri", color: C.failRed,  bold: true }),
-        ...(na > 0 ? [new TextRun({ text: `  ${na} not assessed`, size: 20, font: "Calibri", color: C.slate })] : []),
+        new TextRun({ text: `${assessments.length} controls  •  `, size: 20, font: FONT, color: C.graphite }),
+        new TextRun({ text: `${pass} pass  `,    size: 20, font: FONT, color: C.passGreen, bold: true }),
+        new TextRun({ text: `${partial} partial  `, size: 20, font: FONT, color: C.amber,    bold: true }),
+        new TextRun({ text: `${fail} fail`,     size: 20, font: FONT, color: C.failRed,  bold: true }),
+        ...(na > 0 ? [new TextRun({ text: `  ${na} not assessed`, size: 20, font: FONT, color: C.graphite })] : []),
       ],
       spacing: pt(0, 6),
     }));
@@ -549,7 +559,7 @@ function buildFamilyAnalysis(
           ],
         }),
         ...issueControls.map((a, i) => {
-          const rowFill = i % 2 === 0 ? C.white : C.slateLight;
+          const rowFill = i % 2 === 0 ? C.white : C.cloud;
           return new TableRow({ children: [
             tdCell(a.controlId,    { fill: rowFill }),
             tdCell(a.controlTitle, { fill: rowFill }),
@@ -586,10 +596,10 @@ function buildRecommendations(narrative: ReportNarrative): (Paragraph | Table)[]
       // Title line with priority bullet
       children.push(new Paragraph({
         children: [
-          new TextRun({ text: "●  ", bold: true, color: priorityColors[priority] ?? C.navy, size: 22, font: "Calibri" }),
-          new TextRun({ text: rec.title, bold: true, color: C.body, size: 22, font: "Calibri" }),
+          new TextRun({ text: "●  ", bold: true, color: priorityColors[priority] ?? C.black, size: 22, font: FONT }),
+          new TextRun({ text: rec.title, bold: true, color: C.phantom, size: 22, font: FONT }),
           ...(rec.controlIds?.length
-            ? [new TextRun({ text: `   [${rec.controlIds.join(", ")}]`, color: C.slate, size: 18, font: "Calibri" })]
+            ? [new TextRun({ text: `   [${rec.controlIds.join(", ")}]`, color: C.graphite, size: 18, font: FONT })]
             : []),
         ],
         spacing: pt(4, 2),
@@ -644,7 +654,7 @@ function renderEvidenceTable(rawData: unknown[]): Paragraph | Table {
       children: cols.map(c => thCell(c, colW)),
     }),
     ...displayRows.map((row, i) => {
-      const fill = i % 2 === 0 ? C.white : C.slateLight;
+      const fill = i % 2 === 0 ? C.white : C.cloud;
       return new TableRow({
         children: cols.map(col =>
           tdCell(evidenceCellValue((row as Record<string, unknown>)[col]), { fill })
@@ -683,15 +693,15 @@ function buildEvidenceAppendix(report: ComplianceReport): (Paragraph | Table)[] 
       // Query description + record count
       children.push(new Paragraph({
         children: [
-          new TextRun({ text: ev.queryDescription, bold: true, color: C.body, size: 20, font: "Calibri" }),
-          new TextRun({ text: `  ·  ${ev.recordCount} record(s)`, color: C.slate, size: 18, font: "Calibri" }),
+          new TextRun({ text: ev.queryDescription, bold: true, color: C.phantom, size: 20, font: FONT }),
+          new TextRun({ text: `  ·  ${ev.recordCount} record(s)`, color: C.graphite, size: 18, font: FONT }),
         ],
         spacing: pt(6, 2),
       }));
 
       // Endpoint
       children.push(new Paragraph({
-        children: [new TextRun({ text: ev.endpoint, color: C.slate, size: 16, font: "Courier New" })],
+        children: [new TextRun({ text: ev.endpoint, color: C.graphite, size: 16, font: "Courier New" })],
         spacing: pt(0, 4),
       }));
 
@@ -719,7 +729,7 @@ function buildAppendix(report: ComplianceReport): (Paragraph | Table)[] {
         ],
       }),
       ...report.controlAssessments.map((a, i) => {
-        const fill = i % 2 === 0 ? C.white : C.slateLight;
+        const fill = i % 2 === 0 ? C.white : C.cloud;
         return new TableRow({ children: [
           tdCell(a.controlId,    { fill }),
           tdCell(a.family,       { fill }),
@@ -751,10 +761,10 @@ export async function generateWordReport(
   const mainHeader = new Header({
     children: [new Paragraph({
       children: [
-        new TextRun({ text: "CONFIDENTIAL", bold: true, color: C.failRed, size: 18, font: "Calibri" }),
-        new TextRun({ text: "    |    ",  color: C.border, size: 18, font: "Calibri" }),
-        new TextRun({ text: `${report.frameworkName} Compliance Assessment`, color: C.slate, size: 18, font: "Calibri" }),
-        new TextRun({ text: `    |    ${report.tenantDisplayName}`, color: C.slate, size: 18, font: "Calibri" }),
+        new TextRun({ text: "CONFIDENTIAL", bold: true, color: C.failRed, size: 18, font: FONT }),
+        new TextRun({ text: "    |    ",  color: C.steel, size: 18, font: FONT }),
+        new TextRun({ text: `${report.frameworkName} Compliance Assessment`, color: C.graphite, size: 18, font: FONT }),
+        new TextRun({ text: `    |    ${report.tenantDisplayName}`, color: C.graphite, size: 18, font: FONT }),
       ],
       alignment: AlignmentType.RIGHT,
     })],
@@ -763,13 +773,13 @@ export async function generateWordReport(
   const mainFooter = new Footer({
     children: [new Paragraph({
       children: [
-        new TextRun({ text: "INDEX DSaaS  |  Compliance Assessment Platform    |    Page ", color: C.slate, size: 16, font: "Calibri" }),
-        new TextRun({ children: [PageNumber.CURRENT], color: C.slate, size: 16, font: "Calibri" }),
-        new TextRun({ text: " of ", color: C.slate, size: 16, font: "Calibri" }),
-        new TextRun({ children: [PageNumber.TOTAL_PAGES], color: C.slate, size: 16, font: "Calibri" }),
+        new TextRun({ text: "INDEX  |  Compliance Assessment Platform    |    Page ", color: C.graphite, size: 16, font: FONT }),
+        new TextRun({ children: [PageNumber.CURRENT], color: C.graphite, size: 16, font: FONT }),
+        new TextRun({ text: " of ", color: C.graphite, size: 16, font: FONT }),
+        new TextRun({ children: [PageNumber.TOTAL_PAGES], color: C.graphite, size: 16, font: FONT }),
       ],
       alignment: AlignmentType.CENTER,
-      border: { top: { color: C.border, size: 4, space: 6, style: BorderStyle.SINGLE } },
+      border: { top: { color: C.steel, size: 4, space: 6, style: BorderStyle.SINGLE } },
     })],
   });
 
@@ -794,7 +804,7 @@ export async function generateWordReport(
 
   const doc = new Document({
     title:       `${report.frameworkName} Compliance Gap Assessment`,
-    creator:     "INDEX DSaaS Compliance Platform",
+    creator:     "INDEX Compliance Platform",
     description: `Compliance gap assessment for ${report.tenantDisplayName}`,
     sections: [
       // Cover page — no header / footer
