@@ -4,6 +4,7 @@
 // =============================================================================
 
 import type { ComplianceControl, FrameworkId } from "../types.js";
+import { baselineControls } from "./baseline-controls.js";
 import { cmmcL2Controls } from "./cmmc-l2-controls.js";
 import { nistCsfControls } from "./nist-csf-controls.js";
 import { nist800171Controls } from "./nist-800-171-controls.js";
@@ -21,6 +22,7 @@ import { secControls } from "./sec-controls.js";
 import { iso27017Controls } from "./iso-27017-controls.js";
 import { cisControls } from "./cis-controls-controls.js";
 import { mvspControls } from "./mvsp-controls.js";
+import { aiReadinessControls } from "./ai-readiness-controls.js";
 
 interface FrameworkDefinition {
   id: FrameworkId;
@@ -31,6 +33,15 @@ interface FrameworkDefinition {
 }
 
 const frameworkRegistry: Map<FrameworkId, FrameworkDefinition> = new Map();
+
+// Register Baseline
+frameworkRegistry.set("BASELINE", {
+  id: "BASELINE",
+  name: "Current State Baseline",
+  version: "1.0",
+  description: "Current state baseline assessment across identity, devices, data protection, and audit/monitoring",
+  controls: baselineControls,
+});
 
 // Register CMMC L2
 frameworkRegistry.set("CMMC_L2", {
@@ -178,6 +189,14 @@ frameworkRegistry.set("MVSP", {
   version: "2024",
   description: "Minimum Viable Secure Product — baseline security checklist for enterprise-ready software vendors",
   controls: mvspControls,
+});
+
+frameworkRegistry.set("AI_READINESS", {
+  id: "AI_READINESS",
+  name: "AI Readiness Assessment",
+  version: "1.0",
+  description: "Evaluates data governance, identity, security, and compliance readiness for AI adoption (Copilot, third-party AI tools)",
+  controls: aiReadinessControls,
 });
 
 // ---------------------------------------------------------------------------

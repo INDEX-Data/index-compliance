@@ -6,9 +6,13 @@ import {
   Building2, ArrowLeft, RefreshCw, CheckCircle2,
   Loader2, BarChart2, Shield, Plug, Layers, FileText,
   Calendar, Activity, ChevronDown, ChevronUp, AlertTriangle,
-  Clock,
+  Clock, TrendingUp, TrendingDown, Minus,
 } from 'lucide-react'
 import Link from 'next/link'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+} from 'recharts'
 import {
   getClients, testClient, getReports,
   getCAExclusions, justifyCAExclusion, getAccessReviews,
@@ -18,7 +22,7 @@ import {
 import type { CAPolicy, CAExclusionsResult, AccessReviewsResult } from '@/lib/api'
 import type { Client, ReportMeta, ClientIntegration } from '@/lib/types'
 
-type Tab = 'overview' | 'insights' | 'integrations' | 'scoping' | 'notes'
+type Tab = 'overview' | 'insights' | 'integrations' | 'scoping' | 'notes' | 'maturity'
 
 // ─── Tab Button ───────────────────────────────────────────────────────────────
 function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: React.ElementType; label: string }) {
@@ -425,6 +429,300 @@ function NotesTab({ clientId, initialNotes }: { clientId: string; initialNotes?:
   )
 }
 
+// ─── Maturity Tab ─────────────────────────────────────────────────────────────
+interface MaturityPoint {
+  compliancePercentage: number
+  snapshottedAt: string
+  frameworkId: string
+  riskScore: string
+  passed: number
+  failed: number
+}
+
+interface DriftEvent {
+  id: string
+  control_id: string
+  control_title: string
+  prior_status: string
+  new_status: string
+  direction: string
+  framework_id: string
+  acknowledged_at: string | null
+  created_at: string
+}
+
+function MaturityTab({ clientId }: { clientId: string }) {
+  const [seriesMap, setSeriesMap]   = useState<Record<string, MaturityPoint[]>>({})
+  const [driftEvents, setDrift]     = useState<DriftEvent[]>([])
+  const [activeFramework, setFw]    = useState<string | null>(null)
+  const [loadingData, setLoading]   = useState(true)
+  const [schedule, setSchedule]     = useState<{ cron_expression?: string; enabled?: boolean; next_run_at?: string } | null>(null)
+  const [savingSched, setSavingSched] = useState(false)
+  const [schedCron, setSchedCron]   = useState('0 2 * * 1')
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      const [summaryRes, driftRes, schedRes] = await Promise.all([
+        fetch(`/api/maturity?clientId=${clientId}`),
+        fetch(`/api/drift?clientId=${clientId}&limit=20`),
+        fetch(`/api/schedules?clientId=${clientId}`),
+      ])
+      if (cancelled) return
+
+      if (summaryRes.ok) {
+        const summary: Record<string, MaturityPoint> = await summaryRes.json()
+        const frameworks = Object.keys(summary)
+        if (frameworks.length > 0) {
+          // Load full time series for each framework
+          const seriesEntries = await Promise.all(
+            frameworks.map(async (fw) => {
+              const res = await fetch(`/api/maturity?clientId=${clientId}&frameworkId=${fw}`)
+              if (!res.ok) return [fw, []] as [string, MaturityPoint[]]
+              return [fw, await res.json()] as [string, MaturityPoint[]]
+            })
+          )
+          const newMap: Record<string, MaturityPoint[]> = {}
+          for (const [fw, points] of seriesEntries) newMap[fw] = points
+          if (!cancelled) {
+            setSeriesMap(newMap)
+            setFw((prev) => prev ?? frameworks[0])
+          }
+        }
+      }
+
+      if (driftRes.ok && !cancelled) setDrift(await driftRes.json())
+
+      if (schedRes.ok && !cancelled) {
+        const scheds: Record<string, unknown>[] = await schedRes.json()
+        if (scheds.length > 0) {
+          setSchedule(scheds[0] as { cron_expression?: string; enabled?: boolean; next_run_at?: string })
+          setSchedCron((scheds[0].cron_expression as string) ?? '0 2 * * 1')
+        }
+      }
+
+      if (!cancelled) setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [clientId])
+
+  const handleSaveSchedule = async () => {
+    if (!activeFramework) return
+    setSavingSched(true)
+    await fetch('/api/schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId, frameworkId: activeFramework, cronExpression: schedCron }),
+    })
+    setSavingSched(false)
+  }
+
+  const handleAcknowledge = async (id: string) => {
+    await fetch('/api/drift', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    setDrift((prev) => prev.map((e) => e.id === id ? { ...e, acknowledged_at: new Date().toISOString() } : e))
+  }
+
+  const frameworks = Object.keys(seriesMap)
+  const series = activeFramework ? (seriesMap[activeFramework] ?? []) : []
+  const chartData = series.map((p) => ({
+    date: new Date(p.snapshottedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+    score: p.compliancePercentage,
+  }))
+
+  const latestScore = series.length > 0 ? series[series.length - 1].compliancePercentage : null
+  const prevScore   = series.length > 1 ? series[series.length - 2].compliancePercentage : null
+  const delta       = latestScore !== null && prevScore !== null ? latestScore - prevScore : null
+
+  const regressions = driftEvents.filter((e) => e.direction === 'regression' && !e.acknowledged_at)
+  const improvements = driftEvents.filter((e) => e.direction === 'improvement')
+
+  if (loadingData) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="w-5 h-5 animate-spin text-[#a8a29e]" />
+      </div>
+    )
+  }
+
+  if (frameworks.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-[#e7e5e4] px-5 py-12 text-center">
+        <TrendingUp className="w-8 h-8 text-[#e7e5e4] mx-auto mb-3" />
+        <p className="text-[13px] font-semibold text-[#1c1d1f] mb-1">No maturity data yet</p>
+        <p className="text-[12px] text-[#78716c]">Run at least two assessments to see your compliance trend.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Framework selector + score summary */}
+      <div className="bg-white rounded-xl border border-[#e7e5e4] px-5 py-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex gap-2 flex-wrap">
+            {frameworks.map((fw) => (
+              <button
+                key={fw}
+                onClick={() => setFw(fw)}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
+                  activeFramework === fw
+                    ? 'bg-[#1c1917] text-white'
+                    : 'bg-[#fafafa] border border-[#e7e5e4] text-[#505967] hover:bg-[#f5f5f4]'
+                }`}
+              >
+                {fw.replace(/_/g, ' ')}
+              </button>
+            ))}
+          </div>
+          {latestScore !== null && (
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p
+                  className="text-[28px] font-bold tabular-nums"
+                  style={{
+                    color: latestScore >= 80 ? '#0eb472' : latestScore >= 50 ? '#f59e0b' : '#f25757',
+                    letterSpacing: '-0.03em',
+                  }}
+                >
+                  {latestScore}%
+                </p>
+                <p className="text-[10px] text-[#a8a29e] uppercase tracking-wide">Current</p>
+              </div>
+              {delta !== null && (
+                <div className={`flex items-center gap-1 text-[13px] font-semibold ${delta > 0 ? 'text-[#0eb472]' : delta < 0 ? 'text-[#f25757]' : 'text-[#a8a29e]'}`}>
+                  {delta > 0 ? <TrendingUp className="w-4 h-4" /> : delta < 0 ? <TrendingDown className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
+                  {delta > 0 ? '+' : ''}{delta}pp
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Line chart */}
+        {chartData.length > 1 ? (
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#a8a29e' }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 11, fill: '#a8a29e' }} tickLine={false} axisLine={false} />
+              <Tooltip
+                contentStyle={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 8, fontSize: 12 }}
+                formatter={(v: number) => [`${v}%`, 'Compliance']}
+              />
+              <ReferenceLine y={80} stroke="#0eb472" strokeDasharray="4 4" strokeOpacity={0.4} />
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="#1c1917"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#1c1917' }}
+                activeDot={{ r: 5 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-[12px] text-[#a8a29e] text-center py-8">Run another assessment to see the trend line.</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* Drift events */}
+        <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#f5f5f4] flex items-center justify-between">
+            <div>
+              <p className="text-[13px] font-semibold text-[#1c1d1f]">Control Drift</p>
+              <p className="text-[11px] text-[#78716c] mt-0.5">Status changes between runs</p>
+            </div>
+            {regressions.length > 0 && (
+              <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-[rgba(242,87,87,0.08)] text-[#f25757]">
+                {regressions.length} regression{regressions.length > 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-[#f5f5f4] max-h-64 overflow-y-auto">
+            {driftEvents.length === 0 ? (
+              <p className="text-[12px] text-[#a8a29e] px-5 py-6 text-center">No drift detected yet.</p>
+            ) : (
+              driftEvents.slice(0, 10).map((e) => (
+                <div key={e.id} className={`px-5 py-3 flex items-start justify-between gap-3 ${e.acknowledged_at ? 'opacity-50' : ''}`}>
+                  <div className="flex items-start gap-2 min-w-0">
+                    {e.direction === 'regression'
+                      ? <TrendingDown className="w-3.5 h-3.5 text-[#f25757] mt-0.5 shrink-0" />
+                      : <TrendingUp className="w-3.5 h-3.5 text-[#0eb472] mt-0.5 shrink-0" />
+                    }
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{e.control_title}</p>
+                      <p className="text-[11px] text-[#a8a29e]">
+                        {e.prior_status} → {e.new_status} · {new Date(e.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  {!e.acknowledged_at && (
+                    <button
+                      onClick={() => handleAcknowledge(e.id)}
+                      className="shrink-0 text-[11px] text-[#a8a29e] hover:text-[#1c1d1f] transition-colors"
+                    >
+                      Ack
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Schedule */}
+        <div className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#f5f5f4]">
+            <p className="text-[13px] font-semibold text-[#1c1d1f]">Assessment Schedule</p>
+            <p className="text-[11px] text-[#78716c] mt-0.5">Automated recurring assessment</p>
+          </div>
+          <div className="p-5 space-y-4">
+            {schedule?.next_run_at && (
+              <div className="flex items-center gap-2 text-[12px] text-[#78716c]">
+                <Clock className="w-3.5 h-3.5" />
+                Next run: {new Date(schedule.next_run_at).toLocaleString()}
+              </div>
+            )}
+            <div>
+              <label className="text-[11px] font-medium text-[#78716c] uppercase tracking-wide block mb-1.5">
+                Cron expression
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={schedCron}
+                  onChange={(e) => setSchedCron(e.target.value)}
+                  className="flex-1 text-[12px] bg-[#fafafa] border border-[#e7e5e4] rounded-lg px-3 py-2 text-[#1c1d1f] focus:outline-none focus:border-[#1c1917]"
+                >
+                  <option value="0 2 * * 1">Weekly — Monday 2am UTC</option>
+                  <option value="0 2 * * *">Daily — 2am UTC</option>
+                  <option value="0 2 1 * *">Monthly — 1st 2am UTC</option>
+                </select>
+                <button
+                  onClick={handleSaveSchedule}
+                  disabled={savingSched || !activeFramework}
+                  className="px-4 py-2 rounded-lg text-[12px] font-medium bg-[#1c1917] text-white hover:bg-[#2c2a28] disabled:opacity-50 transition-colors"
+                >
+                  {savingSched ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Save'}
+                </button>
+              </div>
+              {!activeFramework && (
+                <p className="text-[11px] text-[#a8a29e] mt-1.5">Select a framework above to schedule.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function ClientDetailPage() {
   const { id }  = useParams<{ id: string }>()
@@ -472,6 +770,7 @@ export default function ClientDetailPage() {
 
   const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
     { id: 'overview',     label: 'Overview',     icon: BarChart2  },
+    { id: 'maturity',     label: 'Maturity',     icon: TrendingUp },
     { id: 'insights',     label: 'Insights',     icon: Activity   },
     { id: 'integrations', label: 'Integrations', icon: Plug       },
     { id: 'scoping',      label: 'Scoping',      icon: Layers     },
@@ -536,6 +835,7 @@ export default function ClientDetailPage() {
 
       {/* Tab content */}
       {activeTab === 'overview'     && <OverviewTab client={client} reports={reports} />}
+      {activeTab === 'maturity'     && <MaturityTab clientId={client.id} />}
       {activeTab === 'insights'     && <InsightsTab clientId={client.id} />}
       {activeTab === 'integrations' && <IntegrationsTab clientId={client.id} />}
       {activeTab === 'scoping'      && <ScopingTab clientId={client.id} />}

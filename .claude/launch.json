@@ -3,17 +3,10 @@
   "configurations": [
     {
       "name": "web-dashboard",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["C:\\INDEX MCP APP\\web\\node_modules\\next\\dist\\bin\\next", "dev", "--port", "3000"],
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["next", "dev", "--webpack", "--port", "3000"],
       "port": 3000,
       "cwd": "C:\\INDEX MCP APP\\web"
-    },
-    {
-      "name": "api-server",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\node.exe",
-      "runtimeArgs": ["--env-file=.env", "C:\\INDEX MCP APP\\dist\\api-server.js"],
-      "port": 3001,
-      "cwd": "C:\\INDEX MCP APP"
     }
   ]
 }

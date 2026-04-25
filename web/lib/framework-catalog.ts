@@ -12,6 +12,7 @@ import type { FrameworkMeta } from './types'
 
 export type FrameworkCategory =
   | 'baseline'
+  | 'ai_readiness'
   | 'defense_gov'
   | 'financial'
   | 'healthcare'
@@ -34,6 +35,18 @@ export const FRAMEWORK_CATALOG: CatalogEntry[] = [
     implemented: true,
     category: 'baseline',
     categoryLabel: 'Baseline Assessment',
+  },
+
+  // ── AI Readiness ──────────────────────────────────────────────────────────
+  {
+    id: 'ai-readiness',
+    name: 'AI Readiness Assessment',
+    version: '1.0',
+    description: 'Evaluate your data, security, and compliance readiness for AI adoption',
+    controlCount: 18,
+    implemented: true,
+    category: 'ai_readiness',
+    categoryLabel: 'AI Readiness',
   },
 
   // ── Defense & Government ──────────────────────────────────────────────────
@@ -220,6 +233,7 @@ export const FRAMEWORK_CATALOG: CatalogEntry[] = [
 /** Unique category labels in display order */
 export const CATEGORY_ORDER: FrameworkCategory[] = [
   'baseline',
+  'ai_readiness',
   'defense_gov',
   'financial',
   'healthcare',

@@ -6,14 +6,15 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import type { GraphClient } from "../services/graph-client.js";
-import { assessControl, assessFramework } from "../services/compliance-engine.js";
+import { assessControl } from "../services/compliance-engine.js";
 import {
   listFrameworks,
   getFramework,
   getFrameworkControls,
   getImplementedFrameworks,
 } from "../data/framework-registry.js";
-import type { FrameworkId, ComplianceReport, ControlAssessment } from "../types.js";
+import { runAssessment } from "../operations/index.js";
+import type { FrameworkId, ControlAssessment } from "../types.js";
 
 // -------------------------------------------------------------------------
 // Tool Registration
@@ -252,12 +253,10 @@ Examples:
       }
 
       const startTime = Date.now();
-      const report = await assessFramework(
-        framework.controls,
-        framework.id,
-        framework.name,
-        graphClient
-      );
+      const report = await runAssessment({
+        frameworkId: framework.id,
+        graphClient,
+      });
       const executionTime = Date.now() - startTime;
 
       const output = {

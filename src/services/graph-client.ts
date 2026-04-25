@@ -4,6 +4,7 @@
 
 import { GRAPH_API_BASE, GRAPH_API_BETA } from "../constants.js";
 import type { GraphClientConfig, GraphApiResponse } from "../types.js";
+import type { WriteOpts } from "../agents/types.js";
 
 export class GraphClient {
   private accessToken: string | null = null;
@@ -224,6 +225,59 @@ export class GraphClient {
 
   getTenantId(): string {
     return this.config.tenantId;
+  }
+
+  // -------------------------------------------------------------------------
+  // Write Methods (Sprint 1 — IND-50)
+  // Requires appropriate Graph API write permissions granted by client admin.
+  // -------------------------------------------------------------------------
+
+  async post(endpoint: string, body: unknown, opts: WriteOpts): Promise<unknown> {
+    if (opts.dryRun) return { dryRun: true, endpoint, body, method: 'POST' }
+    const token = await this.authenticate()
+    const url = `${GRAPH_API_BASE}${endpoint}`
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    }
+    if (opts.idempotencyKey) headers['client-request-id'] = opts.idempotencyKey
+    const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Graph POST ${endpoint} failed (${response.status}): ${err}`)
+    }
+    return response.status === 204 ? null : response.json()
+  }
+
+  async patch(endpoint: string, body: unknown, opts: WriteOpts): Promise<unknown> {
+    if (opts.dryRun) return { dryRun: true, endpoint, body, method: 'PATCH' }
+    const token = await this.authenticate()
+    const url = `${GRAPH_API_BASE}${endpoint}`
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    }
+    if (opts.idempotencyKey) headers['client-request-id'] = opts.idempotencyKey
+    const response = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body) })
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Graph PATCH ${endpoint} failed (${response.status}): ${err}`)
+    }
+    return response.status === 204 ? null : response.json()
+  }
+
+  async delete(endpoint: string, opts: WriteOpts): Promise<void> {
+    if (opts.dryRun) return
+    const token = await this.authenticate()
+    const url = `${GRAPH_API_BASE}${endpoint}`
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) {
+      const err = await response.text()
+      throw new Error(`Graph DELETE ${endpoint} failed (${response.status}): ${err}`)
+    }
   }
 }
 

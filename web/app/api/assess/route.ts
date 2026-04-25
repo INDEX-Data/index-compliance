@@ -1,58 +1,9 @@
 import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase'
+import { resolveGraphClient } from '@/lib/atlas-client'
 import { decryptIfNeeded } from '@/lib/crypto'
-
-// ── Real engine imports from src/ (resolved via webpack extensionAlias) ─────
-import { GraphClient } from '@src/services/graph-client.js'
-import { assessControl, buildSummary } from '@src/services/compliance-engine.js'
-import { cmmcL2Controls } from '@src/data/cmmc-l2-controls.js'
-import { baselineControls } from '@src/data/baseline-controls.js'
-import {
-  DIBCAC_OBJECTIVES,
-} from '@src/data/dibcac-objectives.js'
-import type { ComplianceControl, ControlAssessment, ObjectiveStatus, ObjectiveStatusValue, ObjectiveEvidenceSource } from '@src/types.js'
-
-// ── Framework registry ─────────────────────────────────────────────────────
-
-function getFrameworkControls(frameworkId: string): { name: string; controls: ComplianceControl[] } | null {
-  const frameworks: Record<string, { name: string; controls: ComplianceControl[] }> = {
-    'baseline': { name: 'Current State Baseline', controls: baselineControls },
-    'cmmc-l2': { name: 'CMMC Level 2', controls: cmmcL2Controls },
-  }
-  return frameworks[frameworkId] ?? null
-}
-
-// ── Map control assessment status → DIBCAC objective status ────────────────
-
-function mapControlStatusToObjectiveStatus(
-  controlStatus: ControlAssessment['status'],
-  objectiveAutomation: string
-): { status: ObjectiveStatusValue; evidenceSource: ObjectiveEvidenceSource } {
-  if (objectiveAutomation === 'physical') {
-    return { status: 'requires_physical', evidenceSource: 'none' }
-  }
-  if (objectiveAutomation === 'manual') {
-    return { status: 'requires_manual', evidenceSource: 'none' }
-  }
-  switch (controlStatus) {
-    case 'pass':
-      return { status: 'met', evidenceSource: 'automated_graph' }
-    case 'partial':
-      return {
-        status: objectiveAutomation === 'semi-automated' ? 'partially_met' : 'met',
-        evidenceSource: 'automated_graph',
-      }
-    case 'fail':
-      return { status: 'not_met', evidenceSource: 'automated_graph' }
-    case 'not_assessed':
-    case 'not_applicable':
-    default:
-      return { status: 'not_assessed', evidenceSource: 'inherited_from_control' }
-  }
-}
-
-// ── Supabase admin client (reused in after() callback) ─────────────────────
+import { runAssessment } from '@src/operations/index.js'
 
 function getAdminClient() {
   return createClient(
@@ -61,8 +12,6 @@ function getAdminClient() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 }
-
-// ── Route Handler ──────────────────────────────────────────────────────────
 
 export async function POST(request: Request) {
   try {
@@ -80,9 +29,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'frameworkId is required' }, { status: 400 })
     }
 
+    // Resolve client row (needed for job creation before the after() block)
     const admin = getAdminClient()
-
-    // Look up client credentials
     let clientRow: any
     if (clientId) {
       const { data, error } = await admin
@@ -100,10 +48,15 @@ export async function POST(request: Request) {
       clientRow = data
     }
 
-    // Load framework controls
-    const fw = getFrameworkControls(frameworkId)
+    // Validate framework exists before creating a job
+    const { getFramework } = await import('@src/data/framework-registry.js')
+    const normalizedId = frameworkId.toUpperCase().replace(/-/g, '_')
+    const fw = getFramework(normalizedId as any)
     if (!fw || fw.controls.length === 0) {
-      return NextResponse.json({ error: `Framework "${frameworkId}" not found or not yet implemented` }, { status: 400 })
+      return NextResponse.json(
+        { error: `Framework "${frameworkId}" not found or not yet implemented` },
+        { status: 400 }
+      )
     }
 
     // Create assessment job row
@@ -111,7 +64,7 @@ export async function POST(request: Request) {
       .from('assessment_jobs')
       .insert({
         user_id: user.id,
-        client_id: clientId ?? clientRow.id,
+        client_id: clientRow.id,
         framework_id: frameworkId,
         status: 'running',
         total_controls: fw.controls.length,
@@ -127,172 +80,81 @@ export async function POST(request: Request) {
 
     const jobId = job.id
 
-    // ── Schedule the actual assessment to run AFTER the response is sent ────
-    // This lets the client receive jobId instantly and subscribe to Realtime
-    // before any controls are assessed. Each control update triggers a
-    // Realtime push so the frontend shows live progress.
+    // Run assessment after response is sent so client can subscribe to Realtime
     after(async () => {
       const bg = getAdminClient()
-
-      const graphClient = new GraphClient({
-        tenantId: decryptIfNeeded(clientRow.tenant_id),
-        clientId: decryptIfNeeded(clientRow.client_id),
-        clientSecret: decryptIfNeeded(clientRow.client_secret),
-        scopes: ['https://graph.microsoft.com/.default'],
-      })
-
-      const assessments: ControlAssessment[] = []
       const progress: any[] = []
 
       try {
-        for (let i = 0; i < fw.controls.length; i++) {
-          const control = fw.controls[i]
-          try {
-            const assessment = await assessControl(control, graphClient)
-            assessments.push(assessment)
-            progress.push({
-              controlId: control.controlId,
-              title: control.title,
-              status: assessment.status,
-              done: true,
-            })
-          } catch (err) {
-            assessments.push({
-              controlId: control.controlId,
-              controlTitle: control.title,
-              frameworkId: control.frameworkId,
-              family: control.family,
-              status: 'not_assessed',
-              evidenceCollected: [],
-              findings: [`Error: ${err instanceof Error ? err.message : String(err)}`],
-              recommendations: [],
-              assessedAt: new Date().toISOString(),
-            })
-            progress.push({
-              controlId: control.controlId,
-              title: control.title,
-              status: 'not_assessed',
-              done: true,
-            })
+        const { graphClient } = await resolveGraphClient(user.id, clientRow.id)
+
+        await runAssessment(
+          {
+            frameworkId,
+            graphClient,
+            clientId: clientRow.id,
+            clientName: clientRow.name,
+            tenantId: decryptIfNeeded(clientRow.tenant_id),
+          },
+          {
+            onProgress: async (i, _total, title, status) => {
+              progress.push({ controlId: title, title, status, done: true })
+              await bg.from('assessment_jobs').update({
+                current_index: i + 1,
+                current_title: title,
+                progress: [...progress],
+                updated_at: new Date().toISOString(),
+              }).eq('id', jobId)
+            },
+            onComplete: async (report) => {
+              // Save report
+              await bg.from('reports').insert({
+                id: report.reportId,
+                user_id: user.id,
+                client_id: clientRow.id,
+                framework_id: frameworkId,
+                data: report,
+                generated_at: report.generatedAt,
+              })
+
+              // Save objective statuses (table may not exist in all envs)
+              try {
+                const objectiveRows = report.objectiveStatuses.map(os => ({
+                  report_id: report.reportId,
+                  objective_id: os.objectiveId,
+                  status: os.status,
+                  evidence_source: os.evidenceSource,
+                  attestation_text: os.attestationText ?? null,
+                  document_ref: os.documentRef ?? null,
+                  assessed_at: os.assessedAt,
+                  assessed_by: os.assessedBy ?? 'automated',
+                }))
+                await bg.from('objective_statuses').insert(objectiveRows)
+              } catch {
+                // Table may not exist yet — non-fatal
+              }
+
+              // Mark job complete
+              await bg.from('assessment_jobs').update({
+                status: 'complete',
+                report_id: report.reportId,
+                updated_at: new Date().toISOString(),
+              }).eq('id', jobId)
+            },
+            onError: async (err) => {
+              await bg.from('assessment_jobs').update({
+                status: 'error',
+                error_message: err.message,
+                updated_at: new Date().toISOString(),
+              }).eq('id', jobId)
+            },
           }
-
-          // Update job progress → triggers Supabase Realtime for the frontend
-          await bg.from('assessment_jobs').update({
-            current_index: i + 1,
-            current_title: control.title,
-            progress,
-            updated_at: new Date().toISOString(),
-          }).eq('id', jobId)
-        }
-
-        // ── Build report ─────────────────────────────────────────────────
-        const summary = buildSummary(assessments)
-        const reportId = `RPT-${Date.now()}`
-        const report = {
-          reportId,
-          tenantId: decryptIfNeeded(clientRow.tenant_id),
-          tenantDisplayName: clientRow.name,
-          frameworkId,
-          frameworkName: fw.name,
-          generatedAt: new Date().toISOString(),
-          generatedBy: 'Atlas Compliance Assessment Engine v1.0',
-          summary,
-          controlAssessments: assessments,
-          clientId: clientRow.id,
-          clientName: clientRow.name,
-        }
-
-        // ── Map 320 DIBCAC objectives to control results ─────────────────
-        const assessmentMap = new Map<string, ControlAssessment>()
-        for (const a of assessments) {
-          assessmentMap.set(a.controlId, a)
-        }
-
-        const objectiveStatuses: ObjectiveStatus[] = DIBCAC_OBJECTIVES.map((obj) => {
-          const controlAssessment = assessmentMap.get(obj.controlId)
-          if (!controlAssessment) {
-            return {
-              objectiveId: obj.objectiveId,
-              status: obj.automation === 'physical' ? 'requires_physical' as const
-                : obj.automation === 'manual' ? 'requires_manual' as const
-                : 'not_assessed' as const,
-              evidenceSource: 'none' as const,
-              assessedAt: new Date().toISOString(),
-              assessedBy: 'automated',
-            }
-          }
-          const mapped = mapControlStatusToObjectiveStatus(controlAssessment.status, obj.automation)
-          return {
-            objectiveId: obj.objectiveId,
-            status: mapped.status,
-            evidenceSource: mapped.evidenceSource,
-            assessedAt: new Date().toISOString(),
-            assessedBy: 'automated',
-          }
-        })
-
-        // DIBCAC summary
-        const dibcacSummary: any = {
-          total: objectiveStatuses.length,
-          met: objectiveStatuses.filter(o => o.status === 'met').length,
-          partiallyMet: objectiveStatuses.filter(o => o.status === 'partially_met').length,
-          notMet: objectiveStatuses.filter(o => o.status === 'not_met').length,
-          requiresManual: objectiveStatuses.filter(o => o.status === 'requires_manual').length,
-          requiresPhysical: objectiveStatuses.filter(o => o.status === 'requires_physical').length,
-          notAssessed: objectiveStatuses.filter(o => o.status === 'not_assessed').length,
-        }
-        const assessableObjectives = dibcacSummary.total - dibcacSummary.requiresPhysical
-        dibcacSummary.coveragePercentage = assessableObjectives > 0
-          ? Math.round(((dibcacSummary.met + dibcacSummary.partiallyMet * 0.5) / assessableObjectives) * 100)
-          : 0
-
-        const fullReport = { ...report, objectiveStatuses, dibcacSummary }
-
-        // Save report
-        await bg.from('reports').insert({
-          id: reportId,
-          user_id: user.id,
-          client_id: clientRow.id,
-          framework_id: frameworkId,
-          data: fullReport,
-          generated_at: fullReport.generatedAt,
-        })
-
-        // Save objective statuses (if table exists)
-        try {
-          const objectiveRows = objectiveStatuses.map(os => ({
-            report_id: reportId,
-            objective_id: os.objectiveId,
-            status: os.status,
-            evidence_source: os.evidenceSource,
-            attestation_text: os.attestationText ?? null,
-            document_ref: os.documentRef ?? null,
-            assessed_at: os.assessedAt,
-            assessed_by: os.assessedBy ?? 'automated',
-          }))
-          await bg.from('objective_statuses').insert(objectiveRows)
-        } catch {
-          // Table may not exist yet
-        }
-
-        // Mark job complete
-        await bg.from('assessment_jobs').update({
-          status: 'complete',
-          report_id: reportId,
-          updated_at: new Date().toISOString(),
-        }).eq('id', jobId)
-
-      } catch (err) {
-        // Mark job as errored so frontend shows the failure
-        await bg.from('assessment_jobs').update({
-          status: 'error',
-          error_message: err instanceof Error ? err.message : 'Assessment failed unexpectedly',
-          updated_at: new Date().toISOString(),
-        }).eq('id', jobId)
+        )
+      } catch {
+        // onError already handled DB update; this catch prevents unhandled rejection
       }
     })
 
-    // ── Return immediately so client can subscribe to Realtime ─────────────
     return NextResponse.json({ ok: true, jobId })
 
   } catch (err) {

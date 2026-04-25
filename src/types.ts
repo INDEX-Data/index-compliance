@@ -25,7 +25,8 @@ export type FrameworkId =
   | "SEC"
   | "ISO_27017"
   | "CIS_CONTROLS"
-  | "MVSP";
+  | "MVSP"
+  | "AI_READINESS";
 
 export interface ComplianceFramework {
   id: FrameworkId;
@@ -141,6 +142,12 @@ export interface ComplianceReport {
   clientName?: string;
 }
 
+/** Full report including DIBCAC 320 objective mapping — produced by runAssessment() */
+export type FullReport = ComplianceReport & {
+  objectiveStatuses: ObjectiveStatus[];
+  dibcacSummary: DIBCACObjectiveSummary;
+}
+
 // ---------------------------------------------------------------------------
 // DIBCAC 320 Objective Tracking
 // ---------------------------------------------------------------------------
@@ -239,6 +246,16 @@ export interface GraphApiResponse<T = unknown> {
   "@odata.count"?: number;
   "@odata.nextLink"?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Remediation DB Interface
+// Minimal structural interface used by src/agents/ so the root package
+// does not need @supabase/supabase-js as a dependency.
+// The web app passes its SupabaseClient which satisfies this interface.
+// ---------------------------------------------------------------------------
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type RemediationDb = any
 
 // ---------------------------------------------------------------------------
 // MCP Tool Response Types
