@@ -6,6 +6,7 @@ import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveGraphClient } from '@/lib/atlas-client'
 import { decryptIfNeeded } from '@/lib/crypto'
+import env from '@/lib/env'
 import {
   getDueSchedules,
   markScheduleRun,
@@ -18,17 +19,15 @@ import {
 import type { FullReport } from '@src/types.js'
 
 function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 export async function POST(request: Request) {
   // Verify cron secret
   const secret = request.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  if (secret !== env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

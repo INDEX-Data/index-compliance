@@ -23,7 +23,13 @@
     "dev:watch": "tsc --watch",
     "dev": "concurrently -n API,WEB -c cyan,magenta \"node dist/api-server.js\" \"npm --prefix web run dev\"",
     "prepublishOnly": "npm run build",
-    "pack": "npm pack"
+    "pack": "npm pack",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
+    "typecheck": "tsc --noEmit",
+    "prepare": "husky"
   },
   "keywords": [
     "mcp",
@@ -50,11 +56,33 @@
     "svix": "^1.88.0",
     "zod": "^3.22.0"
   },
+  "lint-staged": {
+    "src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "web/app/**/*.{ts,tsx}": [
+      "prettier --write"
+    ],
+    "web/lib/**/*.{ts,tsx}": [
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
   "devDependencies": {
     "@types/express": "^4.17.0",
     "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.59.0",
+    "@typescript-eslint/parser": "^8.59.0",
     "concurrently": "^9.2.1",
     "drizzle-kit": "^0.31.9",
+    "eslint": "^10.2.1",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.8.3",
     "tsx": "^4.21.0",
     "typescript": "^5.3.0"
   }

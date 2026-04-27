@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
+import env from '@/lib/env'
 
 const PREFIX = 'enc:v1:'
 const ALGO = 'aes-256-gcm'
@@ -12,14 +13,7 @@ const IV_BYTES = 12
 const TAG_BYTES = 16
 
 function getKey(): Buffer {
-  const hex = process.env.ENCRYPTION_KEY
-  if (!hex || hex.length !== 64) {
-    throw new Error(
-      'ENCRYPTION_KEY must be a 64-character hex string (32 bytes). ' +
-      'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"'
-    )
-  }
-  return Buffer.from(hex, 'hex')
+  return Buffer.from(env.ENCRYPTION_KEY, 'hex')
 }
 
 export function encrypt(plaintext: string): string {

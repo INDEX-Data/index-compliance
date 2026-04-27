@@ -6,13 +6,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { GraphClient } from '@src/services/graph-client.js'
 import { decryptIfNeeded } from '@/lib/crypto'
+import env from '@/lib/env'
 
 function getAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
 }
 
 /**
@@ -29,9 +28,7 @@ export async function resolveGraphClient(userId: string, clientId?: string) {
 
   if (error || !data) {
     throw new Error(
-      clientId
-        ? 'Client not found'
-        : 'No M365 tenant connected. Please add a client first.'
+      clientId ? 'Client not found' : 'No M365 tenant connected. Please add a client first.'
     )
   }
 

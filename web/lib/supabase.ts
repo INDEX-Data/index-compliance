@@ -8,9 +8,12 @@ import { createServerClient as createServer } from '@supabase/ssr'
 import { type NextRequest, NextResponse } from 'next/server'
 
 // ── Environment ──────────────────────────────────────────────────────────────
+// NEXT_PUBLIC_* vars are baked in at build time by Next.js, so we can't use
+// the server-only env module here (this file is also used in client components).
+// The values are validated at startup via web/lib/env.ts in all server paths.
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
 // ── Browser client (client components) ───────────────────────────────────────
 // Safe to call multiple times — @supabase/ssr deduplicates internally.
@@ -33,9 +36,7 @@ export async function createServerSupabase() {
       },
       setAll(cookiesToSet) {
         try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          )
+          cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
         } catch {
           // setAll can throw in Server Components (read-only).
           // This is expected — the middleware will refresh the session.
@@ -48,10 +49,7 @@ export async function createServerSupabase() {
 // ── Middleware client ─────────────────────────────────────────────────────────
 // Refreshes the auth session on every request so the cookie stays valid.
 
-export function createMiddlewareSupabase(
-  request: NextRequest,
-  response: NextResponse
-) {
+export function createMiddlewareSupabase(request: NextRequest, response: NextResponse) {
   return createServer(SUPABASE_URL, SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {

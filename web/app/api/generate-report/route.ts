@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase'
+import env from '@/lib/env'
 import { generateWordReport } from '@src/services/report-generator.js'
 import type { ComplianceReport } from '@src/types.js'
 
 export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabase()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -20,7 +23,7 @@ export async function POST(request: Request) {
     }
 
     // Use INDEX_ANTHROPIC_KEY to avoid collision with Claude Code's env var
-    const anthropicKey = process.env.INDEX_ANTHROPIC_KEY
+    const anthropicKey = env.INDEX_ANTHROPIC_KEY
     if (!anthropicKey) {
       return NextResponse.json(
         { error: 'Anthropic API key not configured. Add INDEX_ANTHROPIC_KEY to .env.local' },
@@ -68,7 +71,11 @@ export async function POST(request: Request) {
 
       // ── Sheet 1: Summary ──
       const summary = workbook.addWorksheet('Summary')
-      const headerFill = { type: 'pattern' as const, pattern: 'solid' as const, fgColor: { argb: 'FF1B2A4A' } }
+      const headerFill = {
+        type: 'pattern' as const,
+        pattern: 'solid' as const,
+        fgColor: { argb: 'FF1B2A4A' },
+      }
       const headerFont = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 }
       const titleFont = { bold: true, size: 14, color: { argb: 'FF1B2A4A' } }
 
@@ -81,12 +88,14 @@ export async function POST(request: Request) {
       titleCell.font = titleFont
       summary.mergeCells('A1:B1')
 
-      const failedControls = report.controlAssessments
-        .filter(a => a.status === 'fail' || a.status === 'partial')
+      const failedControls = report.controlAssessments.filter(
+        (a) => a.status === 'fail' || a.status === 'partial'
+      )
       const totalControls = report.controlAssessments.length
-      const passCount = report.controlAssessments.filter(a => a.status === 'pass').length
+      const passCount = report.controlAssessments.filter((a) => a.status === 'pass').length
       const score = totalControls > 0 ? Math.round((passCount / totalControls) * 100) : 0
-      const riskLevel = score >= 80 ? 'Low' : score >= 60 ? 'Medium' : score >= 40 ? 'High' : 'Critical'
+      const riskLevel =
+        score >= 80 ? 'Low' : score >= 60 ? 'Medium' : score >= 40 ? 'High' : 'Critical'
 
       const summaryData = [
         ['Report ID', report.reportId],
@@ -145,10 +154,12 @@ export async function POST(request: Request) {
         .sort((a, b) => (a.status === 'fail' ? 0 : 1) - (b.status === 'fail' ? 0 : 1))
         .forEach((ctrl, i) => {
           const priority = ctrl.status === 'fail' ? 'Critical' : 'High'
-          const finding = Array.isArray(ctrl.findings) && ctrl.findings.length > 0
-            ? ctrl.findings[0] : ''
-          const recommendation = Array.isArray(ctrl.recommendations) && ctrl.recommendations.length > 0
-            ? ctrl.recommendations[0] : ''
+          const finding =
+            Array.isArray(ctrl.findings) && ctrl.findings.length > 0 ? ctrl.findings[0] : ''
+          const recommendation =
+            Array.isArray(ctrl.recommendations) && ctrl.recommendations.length > 0
+              ? ctrl.recommendations[0]
+              : ''
 
           const row = plan.addRow({
             priority,
@@ -227,45 +238,66 @@ export async function POST(request: Request) {
           const basePath = `${familyFolder}/${controlFolder}`
 
           // Control summary file
-          zip.file(`${basePath}/_control-summary.json`, JSON.stringify({
-            controlId: ctrl.controlId,
-            title: ctrl.controlTitle,
-            family: ctrl.family,
-            status: ctrl.status,
-            assessedAt: ctrl.assessedAt,
-            findings: ctrl.findings,
-            recommendations: ctrl.recommendations,
-            evidenceCount: ctrl.evidenceCollected?.length ?? 0,
-          }, null, 2))
+          zip.file(
+            `${basePath}/_control-summary.json`,
+            JSON.stringify(
+              {
+                controlId: ctrl.controlId,
+                title: ctrl.controlTitle,
+                family: ctrl.family,
+                status: ctrl.status,
+                assessedAt: ctrl.assessedAt,
+                findings: ctrl.findings,
+                recommendations: ctrl.recommendations,
+                evidenceCount: ctrl.evidenceCollected?.length ?? 0,
+              },
+              null,
+              2
+            )
+          )
 
           // Individual evidence files
           if (Array.isArray(ctrl.evidenceCollected)) {
             ctrl.evidenceCollected.forEach((ev, idx) => {
               const evName = sanitize(ev.queryId || `evidence-${idx + 1}`)
-              zip.file(`${basePath}/${evName}.json`, JSON.stringify({
-                queryId: ev.queryId,
-                description: ev.queryDescription,
-                endpoint: ev.endpoint,
-                collectedAt: ev.collectedAt,
-                success: ev.success,
-                recordCount: ev.recordCount,
-                errorMessage: ev.errorMessage ?? null,
-                data: ev.rawData,
-              }, null, 2))
+              zip.file(
+                `${basePath}/${evName}.json`,
+                JSON.stringify(
+                  {
+                    queryId: ev.queryId,
+                    description: ev.queryDescription,
+                    endpoint: ev.endpoint,
+                    collectedAt: ev.collectedAt,
+                    success: ev.success,
+                    recordCount: ev.recordCount,
+                    errorMessage: ev.errorMessage ?? null,
+                    data: ev.rawData,
+                  },
+                  null,
+                  2
+                )
+              )
             })
           }
         }
       }
 
       // Add a top-level manifest
-      zip.file('manifest.json', JSON.stringify({
-        reportId: report.reportId,
-        framework: report.frameworkName,
-        tenant: report.tenantDisplayName,
-        generatedAt: new Date().toISOString(),
-        totalControls: report.controlAssessments.length,
-        families: [...byFamily.keys()],
-      }, null, 2))
+      zip.file(
+        'manifest.json',
+        JSON.stringify(
+          {
+            reportId: report.reportId,
+            framework: report.frameworkName,
+            tenant: report.tenantDisplayName,
+            generatedAt: new Date().toISOString(),
+            totalControls: report.controlAssessments.length,
+            families: [...byFamily.keys()],
+          },
+          null,
+          2
+        )
+      )
 
       const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
 
@@ -279,7 +311,6 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ error: `Unknown format: ${format}` }, { status: 400 })
-
   } catch (err) {
     console.error('[generate-report]', err)
     return NextResponse.json(
