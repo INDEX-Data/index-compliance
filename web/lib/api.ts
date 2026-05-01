@@ -216,8 +216,9 @@ export const getReport = async (id: string): Promise<ComplianceReport> => {
 }
 
 export const deleteReport = async (id: string): Promise<{ ok: boolean }> => {
-  const { error } = await supa().from('reports').delete().eq('id', id)
+  const { error, count } = await supa().from('reports').delete({ count: 'exact' }).eq('id', id)
   if (error) throw new ApiError(error.message, 500)
+  if (count === 0) throw new ApiError('Report not found or permission denied', 403)
   return { ok: true }
 }
 
