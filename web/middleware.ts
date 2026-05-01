@@ -27,6 +27,14 @@ export async function middleware(request: NextRequest) {
   const supabase = createMiddlewareSupabase(request, response)
   const { data: { user } } = await supabase.auth.getUser()
 
+  // ── API routes: refresh session but NEVER redirect ────────────────────────
+  // API route handlers call supabase.auth.getUser() themselves and return
+  // proper JSON 401s. Redirecting them to /sign-in produces an HTML page that
+  // breaks any fetch() caller expecting JSON.
+  if (pathname.startsWith('/api/')) {
+    return response
+  }
+
   // ── Public routes: allow through ──────────────────────────────────────────
   if (isPublicRoute(pathname)) {
     // Redirect authenticated users away from landing / sign-in / sign-up

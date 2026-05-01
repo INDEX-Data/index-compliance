@@ -5,15 +5,22 @@
 // =============================================================================
 
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto'
-import env from '@/lib/env'
 
 const PREFIX = 'enc:v1:'
 const ALGO = 'aes-256-gcm'
 const IV_BYTES = 12
 const TAG_BYTES = 16
 
+// Read ENCRYPTION_KEY directly — do NOT import env.ts here.
+// crypto.ts is a shared utility used by every route that handles credentials.
+// Importing the monolithic env validator would make ALL of those routes fail
+// if any unrelated env var (e.g. CRON_SECRET) is missing.
 function getKey(): Buffer {
-  return Buffer.from(env.ENCRYPTION_KEY, 'hex')
+  const key = process.env.ENCRYPTION_KEY
+  if (!key || key.length !== 64) {
+    throw new Error('ENCRYPTION_KEY must be a 64-character hex string (32 bytes, hex-encoded)')
+  }
+  return Buffer.from(key, 'hex')
 }
 
 export function encrypt(plaintext: string): string {

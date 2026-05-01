@@ -3,14 +3,13 @@
 // Calls Claude AI for narrative analysis, then builds a professional .docx
 // =============================================================================
 
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from '@anthropic-ai/sdk'
 import {
   AlignmentType,
   BorderStyle,
   Document,
   Footer,
   Header,
-  HeadingLevel,
   Packer,
   PageBreak,
   PageNumber,
@@ -22,119 +21,139 @@ import {
   TextRun,
   WidthType,
   convertInchesToTwip,
-} from "docx";
-import type { ComplianceReport, ControlAssessment } from "../types.js";
+} from 'docx'
+import type { ComplianceReport, ControlAssessment } from '../types.js'
 
 // ── Color palette — INDEX Brand Guidelines ──────────────────────────────────
 // Primary: Black #000000, White #FFFFFF, Orange #ED6325
 // Grayscale: Cloud→Phantom scale per brand spec
 // (no # prefix — docx requirement)
 const C = {
-  black:      "000000",   // Primary black
-  phantom:    "1E1E24",   // Near-black (headings, deep text)
-  arsenic:    "40424D",   // Dark grey (subheadings)
-  graphite:   "6E7180",   // Mid grey (secondary text)
-  space:      "9DA2B3",   // Muted (captions, labels)
-  steel:      "BCBFCC",   // Light grey (borders)
-  smoke:      "D3D6E0",   // Lighter grey (subtle borders)
-  cloud:      "EDEFF7",   // Near-white (backgrounds)
-  white:      "FFFFFF",   // White
-  orange:     "ED6325",   // INDEX brand orange (accent)
-  passGreen:  "059669",   // Status: pass
-  passLight:  "ECFDF5",   // Status: pass background
-  amber:      "b45309",   // Status: partial
-  amberLight: "fef3c7",   // Status: partial background
-  failRed:    "dc2626",   // Status: fail
-  failLight:  "fee2e2",   // Status: fail background
-} as const;
+  black: '000000', // Primary black
+  phantom: '1E1E24', // Near-black (headings, deep text)
+  arsenic: '40424D', // Dark grey (subheadings)
+  graphite: '6E7180', // Mid grey (secondary text)
+  space: '9DA2B3', // Muted (captions, labels)
+  steel: 'BCBFCC', // Light grey (borders)
+  smoke: 'D3D6E0', // Lighter grey (subtle borders)
+  cloud: 'EDEFF7', // Near-white (backgrounds)
+  white: 'FFFFFF', // White
+  orange: 'ED6325', // INDEX brand orange (accent)
+  passGreen: '059669', // Status: pass
+  passLight: 'ECFDF5', // Status: pass background
+  amber: 'b45309', // Status: partial
+  amberLight: 'fef3c7', // Status: partial background
+  failRed: 'dc2626', // Status: fail
+  failLight: 'fee2e2', // Status: fail background
+} as const
 
 // ── Brand font — Manrope ────────────────────────────────────────────────────
 // Manrope is the INDEX brand typeface. Falls back to Calibri if not installed.
-const FONT = "Manrope";
+const FONT = 'Manrope'
 
 // ── Status helpers ────────────────────────────────────────────────────────────
 
-function statusFill(status: ControlAssessment["status"]): string {
+function statusFill(status: ControlAssessment['status']): string {
   switch (status) {
-    case "pass":          return C.passLight;
-    case "partial":       return C.amberLight;
-    case "fail":          return C.failLight;
-    default:              return C.cloud;
+    case 'pass':
+      return C.passLight
+    case 'partial':
+      return C.amberLight
+    case 'fail':
+      return C.failLight
+    default:
+      return C.cloud
   }
 }
 
-function statusTextColor(status: ControlAssessment["status"]): string {
+function statusTextColor(status: ControlAssessment['status']): string {
   switch (status) {
-    case "pass":          return C.passGreen;
-    case "partial":       return C.amber;
-    case "fail":          return C.failRed;
-    default:              return C.graphite;
+    case 'pass':
+      return C.passGreen
+    case 'partial':
+      return C.amber
+    case 'fail':
+      return C.failRed
+    default:
+      return C.graphite
   }
 }
 
-function statusLabel(status: ControlAssessment["status"]): string {
+function statusLabel(status: ControlAssessment['status']): string {
   switch (status) {
-    case "pass":            return "PASS";
-    case "partial":         return "PARTIAL";
-    case "fail":            return "FAIL";
-    case "not_assessed":    return "NOT ASSESSED";
-    case "not_applicable":  return "N/A";
-    default:                return (status as string).toUpperCase();
+    case 'pass':
+      return 'PASS'
+    case 'partial':
+      return 'PARTIAL'
+    case 'fail':
+      return 'FAIL'
+    case 'not_assessed':
+      return 'NOT ASSESSED'
+    case 'not_applicable':
+      return 'N/A'
+    default:
+      return (status as string).toUpperCase()
   }
 }
 
 // ── Claude AI narrative generation ───────────────────────────────────────────
 
 interface ReportNarrative {
-  executiveSummary: string;
-  riskNarrative: string;
-  familyAnalysis: Record<string, string>;
-  criticalFindingsNarrative: string;
+  executiveSummary: string
+  riskNarrative: string
+  familyAnalysis: Record<string, string>
+  criticalFindingsNarrative: string
   recommendations: Array<{
-    priority: "Critical" | "High" | "Medium" | "Low";
-    title: string;
-    description: string;
-    controlIds: string[];
-  }>;
-  conclusion: string;
+    priority: 'Critical' | 'High' | 'Medium' | 'Low'
+    title: string
+    description: string
+    controlIds: string[]
+  }>
+  conclusion: string
 }
 
 async function generateNarrative(
   report: ComplianceReport,
-  apiKey: string,
+  apiKey: string
 ): Promise<ReportNarrative> {
-  const { summary, controlAssessments, frameworkName, tenantDisplayName, generatedAt } = report;
+  const { summary, controlAssessments, frameworkName, tenantDisplayName, generatedAt } = report
 
   // Build per-family stats
-  const familyStats: Record<string, { pass: number; partial: number; fail: number; na: number }> = {};
+  const familyStats: Record<string, { pass: number; partial: number; fail: number; na: number }> =
+    {}
   for (const a of controlAssessments) {
-    if (!familyStats[a.family]) familyStats[a.family] = { pass: 0, partial: 0, fail: 0, na: 0 };
-    const f = familyStats[a.family];
-    if      (a.status === "pass")    f.pass++;
-    else if (a.status === "partial") f.partial++;
-    else if (a.status === "fail")    f.fail++;
-    else                             f.na++;
+    if (!familyStats[a.family]) familyStats[a.family] = { pass: 0, partial: 0, fail: 0, na: 0 }
+    const f = familyStats[a.family]
+    if (a.status === 'pass') f.pass++
+    else if (a.status === 'partial') f.partial++
+    else if (a.status === 'fail') f.fail++
+    else f.na++
   }
 
   // Only send failed / partial controls to Claude (keeps prompt size manageable)
   const issueControls = controlAssessments
-    .filter(a => a.status === "fail" || a.status === "partial")
-    .map(a => ({
-      controlId:       a.controlId,
-      title:           a.controlTitle,
-      family:          a.family,
-      status:          a.status,
-      findings:        a.findings.slice(0, 3),
+    .filter((a) => a.status === 'fail' || a.status === 'partial')
+    .map((a) => ({
+      controlId: a.controlId,
+      title: a.controlTitle,
+      family: a.family,
+      status: a.status,
+      findings: a.findings.slice(0, 3),
       recommendations: a.recommendations.slice(0, 3),
-    }));
+    }))
 
   const familyLines = Object.entries(familyStats)
-    .map(([f, c]) => `  ${f}: ${c.pass} pass, ${c.partial} partial, ${c.fail} fail, ${c.na} not assessed`)
-    .join("\n");
+    .map(
+      ([f, c]) =>
+        `  ${f}: ${c.pass} pass, ${c.partial} partial, ${c.fail} fail, ${c.na} not assessed`
+    )
+    .join('\n')
 
-  const dateStr = new Date(generatedAt).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-  });
+  const dateStr = new Date(generatedAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 
   const prompt = `You are a senior cybersecurity compliance analyst generating a professional compliance gap assessment report for an executive audience.
 
@@ -179,33 +198,40 @@ Return ONLY valid JSON matching this exact schema:
   "conclusion": "<1-2 paragraphs with positive framing, path forward, and commitment to continuous improvement>"
 }
 
-For recommendations: provide 5-8 items across Critical/High/Medium/Low priorities. Focus on highest-impact remediation. Include only families with familyAnalysis entries that have actual issues.`;
+For recommendations: provide 5-8 items across Critical/High/Medium/Low priorities. Focus on highest-impact remediation. Include only families with familyAnalysis entries that have actual issues.`
 
-  const client = new Anthropic({ apiKey });
-  const message = await client.messages.create({
-    model:      "claude-sonnet-4-5-20250929",
-    max_tokens: 8192,
-    messages:   [{ role: "user", content: prompt }],
-  });
+  const client = new Anthropic({ apiKey })
+  // Use streaming + finalMessage() to keep the connection alive for long responses
+  // and avoid Vercel function timeouts on large 8192-token narrative outputs.
+  const message = await client.messages
+    .stream({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 8192,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    .finalMessage()
 
   // Claude 4 models may return thinking blocks before the text block — find the text block explicitly
-  const content = message.content.find(b => b.type === "text");
-  if (!content || content.type !== "text") throw new Error("No text block in Claude response");
+  const content = message.content.find((b) => b.type === 'text')
+  if (!content || content.type !== 'text') throw new Error('No text block in Claude response')
 
   // Extract JSON — strip markdown code fences if the model wrapped the response
-  const raw = content.text.trim();
-  const jsonText = raw.startsWith("```")
-    ? raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim()
-    : raw;
+  const raw = content.text.trim()
+  const jsonText = raw.startsWith('```')
+    ? raw
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```\s*$/, '')
+        .trim()
+    : raw
 
-  return JSON.parse(jsonText) as ReportNarrative;
+  return JSON.parse(jsonText) as ReportNarrative
 }
 
 // ── Document element helpers ──────────────────────────────────────────────────
 
 /** Convert pt values to twips (1 pt = 20 twips) */
 function pt(before = 0, after = 0) {
-  return { before: before * 20, after: after * 20 };
+  return { before: before * 20, after: after * 20 }
 }
 
 function heading1(text: string): Paragraph {
@@ -215,37 +241,37 @@ function heading1(text: string): Paragraph {
     border: {
       bottom: { color: C.steel, size: 4, space: 6, style: BorderStyle.SINGLE },
     },
-  });
+  })
 }
 
 function heading2(text: string): Paragraph {
   return new Paragraph({
     children: [new TextRun({ text, bold: true, color: C.arsenic, size: 28, font: FONT })],
     spacing: pt(10, 4),
-  });
+  })
 }
 
 function bodyPara(text: string, afterPt = 6): Paragraph {
   return new Paragraph({
     children: [new TextRun({ text, color: C.phantom, size: 22, font: FONT })],
     spacing: pt(0, afterPt),
-  });
+  })
 }
 
 function indentedPara(text: string): Paragraph {
   return new Paragraph({
     children: [new TextRun({ text, color: C.phantom, size: 20, font: FONT })],
-    indent:  { left: convertInchesToTwip(0.25) },
+    indent: { left: convertInchesToTwip(0.25) },
     spacing: pt(0, 6),
-  });
+  })
 }
 
 function pageBreak(): Paragraph {
-  return new Paragraph({ children: [new PageBreak()] });
+  return new Paragraph({ children: [new PageBreak()] })
 }
 
 function emptyLine(afterPt = 6): Paragraph {
-  return new Paragraph({ text: "", spacing: pt(0, afterPt) });
+  return new Paragraph({ text: '', spacing: pt(0, afterPt) })
 }
 
 // ── Table helpers ─────────────────────────────────────────────────────────────
@@ -253,537 +279,741 @@ function emptyLine(afterPt = 6): Paragraph {
 function thCell(text: string, widthPct?: number): TableCell {
   return new TableCell({
     ...(widthPct !== undefined && { width: { size: widthPct, type: WidthType.PERCENTAGE } }),
-    shading: { type: ShadingType.CLEAR, color: "auto", fill: C.black },
-    children: [new Paragraph({
-      children: [new TextRun({ text, bold: true, color: C.white, size: 18, font: FONT })],
-    })],
-  });
+    shading: { type: ShadingType.CLEAR, color: 'auto', fill: C.black },
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text, bold: true, color: C.white, size: 18, font: FONT })],
+      }),
+    ],
+  })
 }
 
 function tdCell(
   text: string,
-  opts: { fill?: string; color?: string; bold?: boolean; widthPct?: number } = {},
+  opts: { fill?: string; color?: string; bold?: boolean; widthPct?: number } = {}
 ): TableCell {
-  const { fill = C.white, color = C.phantom, bold = false, widthPct } = opts;
+  const { fill = C.white, color = C.phantom, bold = false, widthPct } = opts
   return new TableCell({
     ...(widthPct !== undefined && { width: { size: widthPct, type: WidthType.PERCENTAGE } }),
-    shading: { type: ShadingType.CLEAR, color: "auto", fill },
-    children: [new Paragraph({
-      children: [new TextRun({ text, bold, color, size: 18, font: FONT })],
-    })],
-  });
+    shading: { type: ShadingType.CLEAR, color: 'auto', fill },
+    children: [
+      new Paragraph({
+        children: [new TextRun({ text, bold, color, size: 18, font: FONT })],
+      }),
+    ],
+  })
 }
 
 const tableBorders = {
-  top:              { style: BorderStyle.SINGLE, size: 1, color: C.steel },
-  bottom:           { style: BorderStyle.SINGLE, size: 1, color: C.steel },
-  left:             { style: BorderStyle.SINGLE, size: 1, color: C.steel },
-  right:            { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  top: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  bottom: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  left: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+  right: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
   insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
-  insideVertical:   { style: BorderStyle.SINGLE, size: 1, color: C.steel },
-};
+  insideVertical: { style: BorderStyle.SINGLE, size: 1, color: C.steel },
+}
 
 function makeTable(rows: TableRow[]): Table {
   return new Table({
-    width:   { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: 100, type: WidthType.PERCENTAGE },
     borders: tableBorders,
     rows,
-  });
+  })
 }
 
 // ── Section builders ──────────────────────────────────────────────────────────
 
 function buildCoverPage(report: ComplianceReport): Paragraph[] {
   const riskColorMap: Record<string, string> = {
-    low: C.passGreen, medium: C.amber, high: "c2410c", critical: C.failRed,
-  };
-  const riskColor = riskColorMap[report.summary.riskScore] ?? C.failRed;
-  const dateStr   = new Date(report.generatedAt).toLocaleDateString("en-US", {
-    year: "numeric", month: "long", day: "numeric",
-  });
+    low: C.passGreen,
+    medium: C.amber,
+    high: 'c2410c',
+    critical: C.failRed,
+  }
+  const riskColor = riskColorMap[report.summary.riskScore] ?? C.failRed
+  const dateStr = new Date(report.generatedAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
 
   return [
-    new Paragraph({ text: "", spacing: pt(30, 0) }),
+    new Paragraph({ text: '', spacing: pt(30, 0) }),
 
     // Branding
     new Paragraph({
-      children: [new TextRun({ text: "INDEX", bold: true, color: C.black, size: 56, font: FONT })],
+      children: [new TextRun({ text: 'INDEX', bold: true, color: C.black, size: 56, font: FONT })],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 2),
+      spacing: pt(0, 2),
     }),
     new Paragraph({
-      children: [new TextRun({ text: "Compliance Assessment Platform", color: C.graphite, size: 24, font: FONT })],
+      children: [
+        new TextRun({
+          text: 'Compliance Assessment Platform',
+          color: C.graphite,
+          size: 24,
+          font: FONT,
+        }),
+      ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 16),
+      spacing: pt(0, 16),
     }),
 
     // Divider
     new Paragraph({
-      border:   { bottom: { color: C.orange, size: 8, space: 10, style: BorderStyle.SINGLE } },
-      spacing:  pt(0, 10),
-      text:     "",
+      border: { bottom: { color: C.orange, size: 8, space: 10, style: BorderStyle.SINGLE } },
+      spacing: pt(0, 10),
+      text: '',
     }),
 
     // Report title
     new Paragraph({
-      children: [new TextRun({ text: report.frameworkName, bold: true, color: C.black, size: 64, font: FONT })],
+      children: [
+        new TextRun({
+          text: report.frameworkName,
+          bold: true,
+          color: C.black,
+          size: 64,
+          font: FONT,
+        }),
+      ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(12, 4),
+      spacing: pt(12, 4),
     }),
     new Paragraph({
-      children: [new TextRun({ text: "COMPLIANCE GAP ASSESSMENT", bold: true, color: C.arsenic, size: 36, font: FONT })],
+      children: [
+        new TextRun({
+          text: 'COMPLIANCE GAP ASSESSMENT',
+          bold: true,
+          color: C.arsenic,
+          size: 36,
+          font: FONT,
+        }),
+      ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 16),
+      spacing: pt(0, 16),
     }),
 
     // Divider
     new Paragraph({
-      border:  { bottom: { color: C.orange, size: 8, space: 10, style: BorderStyle.SINGLE } },
+      border: { bottom: { color: C.orange, size: 8, space: 10, style: BorderStyle.SINGLE } },
       spacing: pt(0, 14),
-      text:    "",
+      text: '',
     }),
 
     // Metadata lines
     new Paragraph({
       children: [
-        new TextRun({ text: "Prepared for:   ", bold: true, color: C.graphite, size: 24, font: FONT }),
-        new TextRun({ text: report.tenantDisplayName,         color: C.phantom,  size: 24, font: FONT }),
+        new TextRun({
+          text: 'Prepared for:   ',
+          bold: true,
+          color: C.graphite,
+          size: 24,
+          font: FONT,
+        }),
+        new TextRun({ text: report.tenantDisplayName, color: C.phantom, size: 24, font: FONT }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 4),
+      spacing: pt(0, 4),
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: "Assessment Date:   ", bold: true, color: C.graphite, size: 24, font: FONT }),
-        new TextRun({ text: dateStr,                           color: C.phantom,  size: 24, font: FONT }),
+        new TextRun({
+          text: 'Assessment Date:   ',
+          bold: true,
+          color: C.graphite,
+          size: 24,
+          font: FONT,
+        }),
+        new TextRun({ text: dateStr, color: C.phantom, size: 24, font: FONT }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 4),
+      spacing: pt(0, 4),
     }),
     new Paragraph({
       children: [
-        new TextRun({ text: "Report ID:   ", bold: true, color: C.graphite,  size: 22, font: FONT }),
-        new TextRun({ text: report.reportId,    color: C.phantom,  size: 20, font: "Courier New" }),
+        new TextRun({ text: 'Report ID:   ', bold: true, color: C.graphite, size: 22, font: FONT }),
+        new TextRun({ text: report.reportId, color: C.phantom, size: 20, font: 'Courier New' }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 14),
+      spacing: pt(0, 14),
     }),
 
     // Risk / score callout
     new Paragraph({
       children: [
-        new TextRun({ text: `  RISK RATING: ${report.summary.riskScore.toUpperCase()}  `, bold: true, color: riskColor,  size: 32, font: FONT }),
-        new TextRun({ text: `    COMPLIANCE SCORE: ${report.summary.compliancePercentage}%  `,  bold: true, color: C.black, size: 32, font: FONT }),
+        new TextRun({
+          text: `  RISK RATING: ${report.summary.riskScore.toUpperCase()}  `,
+          bold: true,
+          color: riskColor,
+          size: 32,
+          font: FONT,
+        }),
+        new TextRun({
+          text: `    COMPLIANCE SCORE: ${report.summary.compliancePercentage}%  `,
+          bold: true,
+          color: C.black,
+          size: 32,
+          font: FONT,
+        }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 18),
+      spacing: pt(0, 18),
     }),
 
     // Classification
     new Paragraph({
-      children: [new TextRun({ text: "CONFIDENTIAL — FOR AUTHORIZED USE ONLY", bold: true, color: C.failRed, size: 20, font: FONT })],
+      children: [
+        new TextRun({
+          text: 'CONFIDENTIAL — FOR AUTHORIZED USE ONLY',
+          bold: true,
+          color: C.failRed,
+          size: 20,
+          font: FONT,
+        }),
+      ],
       alignment: AlignmentType.CENTER,
-      spacing:   pt(0, 4),
+      spacing: pt(0, 4),
     }),
     new Paragraph({
-      children: [new TextRun({ text: "Generated by INDEX + Claude AI", color: C.graphite, size: 18, font: FONT, italics: true })],
+      children: [
+        new TextRun({
+          text: 'Generated by INDEX + Claude AI',
+          color: C.graphite,
+          size: 18,
+          font: FONT,
+          italics: true,
+        }),
+      ],
       alignment: AlignmentType.CENTER,
     }),
 
     pageBreak(),
-  ];
+  ]
 }
 
 function buildExecutiveSummary(narrative: ReportNarrative): Paragraph[] {
   return [
-    heading1("Executive Summary"),
+    heading1('Executive Summary'),
     ...narrative.executiveSummary
       .split(/\n\n+/)
       .filter(Boolean)
-      .map(p => bodyPara(p.trim(), 8)),
+      .map((p) => bodyPara(p.trim(), 8)),
     pageBreak(),
-  ];
+  ]
 }
 
 function buildMetricsSection(report: ComplianceReport): (Paragraph | Table)[] {
-  const { summary, controlAssessments } = report;
+  const { summary, controlAssessments } = report
 
   // Family breakdown table
-  const fam: Record<string, { pass: number; partial: number; fail: number; na: number; total: number }> = {};
+  const fam: Record<
+    string,
+    { pass: number; partial: number; fail: number; na: number; total: number }
+  > = {}
   for (const a of controlAssessments) {
-    if (!fam[a.family]) fam[a.family] = { pass: 0, partial: 0, fail: 0, na: 0, total: 0 };
-    const f = fam[a.family];
-    f.total++;
-    if      (a.status === "pass")    f.pass++;
-    else if (a.status === "partial") f.partial++;
-    else if (a.status === "fail")    f.fail++;
-    else                             f.na++;
+    if (!fam[a.family]) fam[a.family] = { pass: 0, partial: 0, fail: 0, na: 0, total: 0 }
+    const f = fam[a.family]
+    f.total++
+    if (a.status === 'pass') f.pass++
+    else if (a.status === 'partial') f.partial++
+    else if (a.status === 'fail') f.fail++
+    else f.na++
   }
 
-  const pct = (n: number) => `${n}  (${Math.round((n / summary.totalControls) * 100)}%)`;
+  const pct = (n: number) => `${n}  (${Math.round((n / summary.totalControls) * 100)}%)`
 
   const overallTable = makeTable([
     new TableRow({
       tableHeader: true,
-      children: [thCell("Metric", 45), thCell("Count", 25), thCell("Notes", 30)],
+      children: [thCell('Metric', 45), thCell('Count', 25), thCell('Notes', 30)],
     }),
-    new TableRow({ children: [
-      tdCell("Total Controls",      { fill: C.cloud }),
-      tdCell(String(summary.totalControls), { fill: C.cloud, bold: true }),
-      tdCell("All controls assessed in this report", { fill: C.cloud }),
-    ]}),
-    new TableRow({ children: [
-      tdCell("Passed"),
-      tdCell(pct(summary.passed),  { color: C.passGreen, bold: true }),
-      tdCell("Controls meeting all requirements"),
-    ]}),
-    new TableRow({ children: [
-      tdCell("Partial Compliance", { fill: C.cloud }),
-      tdCell(pct(summary.partial), { fill: C.cloud, color: C.amber, bold: true }),
-      tdCell("Controls partially meeting requirements", { fill: C.cloud }),
-    ]}),
-    new TableRow({ children: [
-      tdCell("Failed"),
-      tdCell(pct(summary.failed),  { color: C.failRed, bold: true }),
-      tdCell("Controls not meeting requirements"),
-    ]}),
-    new TableRow({ children: [
-      tdCell("Not Assessed",       { fill: C.cloud }),
-      tdCell(pct(summary.notAssessed), { fill: C.cloud }),
-      tdCell("Require manual verification", { fill: C.cloud }),
-    ]}),
-    new TableRow({ children: [
-      tdCell("Compliance Score",   { fill: C.black, color: C.white, bold: true }),
-      tdCell(`${summary.compliancePercentage}%`, { fill: C.black, color: C.white, bold: true }),
-      tdCell(`Risk Level: ${summary.riskScore.toUpperCase()}`, { fill: C.black, color: C.white, bold: true }),
-    ]}),
-  ]);
+    new TableRow({
+      children: [
+        tdCell('Total Controls', { fill: C.cloud }),
+        tdCell(String(summary.totalControls), { fill: C.cloud, bold: true }),
+        tdCell('All controls assessed in this report', { fill: C.cloud }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        tdCell('Passed'),
+        tdCell(pct(summary.passed), { color: C.passGreen, bold: true }),
+        tdCell('Controls meeting all requirements'),
+      ],
+    }),
+    new TableRow({
+      children: [
+        tdCell('Partial Compliance', { fill: C.cloud }),
+        tdCell(pct(summary.partial), { fill: C.cloud, color: C.amber, bold: true }),
+        tdCell('Controls partially meeting requirements', { fill: C.cloud }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        tdCell('Failed'),
+        tdCell(pct(summary.failed), { color: C.failRed, bold: true }),
+        tdCell('Controls not meeting requirements'),
+      ],
+    }),
+    new TableRow({
+      children: [
+        tdCell('Not Assessed', { fill: C.cloud }),
+        tdCell(pct(summary.notAssessed), { fill: C.cloud }),
+        tdCell('Require manual verification', { fill: C.cloud }),
+      ],
+    }),
+    new TableRow({
+      children: [
+        tdCell('Compliance Score', { fill: C.black, color: C.white, bold: true }),
+        tdCell(`${summary.compliancePercentage}%`, { fill: C.black, color: C.white, bold: true }),
+        tdCell(`Risk Level: ${summary.riskScore.toUpperCase()}`, {
+          fill: C.black,
+          color: C.white,
+          bold: true,
+        }),
+      ],
+    }),
+  ])
 
   const familyRows: TableRow[] = [
     new TableRow({
       tableHeader: true,
       children: [
-        thCell("Control Family", 30),
-        thCell("Total",   14),
-        thCell("Pass",    14),
-        thCell("Partial", 14),
-        thCell("Fail",    14),
-        thCell("N/A",     14),
+        thCell('Control Family', 30),
+        thCell('Total', 14),
+        thCell('Pass', 14),
+        thCell('Partial', 14),
+        thCell('Fail', 14),
+        thCell('N/A', 14),
       ],
     }),
     ...Object.entries(fam)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([family, c], i) => {
-        const fill = i % 2 === 0 ? C.white : C.cloud;
-        return new TableRow({ children: [
-          tdCell(family,         { fill }),
-          tdCell(String(c.total),  { fill, bold: true }),
-          tdCell(String(c.pass),   { fill, color: c.pass    > 0 ? C.passGreen : C.phantom }),
-          tdCell(String(c.partial),{ fill, color: c.partial > 0 ? C.amber     : C.phantom }),
-          tdCell(String(c.fail),   { fill, color: c.fail    > 0 ? C.failRed   : C.phantom }),
-          tdCell(String(c.na),     { fill, color: C.graphite }),
-        ]});
+        const fill = i % 2 === 0 ? C.white : C.cloud
+        return new TableRow({
+          children: [
+            tdCell(family, { fill }),
+            tdCell(String(c.total), { fill, bold: true }),
+            tdCell(String(c.pass), { fill, color: c.pass > 0 ? C.passGreen : C.phantom }),
+            tdCell(String(c.partial), { fill, color: c.partial > 0 ? C.amber : C.phantom }),
+            tdCell(String(c.fail), { fill, color: c.fail > 0 ? C.failRed : C.phantom }),
+            tdCell(String(c.na), { fill, color: C.graphite }),
+          ],
+        })
       }),
-  ];
+  ]
 
   return [
-    heading1("Compliance Metrics"),
-    heading2("Overall Assessment Results"),
+    heading1('Compliance Metrics'),
+    heading2('Overall Assessment Results'),
     overallTable,
     emptyLine(8),
-    heading2("Control Family Breakdown"),
+    heading2('Control Family Breakdown'),
     makeTable(familyRows),
     pageBreak(),
-  ];
+  ]
 }
 
 function buildRiskSection(narrative: ReportNarrative): Paragraph[] {
   return [
-    heading1("Risk Assessment"),
-    ...narrative.riskNarrative.split(/\n\n+/).filter(Boolean).map(p => bodyPara(p.trim(), 8)),
+    heading1('Risk Assessment'),
+    ...narrative.riskNarrative
+      .split(/\n\n+/)
+      .filter(Boolean)
+      .map((p) => bodyPara(p.trim(), 8)),
     emptyLine(4),
-    heading2("Critical Findings Analysis"),
-    ...narrative.criticalFindingsNarrative.split(/\n\n+/).filter(Boolean).map(p => bodyPara(p.trim(), 8)),
+    heading2('Critical Findings Analysis'),
+    ...narrative.criticalFindingsNarrative
+      .split(/\n\n+/)
+      .filter(Boolean)
+      .map((p) => bodyPara(p.trim(), 8)),
     pageBreak(),
-  ];
+  ]
 }
 
 function buildFamilyAnalysis(
   report: ComplianceReport,
-  narrative: ReportNarrative,
+  narrative: ReportNarrative
 ): (Paragraph | Table)[] {
-  const children: (Paragraph | Table)[] = [heading1("Control Family Analysis")];
+  const children: (Paragraph | Table)[] = [heading1('Control Family Analysis')]
 
-  const byFamily: Record<string, ControlAssessment[]> = {};
+  const byFamily: Record<string, ControlAssessment[]> = {}
   for (const a of report.controlAssessments) {
-    if (!byFamily[a.family]) byFamily[a.family] = [];
-    byFamily[a.family].push(a);
+    if (!byFamily[a.family]) byFamily[a.family] = []
+    byFamily[a.family].push(a)
   }
 
   for (const family of Object.keys(byFamily).sort()) {
-    const assessments = byFamily[family];
-    const pass    = assessments.filter(a => a.status === "pass").length;
-    const partial = assessments.filter(a => a.status === "partial").length;
-    const fail    = assessments.filter(a => a.status === "fail").length;
-    const na      = assessments.length - pass - partial - fail;
+    const assessments = byFamily[family]
+    const pass = assessments.filter((a) => a.status === 'pass').length
+    const partial = assessments.filter((a) => a.status === 'partial').length
+    const fail = assessments.filter((a) => a.status === 'fail').length
+    const na = assessments.length - pass - partial - fail
 
-    children.push(heading2(family));
+    children.push(heading2(family))
 
     // AI-generated family analysis (only shown if provided)
-    const aiText = narrative.familyAnalysis?.[family];
-    if (aiText) children.push(bodyPara(aiText.trim(), 6));
+    const aiText = narrative.familyAnalysis?.[family]
+    if (aiText) children.push(bodyPara(aiText.trim(), 6))
 
     // Stats summary line
-    children.push(new Paragraph({
-      children: [
-        new TextRun({ text: `${assessments.length} controls  •  `, size: 20, font: FONT, color: C.graphite }),
-        new TextRun({ text: `${pass} pass  `,    size: 20, font: FONT, color: C.passGreen, bold: true }),
-        new TextRun({ text: `${partial} partial  `, size: 20, font: FONT, color: C.amber,    bold: true }),
-        new TextRun({ text: `${fail} fail`,     size: 20, font: FONT, color: C.failRed,  bold: true }),
-        ...(na > 0 ? [new TextRun({ text: `  ${na} not assessed`, size: 20, font: FONT, color: C.graphite })] : []),
-      ],
-      spacing: pt(0, 6),
-    }));
+    children.push(
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: `${assessments.length} controls  •  `,
+            size: 20,
+            font: FONT,
+            color: C.graphite,
+          }),
+          new TextRun({
+            text: `${pass} pass  `,
+            size: 20,
+            font: FONT,
+            color: C.passGreen,
+            bold: true,
+          }),
+          new TextRun({
+            text: `${partial} partial  `,
+            size: 20,
+            font: FONT,
+            color: C.amber,
+            bold: true,
+          }),
+          new TextRun({ text: `${fail} fail`, size: 20, font: FONT, color: C.failRed, bold: true }),
+          ...(na > 0
+            ? [
+                new TextRun({
+                  text: `  ${na} not assessed`,
+                  size: 20,
+                  font: FONT,
+                  color: C.graphite,
+                }),
+              ]
+            : []),
+        ],
+        spacing: pt(0, 6),
+      })
+    )
 
     // Table of controls with issues
-    const issueControls = assessments.filter(a => a.status === "fail" || a.status === "partial");
+    const issueControls = assessments.filter((a) => a.status === 'fail' || a.status === 'partial')
     if (issueControls.length > 0) {
-      children.push(makeTable([
-        new TableRow({
-          tableHeader: true,
-          children: [
-            thCell("Control ID", 14),
-            thCell("Title",      32),
-            thCell("Status",     13),
-            thCell("Key Finding", 41),
-          ],
-        }),
-        ...issueControls.map((a, i) => {
-          const rowFill = i % 2 === 0 ? C.white : C.cloud;
-          return new TableRow({ children: [
-            tdCell(a.controlId,    { fill: rowFill }),
-            tdCell(a.controlTitle, { fill: rowFill }),
-            tdCell(statusLabel(a.status), { fill: statusFill(a.status), color: statusTextColor(a.status), bold: true }),
-            tdCell(a.findings[0] ?? "—", { fill: rowFill }),
-          ]});
-        }),
-      ]));
+      children.push(
+        makeTable([
+          new TableRow({
+            tableHeader: true,
+            children: [
+              thCell('Control ID', 14),
+              thCell('Title', 32),
+              thCell('Status', 13),
+              thCell('Key Finding', 41),
+            ],
+          }),
+          ...issueControls.map((a, i) => {
+            const rowFill = i % 2 === 0 ? C.white : C.cloud
+            return new TableRow({
+              children: [
+                tdCell(a.controlId, { fill: rowFill }),
+                tdCell(a.controlTitle, { fill: rowFill }),
+                tdCell(statusLabel(a.status), {
+                  fill: statusFill(a.status),
+                  color: statusTextColor(a.status),
+                  bold: true,
+                }),
+                tdCell(a.findings[0] ?? '—', { fill: rowFill }),
+              ],
+            })
+          }),
+        ])
+      )
     }
 
-    children.push(emptyLine(6));
+    children.push(emptyLine(6))
   }
 
-  children.push(pageBreak());
-  return children;
+  children.push(pageBreak())
+  return children
 }
 
 function buildRecommendations(narrative: ReportNarrative): (Paragraph | Table)[] {
-  const children: (Paragraph | Table)[] = [heading1("Prioritized Recommendations")];
+  const children: (Paragraph | Table)[] = [heading1('Prioritized Recommendations')]
 
   const priorityColors: Record<string, string> = {
-    Critical: C.failRed, High: "c2410c", Medium: C.amber, Low: C.passGreen,
-  };
+    Critical: C.failRed,
+    High: 'c2410c',
+    Medium: C.amber,
+    Low: C.passGreen,
+  }
 
-  const grouped = (["Critical", "High", "Medium", "Low"] as const).map(p => ({
-    priority: p,
-    items: narrative.recommendations?.filter(r => r.priority === p) ?? [],
-  })).filter(g => g.items.length > 0);
+  const grouped = (['Critical', 'High', 'Medium', 'Low'] as const)
+    .map((p) => ({
+      priority: p,
+      items: narrative.recommendations?.filter((r) => r.priority === p) ?? [],
+    }))
+    .filter((g) => g.items.length > 0)
 
   for (const { priority, items } of grouped) {
-    children.push(heading2(`${priority} Priority`));
+    children.push(heading2(`${priority} Priority`))
 
     for (const rec of items) {
       // Title line with priority bullet
-      children.push(new Paragraph({
-        children: [
-          new TextRun({ text: "●  ", bold: true, color: priorityColors[priority] ?? C.black, size: 22, font: FONT }),
-          new TextRun({ text: rec.title, bold: true, color: C.phantom, size: 22, font: FONT }),
-          ...(rec.controlIds?.length
-            ? [new TextRun({ text: `   [${rec.controlIds.join(", ")}]`, color: C.graphite, size: 18, font: FONT })]
-            : []),
-        ],
-        spacing: pt(4, 2),
-      }));
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: '●  ',
+              bold: true,
+              color: priorityColors[priority] ?? C.black,
+              size: 22,
+              font: FONT,
+            }),
+            new TextRun({ text: rec.title, bold: true, color: C.phantom, size: 22, font: FONT }),
+            ...(rec.controlIds?.length
+              ? [
+                  new TextRun({
+                    text: `   [${rec.controlIds.join(', ')}]`,
+                    color: C.graphite,
+                    size: 18,
+                    font: FONT,
+                  }),
+                ]
+              : []),
+          ],
+          spacing: pt(4, 2),
+        })
+      )
       // Description
-      children.push(indentedPara(rec.description));
+      children.push(indentedPara(rec.description))
     }
   }
 
-  children.push(pageBreak());
-  return children;
+  children.push(pageBreak())
+  return children
 }
 
 function buildConclusion(narrative: ReportNarrative): Paragraph[] {
   return [
-    heading1("Conclusion"),
-    ...narrative.conclusion.split(/\n\n+/).filter(Boolean).map(p => bodyPara(p.trim(), 8)),
+    heading1('Conclusion'),
+    ...narrative.conclusion
+      .split(/\n\n+/)
+      .filter(Boolean)
+      .map((p) => bodyPara(p.trim(), 8)),
     pageBreak(),
-  ];
+  ]
 }
 
 // ── Evidence table helpers ─────────────────────────────────────────────────
 
 function evidenceCellValue(val: unknown): string {
-  if (val == null) return "—";
-  if (typeof val === "object") {
-    const s = JSON.stringify(val);
-    return s.length > 80 ? s.slice(0, 80) + "…" : s;
+  if (val == null) return '—'
+  if (typeof val === 'object') {
+    const s = JSON.stringify(val)
+    return s.length > 80 ? s.slice(0, 80) + '…' : s
   }
-  const s = String(val);
-  return s.length > 80 ? s.slice(0, 80) + "…" : s;
+  const s = String(val)
+  return s.length > 80 ? s.slice(0, 80) + '…' : s
 }
 
 function renderEvidenceTable(rawData: unknown[]): Paragraph | Table {
-  if (rawData.length === 0) return bodyPara("No records returned.", 4);
+  if (rawData.length === 0) return bodyPara('No records returned.', 4)
 
-  const first = rawData[0];
-  if (typeof first !== "object" || first === null) {
-    return bodyPara(String(first).slice(0, 200), 4);
+  const first = rawData[0]
+  if (typeof first !== 'object' || first === null) {
+    return bodyPara(String(first).slice(0, 200), 4)
   }
 
-  const allKeys = (Object.keys(first as object) as string[]).filter(k => !k.startsWith("@"));
-  const cols = allKeys.slice(0, 5);
-  if (cols.length === 0) return bodyPara("Metadata-only response — no displayable fields.", 4);
+  const allKeys = (Object.keys(first as object) as string[]).filter((k) => !k.startsWith('@'))
+  const cols = allKeys.slice(0, 5)
+  if (cols.length === 0) return bodyPara('Metadata-only response — no displayable fields.', 4)
 
-  const displayRows = rawData.slice(0, 10);
-  const colW = Math.floor(100 / cols.length);
+  const displayRows = rawData.slice(0, 10)
+  const colW = Math.floor(100 / cols.length)
 
   return makeTable([
     new TableRow({
       tableHeader: true,
-      children: cols.map(c => thCell(c, colW)),
+      children: cols.map((c) => thCell(c, colW)),
     }),
     ...displayRows.map((row, i) => {
-      const fill = i % 2 === 0 ? C.white : C.cloud;
+      const fill = i % 2 === 0 ? C.white : C.cloud
       return new TableRow({
-        children: cols.map(col =>
+        children: cols.map((col) =>
           tdCell(evidenceCellValue((row as Record<string, unknown>)[col]), { fill })
         ),
-      });
+      })
     }),
-  ]);
+  ])
 }
 
 function buildEvidenceAppendix(report: ComplianceReport): (Paragraph | Table)[] {
   const children: (Paragraph | Table)[] = [
-    heading1("Appendix B — Evidence Collection Detail"),
+    heading1('Appendix B — Evidence Collection Detail'),
     bodyPara(
-      "Raw evidence collected from Microsoft Graph API during this assessment. " +
-      "Data reflects tenant configuration at the time of assessment and may be used to support audit inquiries. " +
-      "Tables show up to 10 records and 5 columns per query; complex values are truncated.",
+      'Raw evidence collected from Microsoft Graph API during this assessment. ' +
+        'Data reflects tenant configuration at the time of assessment and may be used to support audit inquiries. ' +
+        'Tables show up to 10 records and 5 columns per query; complex values are truncated.',
       10
     ),
-  ];
+  ]
 
-  const controlsWithEvidence = report.controlAssessments.filter(
-    a => a.evidenceCollected.some(e => e.success && (e.rawData?.length ?? 0) > 0)
-  );
+  const controlsWithEvidence = report.controlAssessments.filter((a) =>
+    a.evidenceCollected.some((e) => e.success && (e.rawData?.length ?? 0) > 0)
+  )
 
   if (controlsWithEvidence.length === 0) {
-    children.push(bodyPara("No automated evidence was collected for this assessment.", 8));
-    return children;
+    children.push(bodyPara('No automated evidence was collected for this assessment.', 8))
+    return children
   }
 
   for (const assessment of controlsWithEvidence) {
-    children.push(heading2(`${assessment.controlId} — ${assessment.controlTitle}`));
+    children.push(heading2(`${assessment.controlId} — ${assessment.controlTitle}`))
 
     for (const ev of assessment.evidenceCollected) {
-      if (!ev.success || !ev.rawData || ev.rawData.length === 0) continue;
+      if (!ev.success || !ev.rawData || ev.rawData.length === 0) continue
 
       // Query description + record count
-      children.push(new Paragraph({
-        children: [
-          new TextRun({ text: ev.queryDescription, bold: true, color: C.phantom, size: 20, font: FONT }),
-          new TextRun({ text: `  ·  ${ev.recordCount} record(s)`, color: C.graphite, size: 18, font: FONT }),
-        ],
-        spacing: pt(6, 2),
-      }));
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: ev.queryDescription,
+              bold: true,
+              color: C.phantom,
+              size: 20,
+              font: FONT,
+            }),
+            new TextRun({
+              text: `  ·  ${ev.recordCount} record(s)`,
+              color: C.graphite,
+              size: 18,
+              font: FONT,
+            }),
+          ],
+          spacing: pt(6, 2),
+        })
+      )
 
       // Endpoint
-      children.push(new Paragraph({
-        children: [new TextRun({ text: ev.endpoint, color: C.graphite, size: 16, font: "Courier New" })],
-        spacing: pt(0, 4),
-      }));
+      children.push(
+        new Paragraph({
+          children: [
+            new TextRun({ text: ev.endpoint, color: C.graphite, size: 16, font: 'Courier New' }),
+          ],
+          spacing: pt(0, 4),
+        })
+      )
 
-      children.push(renderEvidenceTable(ev.rawData));
-      children.push(emptyLine(8));
+      children.push(renderEvidenceTable(ev.rawData))
+      children.push(emptyLine(8))
     }
   }
 
-  return children;
+  return children
 }
 
 function buildAppendix(report: ComplianceReport): (Paragraph | Table)[] {
   return [
-    heading1("Appendix A — Complete Control Assessment"),
-    bodyPara("The following table lists every control evaluated in this assessment with its status and primary finding.", 8),
+    heading1('Appendix A — Complete Control Assessment'),
+    bodyPara(
+      'The following table lists every control evaluated in this assessment with its status and primary finding.',
+      8
+    ),
     makeTable([
       new TableRow({
         tableHeader: true,
         children: [
-          thCell("Control ID",  13),
-          thCell("Family",      20),
-          thCell("Title",       29),
-          thCell("Status",      12),
-          thCell("Finding",     26),
+          thCell('Control ID', 13),
+          thCell('Family', 20),
+          thCell('Title', 29),
+          thCell('Status', 12),
+          thCell('Finding', 26),
         ],
       }),
       ...report.controlAssessments.map((a, i) => {
-        const fill = i % 2 === 0 ? C.white : C.cloud;
-        return new TableRow({ children: [
-          tdCell(a.controlId,    { fill }),
-          tdCell(a.family,       { fill }),
-          tdCell(a.controlTitle, { fill }),
-          tdCell(statusLabel(a.status), {
-            fill:  statusFill(a.status),
-            color: statusTextColor(a.status),
-            bold:  true,
-          }),
-          tdCell(a.findings[0] ?? "—", { fill }),
-        ]});
+        const fill = i % 2 === 0 ? C.white : C.cloud
+        return new TableRow({
+          children: [
+            tdCell(a.controlId, { fill }),
+            tdCell(a.family, { fill }),
+            tdCell(a.controlTitle, { fill }),
+            tdCell(statusLabel(a.status), {
+              fill: statusFill(a.status),
+              color: statusTextColor(a.status),
+              bold: true,
+            }),
+            tdCell(a.findings[0] ?? '—', { fill }),
+          ],
+        })
       }),
     ]),
-  ];
+  ]
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function generateWordReport(
-  report:          ComplianceReport,
+  report: ComplianceReport,
   anthropicApiKey: string,
-  onProgress?:     (msg: string) => void,
+  onProgress?: (msg: string) => void
 ): Promise<Buffer> {
-  onProgress?.("Calling Claude AI to analyze assessment results…");
-  const narrative = await generateNarrative(report, anthropicApiKey);
+  onProgress?.('Calling Claude AI to analyze assessment results…')
+  const narrative = await generateNarrative(report, anthropicApiKey)
 
-  onProgress?.("Building Word document…");
+  onProgress?.('Building Word document…')
 
   const mainHeader = new Header({
-    children: [new Paragraph({
-      children: [
-        new TextRun({ text: "CONFIDENTIAL", bold: true, color: C.failRed, size: 18, font: FONT }),
-        new TextRun({ text: "    |    ",  color: C.steel, size: 18, font: FONT }),
-        new TextRun({ text: `${report.frameworkName} Compliance Assessment`, color: C.graphite, size: 18, font: FONT }),
-        new TextRun({ text: `    |    ${report.tenantDisplayName}`, color: C.graphite, size: 18, font: FONT }),
-      ],
-      alignment: AlignmentType.RIGHT,
-    })],
-  });
+    children: [
+      new Paragraph({
+        children: [
+          new TextRun({ text: 'CONFIDENTIAL', bold: true, color: C.failRed, size: 18, font: FONT }),
+          new TextRun({ text: '    |    ', color: C.steel, size: 18, font: FONT }),
+          new TextRun({
+            text: `${report.frameworkName} Compliance Assessment`,
+            color: C.graphite,
+            size: 18,
+            font: FONT,
+          }),
+          new TextRun({
+            text: `    |    ${report.tenantDisplayName}`,
+            color: C.graphite,
+            size: 18,
+            font: FONT,
+          }),
+        ],
+        alignment: AlignmentType.RIGHT,
+      }),
+    ],
+  })
 
   const mainFooter = new Footer({
-    children: [new Paragraph({
-      children: [
-        new TextRun({ text: "INDEX  |  Compliance Assessment Platform    |    Page ", color: C.graphite, size: 16, font: FONT }),
-        new TextRun({ children: [PageNumber.CURRENT], color: C.graphite, size: 16, font: FONT }),
-        new TextRun({ text: " of ", color: C.graphite, size: 16, font: FONT }),
-        new TextRun({ children: [PageNumber.TOTAL_PAGES], color: C.graphite, size: 16, font: FONT }),
-      ],
-      alignment: AlignmentType.CENTER,
-      border: { top: { color: C.steel, size: 4, space: 6, style: BorderStyle.SINGLE } },
-    })],
-  });
+    children: [
+      new Paragraph({
+        children: [
+          new TextRun({
+            text: 'INDEX  |  Compliance Assessment Platform    |    Page ',
+            color: C.graphite,
+            size: 16,
+            font: FONT,
+          }),
+          new TextRun({ children: [PageNumber.CURRENT], color: C.graphite, size: 16, font: FONT }),
+          new TextRun({ text: ' of ', color: C.graphite, size: 16, font: FONT }),
+          new TextRun({
+            children: [PageNumber.TOTAL_PAGES],
+            color: C.graphite,
+            size: 16,
+            font: FONT,
+          }),
+        ],
+        alignment: AlignmentType.CENTER,
+        border: { top: { color: C.steel, size: 4, space: 6, style: BorderStyle.SINGLE } },
+      }),
+    ],
+  })
 
-  const coverChildren    = buildCoverPage(report);
+  const coverChildren = buildCoverPage(report)
   const mainChildren: (Paragraph | Table)[] = [
     ...buildExecutiveSummary(narrative),
     ...buildMetricsSection(report),
@@ -793,35 +1023,35 @@ export async function generateWordReport(
     ...buildConclusion(narrative),
     ...buildAppendix(report),
     ...buildEvidenceAppendix(report),
-  ];
+  ]
 
   const pageMargin = {
-    top:    convertInchesToTwip(1),
-    right:  convertInchesToTwip(1),
+    top: convertInchesToTwip(1),
+    right: convertInchesToTwip(1),
     bottom: convertInchesToTwip(1),
-    left:   convertInchesToTwip(1.25),
-  };
+    left: convertInchesToTwip(1.25),
+  }
 
   const doc = new Document({
-    title:       `${report.frameworkName} Compliance Gap Assessment`,
-    creator:     "INDEX Compliance Platform",
+    title: `${report.frameworkName} Compliance Gap Assessment`,
+    creator: 'INDEX Compliance Platform',
     description: `Compliance gap assessment for ${report.tenantDisplayName}`,
     sections: [
       // Cover page — no header / footer
       {
         properties: { page: { margin: pageMargin } },
-        children:   coverChildren,
+        children: coverChildren,
       },
       // Main content — with header + footer + page numbers
       {
         properties: { page: { margin: pageMargin } },
-        headers:    { default: mainHeader },
-        footers:    { default: mainFooter },
-        children:   mainChildren,
+        headers: { default: mainHeader },
+        footers: { default: mainFooter },
+        children: mainChildren,
       },
     ],
-  });
+  })
 
-  onProgress?.("Finalising document…");
-  return Packer.toBuffer(doc);
+  onProgress?.('Finalising document…')
+  return Packer.toBuffer(doc)
 }

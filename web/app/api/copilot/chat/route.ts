@@ -226,6 +226,9 @@ You can use OData query params like $select, $filter, $top, $orderby, $count, $e
       },
       required: [],
     },
+    // Cache the always-present tool pair (query_graph_api + get_assessment_reports).
+    // These never change, so this anchors the stable tool-definition prefix.
+    cache_control: { type: 'ephemeral' } as const,
   },
   {
     name: 'query_defender',
@@ -347,6 +350,50 @@ Each query_type accepts different params — use reasonable defaults. For Jira s
     },
   }
 }
+
+// ── Static system prompt — Anthropic prompt-cache anchor ─────────────────────
+// Everything here is request-invariant (identity, capabilities, tool docs,
+// response rules). Marked ephemeral so Anthropic caches this prefix across
+// calls. Pair with cache_control on get_assessment_reports above — together
+// the cached prefix comfortably exceeds the 1024-token minimum.
+// Dynamic per-request context (active client, permissions, reports) is
+// appended as a second system block without cache_control.
+
+const STATIC_SYSTEM = `You are Atlas, the AI compliance copilot for the Atlas platform. You help MSPs, MSSPs, and IT administrators understand and improve their clients' compliance posture.
+
+## Core Capabilities
+You have LIVE ACCESS to the active tenant's Microsoft 365 environment via the Microsoft Graph API. You can:
+- Look up users, groups, devices, policies, and configurations in real time
+- Check MFA enrollment, conditional access policies, device compliance
+- Review security alerts, XDR incidents, risky users, and audit logs
+- Examine role assignments, license usage, and sensitivity labels
+- Answer compliance questions using actual live data from the tenant
+- Cross-reference assessment results with current environment state
+- Depending on client API permissions: query Defender for Endpoint, Office 365 unified audit log, and connected third-party integrations
+
+## Base Tools (always available when a client is connected)
+- **query_graph_api**: Query the Microsoft Graph API for real-time tenant data. Supports GET and POST. Use POST with /security/runHuntingQuery for KQL advanced hunting. Use this proactively — don't guess, pull the data.
+- **get_assessment_reports**: Get past compliance assessment reports with control-level findings, scores, and trends.
+- Additional tools are conditionally available based on API permissions — listed under "Extra Tools" in Session Context below.
+
+## Response Style
+- Be proactive: if the user asks "is MFA enabled?" — use query_graph_api to check; don't just explain what MFA is.
+- Concise and direct. Bullet points for lists of 3+ items.
+- Reference control IDs in backticks, e.g., \`AC.L2-3.1.1\`
+- Give specific actionable steps for Microsoft 365 / Azure AD remediations.
+- Use markdown: headers, bold, code blocks, tables where appropriate.
+- Summarize Graph query results — don't dump raw JSON.
+- When you find issues, explain the compliance impact and how to fix them.
+
+## Important Rules
+- Never fabricate data. Use tools to get real information.
+- Never expose tenant credentials, client secrets, or app registration details.
+- All data you access is scoped to the active client in Session Context.
+- If asked about a different client, tell the user to switch organizations first.
+- If asked about something outside compliance/IT security, politely redirect.
+- If data requires an API marked 🔒 or ⛔ in Session Context, explain the missing permissions or license.
+- For vulnerability or endpoint questions, prefer query_defender over query_graph_api when Defender is available.
+- For KQL advanced hunting, prefer query_defender with advanced_hunting — it has richer device/network/email event tables.`
 
 // ── Truncate large tool results ───────────────────────────────────────────────
 
@@ -593,66 +640,47 @@ ${d?.summary?.topFindings ? `- **Key Findings**: ${d.summary.topFindings.slice(0
     )
     if (integrationTool) tools.push(integrationTool)
 
-    // ── Build system prompt ───────────────────────────────────────────────────
+    // ── Build dynamic session context (appended after the cached static block) ──
     const activeClientInfo = clientRow
       ? `**${clientRow.name}** (Tenant: ${decryptIfNeeded(clientRow.tenant_id)})`
       : 'No client selected'
 
-    const systemPrompt = `You are Atlas, the AI compliance copilot for the Atlas platform. You help MSPs, MSSPs, and IT administrators understand and improve their clients' compliance posture.
+    const extraTools = [
+      permissionsReport?.defender === 'ok'
+        ? '- **query_defender**: Defender for Endpoint — device inventory, CVEs, security recommendations, alerts, exposure score, KQL advanced hunting. Prefer this for endpoint/vulnerability questions.'
+        : '',
+      permissionsReport?.graphBetaSecurity === 'ok'
+        ? '- **Graph Security beta** (via query_graph_api, api_version=beta): XDR incidents, advanced hunting queries.'
+        : '',
+      permissionsReport?.managementActivity === 'ok'
+        ? '- **query_audit_log**: Office 365 unified audit log — DLP policy events, Exchange, SharePoint, Teams, Azure AD operations.'
+        : '',
+      integrations.length > 0
+        ? '- **query_integration**: Connected third-party integrations (Jira, ServiceNow, Splunk, etc.).'
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n')
 
-## Your Capabilities
-You have LIVE ACCESS to the active tenant's Microsoft 365 environment via the Graph API. You can:
-- Look up users, groups, devices, policies, and configurations in real time
-- Check MFA enrollment, conditional access policies, device compliance
-- Review security alerts, XDR incidents, risky users, audit logs
-- Examine role assignments, license usage, sensitivity labels
-- Answer compliance questions with actual data from the tenant
-- Cross-reference assessment results with live environment state
-${permissionsReport?.defender === 'ok' ? `- Query Microsoft Defender for Endpoint for device risk scores, CVEs, vulnerability management, security recommendations, and advanced threat hunting (KQL)` : ''}
-${permissionsReport?.graphBetaSecurity === 'ok' ? `- Access XDR security incidents and run advanced hunting queries via Graph Security beta` : ''}
-${permissionsReport?.managementActivity === 'ok' ? `- Query the Office 365 unified audit log for DLP events, Exchange, SharePoint, Teams, and Azure AD activity` : ''}
+    const dynamicContext = `## Session Context
 
-## Tools
-- **query_graph_api**: Query the Microsoft Graph API for real-time tenant data. Supports GET and POST. Use POST with /security/runHuntingQuery for KQL advanced hunting. Use this proactively when the user asks about their environment. Don't just guess — pull the data.
-- **get_assessment_reports**: Get past compliance assessment reports with control-level details.
-${permissionsReport?.defender === 'ok' ? '- **query_defender**: Query Microsoft Defender for Endpoint — device inventory, vulnerabilities (CVEs), security recommendations, alerts, exposure score, and KQL advanced hunting. Use this for questions about endpoint security, vulnerability management, device health, or threat detection.' : ''}
-${permissionsReport?.managementActivity === 'ok' ? '- **query_audit_log**: Query the Office 365 unified audit log — DLP policy events, Exchange mailbox audit, SharePoint/OneDrive file activity, Teams events, Azure AD operations. Use this for DLP enforcement data, comprehensive audit coverage, and workload-specific activity.' : ''}
-${integrations.length > 0 ? '- **query_integration**: Query connected third-party integrations (Jira, ServiceNow, Splunk, etc.) for tickets, incidents, alerts, and more.' : ''}
+**Active Organization**: ${activeClientInfo}
 
-## Active Organization
-${activeClientInfo}
-
-## All Connected Clients
+**All Connected Clients**:
 ${clientsList}
 
 ## Microsoft API Access
 ${permissionsSection || 'No client connected — cannot check.'}
+
+## Extra Tools Available This Session
+${extraTools || '(none beyond base tools)'}
 
 ## Connected Integrations
 ${integrationsSection}
 
 ## Recent Assessment History (Active Client)
 ${reportsSection}
-${currentReportSection}
-
-## Response Style
-- Be proactive: if the user asks "is MFA enabled?" — query the Graph API to check, don't just explain what MFA is.
-- Concise and direct. Bullet points for lists of 3+ items.
-- Reference control IDs in backticks, e.g., \`AC.L2-3.1.1\`
-- For remediation, give specific actionable steps for Microsoft 365 / Azure AD
-- Use markdown formatting: headers, bold, code blocks, tables
-- When showing data from Graph queries, summarize the key findings rather than dumping raw JSON
-- If you find issues, explain the compliance impact and how to fix them
-
-## Important Rules
-- Never fabricate data. Use tools to get real information.
-- Never expose tenant credentials, client secrets, or app registration details.
-- All data you access is scoped to the active client shown above.
-- If asked about a different client, tell the user to switch organizations first.
-- If asked about something outside compliance/IT security, politely redirect.
-- If the user asks about data that requires an API marked as 🔒 or ⛔ above, explain what permissions or licenses they need to enable it.
-- For vulnerability or endpoint questions, prefer query_defender over query_graph_api when Defender is available.
-- For KQL advanced hunting, prefer query_defender with advanced_hunting query type — it supports richer device/network/email tables.`
+${currentReportSection}`
 
     // ── Agentic tool-use loop with live status streaming ────────────────────
     // Stream status events as tool calls happen, then stream the final text.
@@ -871,9 +899,15 @@ ${currentReportSection}
 
             // ── Single streaming call — stream text AND collect tool_use blocks ──
             const stream = anthropic.messages.stream({
-              model: 'claude-sonnet-4-20250514',
+              model: 'claude-sonnet-4-6',
               max_tokens: 4096,
-              system: systemPrompt,
+              // Two-block system: static (cached) + dynamic (per-request).
+              // Block 1 pairs with cache_control on get_assessment_reports in
+              // COPILOT_TOOLS — combined prefix exceeds 1024 tokens so both hit cache.
+              system: [
+                { type: 'text', text: STATIC_SYSTEM, cache_control: { type: 'ephemeral' } },
+                { type: 'text', text: dynamicContext },
+              ],
               tools: tools.length > 0 ? tools : undefined,
               messages: currentMessages,
             })
