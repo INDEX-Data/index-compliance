@@ -51,28 +51,37 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>
 
-// During `next build`, Next.js collects page data without injecting runtime env vars.
-// Skip validation in that phase — it runs fine at server startup when vars are present.
+// Lazy per-field validation via Proxy. Each env var is validated on first
+// access, NOT at module load. This prevents the cascade failure where one
+// missing var (e.g. CRON_SECRET) crashes every route that imports env —
+// the module-load throw produced an HTML 500 page instead of a JSON error.
+// Validation errors now surface inside request handlers, where route-level
+// try/catch returns a readable JSON message naming the exact variable.
 const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
 
-let env: Env
+const validatedCache = new Map<string, unknown>()
 
-if (isBuildPhase) {
-  // Cast without validation — values won't be used during static analysis
-  env = process.env as unknown as Env
-} else {
-  const parsed = envSchema.safeParse(process.env)
+const env = new Proxy({} as Env, {
+  get(_target, prop: string) {
+    // During `next build`, env vars aren't injected — skip validation
+    if (isBuildPhase) return process.env[prop]
 
-  if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((i) => `  • ${i.path.join('.')}: ${i.message}`)
-      .join('\n')
-    throw new Error(
-      `\n\n❌ Invalid environment variables:\n${issues}\n\nCheck your .env.local file.\n`
-    )
-  }
+    if (validatedCache.has(prop)) return validatedCache.get(prop)
 
-  env = parsed.data
-}
+    const fieldSchema = (envSchema.shape as Record<string, z.ZodTypeAny>)[prop]
+    if (!fieldSchema) return process.env[prop]
+
+    const parsed = fieldSchema.safeParse(process.env[prop])
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid environment variable ${prop}: ${parsed.error.issues[0]?.message ?? 'validation failed'}. ` +
+          'Check your deployment environment settings (Vercel → Project → Settings → Environment Variables).'
+      )
+    }
+
+    validatedCache.set(prop, parsed.data)
+    return parsed.data
+  },
+})
 
 export default env
