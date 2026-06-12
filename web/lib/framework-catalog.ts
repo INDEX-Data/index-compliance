@@ -194,7 +194,7 @@ export const FRAMEWORK_CATALOG: CatalogEntry[] = [
     version: '2022',
     description: 'Information Security Management Systems',
     controlCount: 93,
-    implemented: false,
+    implemented: true,
     category: 'general_security',
     categoryLabel: 'General Security',
   },
@@ -245,7 +245,7 @@ export const CATEGORY_ORDER: FrameworkCategory[] = [
 export function getFrameworksByCategory(): Map<string, CatalogEntry[]> {
   const map = new Map<string, CatalogEntry[]>()
   for (const cat of CATEGORY_ORDER) {
-    const entries = FRAMEWORK_CATALOG.filter(f => f.category === cat)
+    const entries = FRAMEWORK_CATALOG.filter((f) => f.category === cat)
     if (entries.length > 0) {
       map.set(entries[0].categoryLabel, entries)
     }
