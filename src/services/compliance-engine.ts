@@ -88,10 +88,62 @@ type EvaluatorFn = (
   evidence: EvidenceResult[]
 ) => { status: ComplianceStatus; findings: string[]; recommendations: string[] }
 
+// ─── Deep-inspection helpers ─────────────────────────────────────────────────
+// These read the ACTUAL policy payloads returned by Graph so a "pass" always
+// reflects the specific setting a control requires — never just "data exists".
+
+/** Find the CA *policies* evidence (not namedLocations, which shares the prefix). */
+function findCaPolicies(evidence: EvidenceResult[]): EvidenceResult | undefined {
+  return evidence.find((e) => e.endpoint.includes('conditionalAccess/policies'))
+}
+
+/** Only CA policies in the 'enabled' state count as enforcement. */
+function enabledCaPolicies(e: EvidenceResult | undefined): any[] {
+  if (!e?.success) return []
+  return (e.rawData as any[]).filter((p) => p?.state === 'enabled')
+}
+
+/** Report-only CA policies — configured but NOT enforcing. */
+function reportOnlyCaPolicies(e: EvidenceResult | undefined): any[] {
+  if (!e?.success) return []
+  return (e.rawData as any[]).filter((p) => p?.state === 'enabledForReportingButNotEnforced')
+}
+
+function policyHasMfaGrant(p: any): boolean {
+  const controls: string[] = p?.grantControls?.builtInControls ?? []
+  return controls.some(
+    (c) => c.toLowerCase().includes('mfa') || c.toLowerCase().includes('multifactor')
+  )
+}
+
+function policyTargetsAllUsers(p: any): boolean {
+  const include: string[] = p?.conditions?.users?.includeUsers ?? []
+  return include.some((u) => u === 'All')
+}
+
+/**
+ * Scan a device policy object for a settings key matching `keyPattern`
+ * whose value satisfies `valueTest`. Generic key scan keeps this working
+ * across platform-specific compliance policy types
+ * (windows10CompliancePolicy, iosCompliancePolicy, androidCompliancePolicy, …).
+ */
+function devicePolicySetting(
+  p: any,
+  keyPattern: RegExp,
+  valueTest: (v: unknown) => boolean
+): boolean {
+  return Object.entries(p ?? {}).some(([k, v]) => keyPattern.test(k) && valueTest(v))
+}
+
+function policyName(p: any): string {
+  return p?.displayName ?? p?.name ?? '(unnamed policy)'
+}
+
 const evaluators: Record<string, EvaluatorFn> = {
-  // MFA enforcement via Conditional Access
+  // MFA enforcement via Conditional Access — counts ONLY enabled policies.
   evaluate_mfa_enforcement: (_control, evidence) => {
-    const caEvidence = evidence.find((e) => e.endpoint.includes('conditionalAccess'))
+    const caEvidence =
+      findCaPolicies(evidence) ?? evidence.find((e) => e.endpoint.includes('conditionalAccess'))
     if (!caEvidence?.success) {
       return {
         status: 'not_assessed',
@@ -100,20 +152,173 @@ const evaluators: Record<string, EvaluatorFn> = {
       }
     }
 
-    // Check CA policy grant controls for MFA requirement
-    const policies = caEvidence.rawData as any[]
-    const hasMfaPolicy = policies.some((p) => {
-      const controls: string[] = p.grantControls?.builtInControls ?? []
-      return controls.some(
-        (c) => c.toLowerCase().includes('mfa') || c.toLowerCase().includes('multifactor')
-      )
-    })
+    const enabled = enabledCaPolicies(caEvidence)
+    const reportOnly = reportOnlyCaPolicies(caEvidence)
+    const enabledMfa = enabled.filter(policyHasMfaGrant)
+    const reportOnlyMfa = reportOnly.filter(policyHasMfaGrant)
 
-    if (hasMfaPolicy && caEvidence.recordCount > 0) {
+    if (enabledMfa.length > 0) {
+      const allUsers = enabledMfa.some(policyTargetsAllUsers)
+      const findings = [
+        `${enabledMfa.length} ENABLED Conditional Access policy(ies) require MFA: ${enabledMfa.map(policyName).join(', ')}`,
+        allUsers
+          ? 'At least one MFA policy targets All Users'
+          : 'MFA policies are scoped to specific users/groups — not all users are covered',
+      ]
+      return {
+        status: allUsers ? 'pass' : 'partial',
+        findings,
+        recommendations: allUsers
+          ? []
+          : ['Extend an MFA Conditional Access policy to All Users (with break-glass exclusions)'],
+      }
+    }
+
+    if (reportOnlyMfa.length > 0) {
+      return {
+        status: 'partial',
+        findings: [
+          `${reportOnlyMfa.length} MFA policy(ies) exist but are in REPORT-ONLY mode — not enforcing`,
+        ],
+        recommendations: ['Switch report-only MFA policies to On after reviewing sign-in impact'],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: ['No enabled Conditional Access policies enforcing MFA were detected'],
+      recommendations: [
+        'Create a Conditional Access policy requiring MFA for all users',
+        'At minimum, enforce MFA for admin roles and sensitive applications',
+      ],
+    }
+  },
+
+  // CA session controls — sign-in frequency / persistent browser session.
+  // Used by session-termination & re-authentication controls.
+  evaluate_ca_session_controls: (_control, evidence) => {
+    const caEvidence = findCaPolicies(evidence)
+    if (!caEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Conditional Access policies'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+    const enabled = enabledCaPolicies(caEvidence)
+    const signInFreq = enabled.filter(
+      (p) => p?.sessionControls?.signInFrequency?.isEnabled === true
+    )
+    const persistentBrowser = enabled.filter(
+      (p) => p?.sessionControls?.persistentBrowser?.isEnabled === true
+    )
+
+    if (signInFreq.length > 0) {
+      const details = signInFreq.map((p) => {
+        const sf = p.sessionControls.signInFrequency
+        const interval =
+          sf.frequencyInterval === 'everyTime'
+            ? 'every sign-in'
+            : `${sf.value ?? '?'} ${sf.type ?? ''}`
+        return `${policyName(p)} (re-auth: ${interval})`
+      })
       return {
         status: 'pass',
         findings: [
-          `Found ${caEvidence.recordCount} Conditional Access policies, MFA grant controls detected`,
+          `Sign-in frequency (session re-authentication) is enforced by ${signInFreq.length} enabled policy(ies): ${details.join('; ')}`,
+          persistentBrowser.length > 0
+            ? 'Persistent browser session restrictions are also configured'
+            : 'No persistent browser session restriction detected',
+        ],
+        recommendations:
+          persistentBrowser.length > 0
+            ? []
+            : [
+                'Add a persistent browser session control (set to Never persistent) for sensitive apps',
+              ],
+      }
+    }
+
+    if (persistentBrowser.length > 0) {
+      return {
+        status: 'partial',
+        findings: [
+          'Persistent browser session restrictions exist, but no sign-in frequency (re-authentication) control is enforced',
+        ],
+        recommendations: ['Add a sign-in frequency session control to an enabled CA policy'],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        `${enabled.length} enabled CA policy(ies) inspected — none configure session controls (sign-in frequency or persistent browser)`,
+      ],
+      recommendations: [
+        'Create a CA policy with a sign-in frequency control to force periodic re-authentication',
+        'Disable persistent browser sessions for unmanaged devices',
+      ],
+    }
+  },
+
+  // CA Terms of Use — grantControls.termsOfUse must be present on an enabled policy.
+  evaluate_ca_terms_of_use: (_control, evidence) => {
+    const caEvidence = findCaPolicies(evidence)
+    if (!caEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Conditional Access policies'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+    const enabled = enabledCaPolicies(caEvidence)
+    const touPolicies = enabled.filter((p) => (p?.grantControls?.termsOfUse ?? []).length > 0)
+
+    if (touPolicies.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `Terms of Use acceptance is enforced at sign-in by ${touPolicies.length} enabled CA policy(ies): ${touPolicies.map(policyName).join(', ')}`,
+        ],
+        recommendations: ['Review ToU content annually to keep privacy/security notices current'],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        `${enabled.length} enabled CA policy(ies) inspected — none require Terms of Use acceptance`,
+      ],
+      recommendations: [
+        'Create a Terms of Use in Entra ID (Identity Governance) containing the required privacy and security notices',
+        'Attach it to a Conditional Access policy as a grant control for all users',
+      ],
+    }
+  },
+
+  // CA compliant/managed-device requirement — verifies devices must be
+  // compliant or hybrid-joined to connect (remote access confidentiality).
+  evaluate_ca_compliant_device: (_control, evidence) => {
+    const caEvidence = findCaPolicies(evidence)
+    if (!caEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Conditional Access policies'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+    const enabled = enabledCaPolicies(caEvidence)
+    const deviceTrust = enabled.filter((p) => {
+      const controls: string[] = p?.grantControls?.builtInControls ?? []
+      return controls.includes('compliantDevice') || controls.includes('domainJoinedDevice')
+    })
+
+    if (deviceTrust.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${deviceTrust.length} enabled CA policy(ies) require a compliant or hybrid-joined device: ${deviceTrust.map(policyName).join(', ')}`,
+          'All Microsoft 365 service connections are TLS-encrypted by platform default',
         ],
         recommendations: [],
       }
@@ -121,10 +326,508 @@ const evaluators: Record<string, EvaluatorFn> = {
 
     return {
       status: 'fail',
-      findings: ['No Conditional Access policies enforcing MFA were detected'],
+      findings: [
+        `${enabled.length} enabled CA policy(ies) inspected — none require device compliance or hybrid join for access`,
+      ],
       recommendations: [
-        'Create a Conditional Access policy requiring MFA for all users',
-        'At minimum, enforce MFA for admin roles and sensitive applications',
+        'Create a CA policy granting access only from compliant (Intune) or hybrid-joined devices',
+        'Scope it to apps that hold regulated data first, then expand',
+      ],
+    }
+  },
+
+  // Named locations + CA policies that actually reference locations.
+  evaluate_ca_named_locations: (_control, evidence) => {
+    const locEvidence = evidence.find((e) => e.endpoint.includes('namedLocations'))
+    const caEvidence = findCaPolicies(evidence)
+
+    if (!locEvidence?.success && !caEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query named locations or Conditional Access policies'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+
+    const locationCount = locEvidence?.success ? locEvidence.recordCount : 0
+    const enabled = enabledCaPolicies(caEvidence)
+    const locationPolicies = enabled.filter((p) => {
+      const loc = p?.conditions?.locations
+      return (loc?.includeLocations ?? []).length > 0 || (loc?.excludeLocations ?? []).length > 0
+    })
+
+    if (locationCount > 0 && locationPolicies.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${locationCount} named location(s) defined`,
+          `${locationPolicies.length} enabled CA policy(ies) use location conditions to channel access: ${locationPolicies.map(policyName).join(', ')}`,
+        ],
+        recommendations: ['Review named location IP ranges quarterly'],
+      }
+    }
+
+    if (locationCount > 0) {
+      return {
+        status: 'partial',
+        findings: [
+          `${locationCount} named location(s) defined, but no enabled CA policy references them — locations alone do not control access`,
+        ],
+        recommendations: [
+          'Create a CA policy that blocks or restricts access from untrusted locations',
+        ],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: ['No named locations defined and no location-based CA policies found'],
+      recommendations: [
+        'Define named locations for trusted networks (office IP ranges, VPN egress)',
+        'Create a CA policy restricting access from outside managed access points',
+      ],
+    }
+  },
+
+  // Legacy authentication block — clientAppTypes legacy + block grant.
+  evaluate_ca_legacy_auth_block: (_control, evidence) => {
+    const caEvidence = findCaPolicies(evidence)
+    if (!caEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Conditional Access policies'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+    const enabled = enabledCaPolicies(caEvidence)
+    const legacyBlock = enabled.filter((p) => {
+      const apps: string[] = p?.conditions?.clientAppTypes ?? []
+      const controls: string[] = p?.grantControls?.builtInControls ?? []
+      const targetsLegacy = apps.includes('exchangeActiveSync') || apps.includes('other')
+      return targetsLegacy && controls.includes('block')
+    })
+
+    if (legacyBlock.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `Legacy authentication is blocked by ${legacyBlock.length} enabled CA policy(ies): ${legacyBlock.map(policyName).join(', ')}`,
+          'Modern authentication (OAuth 2.0 with cryptographically protected tokens) is therefore required',
+        ],
+        recommendations: [],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        `${enabled.length} enabled CA policy(ies) inspected — none block legacy authentication clients`,
+      ],
+      recommendations: [
+        'Create a CA policy targeting client apps "Exchange ActiveSync" and "Other clients" with a Block grant',
+        'Legacy protocols (POP/IMAP/SMTP basic auth) bypass MFA and must be blocked',
+      ],
+    }
+  },
+
+  // Authentication strength — phishing-resistant MFA via CA authenticationStrength.
+  evaluate_ca_auth_strength: (_control, evidence) => {
+    const caEvidence = findCaPolicies(evidence)
+    if (!caEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Conditional Access policies'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+    const enabled = enabledCaPolicies(caEvidence)
+    const strengthPolicies = enabled.filter((p) => p?.grantControls?.authenticationStrength != null)
+    const mfaOnly = enabled.filter(policyHasMfaGrant)
+
+    if (strengthPolicies.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${strengthPolicies.length} enabled CA policy(ies) enforce an Authentication Strength (phishing-resistant capable): ${strengthPolicies.map(policyName).join(', ')}`,
+        ],
+        recommendations: [
+          'Confirm the strength definition includes only FIDO2, Windows Hello, or certificate-based methods',
+        ],
+      }
+    }
+
+    if (mfaOnly.length > 0) {
+      return {
+        status: 'partial',
+        findings: [
+          'MFA is enforced, but no CA policy uses an Authentication Strength — phishing-resistant methods are not specifically required',
+        ],
+        recommendations: [
+          'Replace the generic "Require MFA" grant with a Phishing-resistant MFA authentication strength for privileged users first',
+        ],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: ['No enabled CA policy enforces MFA or an authentication strength'],
+      recommendations: [
+        'Create a CA policy with the built-in "Phishing-resistant MFA" authentication strength',
+      ],
+    }
+  },
+
+  // Device inactivity lock timeout — reads the actual compliance policy setting.
+  evaluate_device_lock_timeout: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceCompliance'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query device compliance policies'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const policies = ev.rawData as any[]
+    const withTimeout = policies.filter((p) =>
+      devicePolicySetting(
+        p,
+        /minutesofinactivitybeforelock/i,
+        (v) => typeof v === 'number' && v > 0 && v <= 15
+      )
+    )
+    const withAnyTimeout = policies.filter((p) =>
+      devicePolicySetting(
+        p,
+        /minutesofinactivitybeforelock/i,
+        (v) => typeof v === 'number' && v > 0
+      )
+    )
+
+    if (withTimeout.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${withTimeout.length} compliance policy(ies) enforce an inactivity screen lock of ≤15 minutes: ${withTimeout.map(policyName).join(', ')}`,
+        ],
+        recommendations: [],
+      }
+    }
+
+    if (withAnyTimeout.length > 0) {
+      return {
+        status: 'partial',
+        findings: [
+          `${withAnyTimeout.length} policy(ies) set an inactivity lock, but the timeout exceeds 15 minutes`,
+        ],
+        recommendations: ['Reduce passwordMinutesOfInactivityBeforeLock to 15 minutes or less'],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        policies.length > 0
+          ? `${policies.length} compliance policy(ies) exist but NONE configure an inactivity screen-lock timeout — policy existence alone does not satisfy this control`
+          : 'No device compliance policies found',
+      ],
+      recommendations: [
+        'Set "Maximum minutes of inactivity before password is required" to ≤15 in each platform compliance policy',
+      ],
+    }
+  },
+
+  // Device storage encryption — reads the actual BitLocker / storage encryption setting.
+  evaluate_device_encryption: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceCompliance'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query device compliance policies'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const policies = ev.rawData as any[]
+    const encryption = policies.filter((p) =>
+      devicePolicySetting(
+        p,
+        /bitlockerenabled|storagerequireencryption|^encryptionrequired$/i,
+        (v) => v === true
+      )
+    )
+
+    if (encryption.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${encryption.length} compliance policy(ies) require device storage encryption (BitLocker/platform encryption): ${encryption.map(policyName).join(', ')}`,
+        ],
+        recommendations: [
+          'Pair with a CA policy requiring compliant devices so unencrypted devices are blocked',
+        ],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        policies.length > 0
+          ? `${policies.length} compliance policy(ies) exist but NONE require storage encryption — policy existence alone does not satisfy this control`
+          : 'No device compliance policies found',
+      ],
+      recommendations: [
+        'Enable "Require encryption of data storage on device" (BitLocker on Windows) in each platform compliance policy',
+      ],
+    }
+  },
+
+  // Device OS / patch currency — reads osMinimumVersion from compliance policies.
+  evaluate_device_os_updates: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceCompliance'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query device compliance policies'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const policies = ev.rawData as any[]
+    const withMinOs = policies.filter((p) =>
+      devicePolicySetting(p, /osminimumversion/i, (v) => typeof v === 'string' && v.length > 0)
+    )
+
+    if (withMinOs.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${withMinOs.length} compliance policy(ies) enforce a minimum OS version, blocking unpatched devices: ${withMinOs.map(policyName).join(', ')}`,
+        ],
+        recommendations: [
+          'Raise the minimum OS version after each Patch Tuesday cycle to keep the patch SLA enforced',
+        ],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        policies.length > 0
+          ? `${policies.length} compliance policy(ies) exist but NONE set a minimum OS version — patch currency is not being enforced`
+          : 'No device compliance policies found',
+      ],
+      recommendations: [
+        'Set osMinimumVersion in each platform compliance policy',
+        'Deploy Windows Update for Business rings to automate patch deployment',
+      ],
+    }
+  },
+
+  // Device antivirus / Defender enforcement — reads the actual AV settings.
+  evaluate_device_av: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceCompliance'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query device compliance policies'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const policies = ev.rawData as any[]
+    const withAv = policies.filter((p) =>
+      devicePolicySetting(
+        p,
+        /defenderenabled|antivirusrequired|antispywarerequired|rtpenabled/i,
+        (v) => v === true
+      )
+    )
+
+    if (withAv.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${withAv.length} compliance policy(ies) require active antivirus/Defender protection: ${withAv.map(policyName).join(', ')}`,
+        ],
+        recommendations: ['Verify Defender for Endpoint onboarding covers all device platforms'],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        policies.length > 0
+          ? `${policies.length} compliance policy(ies) exist but NONE require antivirus/Defender to be active — malware protection is not being enforced`
+          : 'No device compliance policies found',
+      ],
+      recommendations: [
+        'Enable "Microsoft Defender Antimalware" and "Real-time protection" requirements in Windows compliance policies',
+      ],
+    }
+  },
+
+  // PIM just-in-time privileged access — eligible (JIT) vs standing assignments.
+  evaluate_pim_jit: (_control, evidence) => {
+    const eligEvidence = evidence.find((e) => e.endpoint.includes('roleEligibility'))
+    const standingEvidence = evidence.find((e) => e.endpoint.includes('roleAssignments'))
+
+    if (!eligEvidence?.success && !standingEvidence?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query PIM role eligibility or role assignments'],
+        recommendations: ['Verify Graph API permissions: RoleManagement.Read.Directory'],
+      }
+    }
+
+    const eligibleCount = eligEvidence?.success ? eligEvidence.recordCount : 0
+    const standingCount = standingEvidence?.success ? standingEvidence.recordCount : 0
+
+    if (eligibleCount > 0) {
+      return {
+        status: standingCount > eligibleCount ? 'partial' : 'pass',
+        findings: [
+          `${eligibleCount} PIM-eligible (just-in-time) role assignment(s) found — privileged access requires activation`,
+          `${standingCount} standing (always-active) role assignment(s) remain`,
+        ],
+        recommendations:
+          standingCount > eligibleCount
+            ? [
+                'Convert standing privileged assignments to PIM-eligible; keep only break-glass accounts permanent',
+              ]
+            : ['Review PIM activation settings: require MFA + justification on activation'],
+      }
+    }
+
+    if (eligEvidence?.success && eligibleCount === 0) {
+      return {
+        status: 'fail',
+        findings: [
+          'PIM query succeeded but returned no eligible assignments — all privileged access appears to be standing (always-on), not just-in-time',
+        ],
+        recommendations: [
+          'Enable Privileged Identity Management and convert privileged roles to eligible assignments',
+          'Require MFA, justification, and time-boxed activation for privileged roles',
+        ],
+      }
+    }
+
+    // Eligibility endpoint failed but standing assignments visible
+    return {
+      status: 'partial',
+      findings: [
+        `${standingCount} role assignment(s) found, but PIM eligibility could not be queried — JIT activation cannot be confirmed`,
+      ],
+      recommendations: [
+        'Grant RoleEligibilitySchedule.Read.Directory or verify PIM licensing (Entra ID P2)',
+      ],
+    }
+  },
+
+  // Organization security notification contacts — reads the actual contact
+  // fields on the organization object (which always returns a record, so
+  // existence alone proves nothing).
+  evaluate_org_security_contacts: (_control, evidence) => {
+    const orgEvidence = evidence.find((e) => e.endpoint.includes('/organization'))
+    if (!orgEvidence?.success || orgEvidence.recordCount === 0) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query the organization profile'],
+        recommendations: ['Verify Graph API permissions: Organization.Read.All'],
+      }
+    }
+    const org = (orgEvidence.rawData as any[])[0] ?? {}
+    const securityMails: string[] = org.securityComplianceNotificationMails ?? []
+    const securityPhones: string[] = org.securityComplianceNotificationPhones ?? []
+    const technicalMails: string[] = org.technicalNotificationMails ?? []
+    const hasSecurityContact = securityMails.length > 0 || securityPhones.length > 0
+    const hasTechnicalContact = technicalMails.length > 0
+
+    if (hasSecurityContact && hasTechnicalContact) {
+      return {
+        status: 'pass',
+        findings: [
+          `Security/compliance notification contact(s) configured: ${[...securityMails, ...securityPhones].join(', ')}`,
+          `Technical notification contact(s) configured: ${technicalMails.join(', ')}`,
+        ],
+        recommendations: ['Verify the contacts are monitored distribution lists, not individuals'],
+      }
+    }
+
+    if (hasSecurityContact || hasTechnicalContact) {
+      return {
+        status: 'partial',
+        findings: [
+          hasSecurityContact
+            ? 'Security/compliance contacts configured, but no technical notification contact'
+            : 'Technical contact configured, but no security/compliance notification contact',
+        ],
+        recommendations: [
+          'Configure both security/compliance and technical notification contacts in the organization profile',
+        ],
+      }
+    }
+
+    return {
+      status: 'fail',
+      findings: [
+        'Organization profile has NO security, compliance, or technical notification contacts configured — Microsoft cannot reach the organization about security incidents',
+      ],
+      recommendations: [
+        'Set security compliance notification email/phone and technical notification email in the Microsoft 365 organization profile',
+      ],
+    }
+  },
+
+  // Platform-inherited control — satisfied by documented, always-on Microsoft
+  // platform behavior that tenant configuration cannot disable. The pass is
+  // honest because the basis is the platform itself, stated explicitly.
+  evaluate_platform_inherited: (control, _evidence) => {
+    return {
+      status: 'pass',
+      findings: [
+        `Satisfied through Microsoft platform inheritance: ${control.evaluationCriteria.passingCondition}`,
+        'This behavior is enforced by the Microsoft cloud platform and cannot be disabled by tenant configuration.',
+      ],
+      recommendations: [
+        'Record this control as "inherited from Microsoft" in your SSP / shared-responsibility matrix, citing the Microsoft Product Placemat or FedRAMP package',
+      ],
+    }
+  },
+
+  // Proxy-signal control — automated evidence SUPPORTS but cannot fully verify
+  // the requirement. Caps at partial so the report never over-claims; full
+  // credit requires attestation or document evidence.
+  evaluate_proxy_signal: (control, evidence) => {
+    const successful = evidence.filter((e) => e.success)
+    if (successful.length === 0) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to collect supporting evidence for this control'],
+        recommendations: ['Verify the Graph API permissions listed for this control'],
+      }
+    }
+
+    const withRecords = successful.filter((e) => e.recordCount > 0)
+    if (withRecords.length === 0) {
+      return {
+        status: 'fail',
+        findings: [
+          'No supporting automated signals found for this control',
+          `Requirement: ${control.evaluationCriteria.passingCondition}`,
+        ],
+        recommendations: [
+          'Implement the required capability, then attach process documentation via the evidence workflow',
+        ],
+      }
+    }
+
+    return {
+      status: 'partial',
+      findings: [
+        ...withRecords.map(
+          (e) => `Supporting signal: ${e.queryDescription} (${e.recordCount} record(s))`
+        ),
+        `IMPORTANT: these signals support but do not fully verify the requirement — "${control.evaluationCriteria.passingCondition}" includes process or configuration elements that Microsoft Graph cannot confirm. Full credit requires attestation or document evidence.`,
+      ],
+      recommendations: [
+        'Attach the relevant policy/process documentation via the evidence upload workflow to claim full credit',
       ],
     }
   },
@@ -210,9 +913,18 @@ const evaluators: Record<string, EvaluatorFn> = {
     }
 
     if (deviceEvidence.recordCount > 0) {
+      const policies = deviceEvidence.rawData as any[]
+      const named = policies.map((p) => {
+        const platform = (p?.['@odata.type'] ?? '')
+          .replace('#microsoft.graph.', '')
+          .replace('CompliancePolicy', '')
+        return platform ? `${policyName(p)} [${platform}]` : policyName(p)
+      })
       return {
         status: 'pass',
-        findings: [`${deviceEvidence.recordCount} device compliance policies configured`],
+        findings: [
+          `${deviceEvidence.recordCount} device compliance policy(ies) configured: ${named.join(', ')}`,
+        ],
         recommendations: [],
       }
     }
@@ -285,12 +997,41 @@ const evaluators: Record<string, EvaluatorFn> = {
     }
 
     if (auditEvidence.recordCount > 0) {
+      // Verify the records actually carry attribution fields — a log that
+      // cannot attribute actions to an individual does not satisfy audit
+      // and accountability controls.
+      const sample = (auditEvidence.rawData as any[])[0] ?? {}
+      const keys = Object.keys(sample).map((k) => k.toLowerCase())
+      const flat = JSON.stringify(sample).toLowerCase()
+      const hasActor =
+        keys.some((k) => k.includes('userprincipalname') || k === 'userid') ||
+        flat.includes('userprincipalname') ||
+        flat.includes('initiatedby')
+      const hasTimestamp = keys.some(
+        (k) => k.includes('datetime') || k.includes('timestamp') || k.includes('activitydate')
+      )
+
+      if (hasActor && hasTimestamp) {
+        return {
+          status: 'pass',
+          findings: [
+            `Audit logging is active — ${auditEvidence.recordCount} record(s) sampled`,
+            'Records carry actor identity and timestamp fields, sufficient to attribute actions to individual users',
+          ],
+          recommendations: [
+            'Verify audit log retention meets your framework requirements',
+            'Consider exporting to SIEM for long-term retention',
+          ],
+        }
+      }
+
       return {
-        status: 'pass',
-        findings: ['Audit logging is active, records are being generated'],
+        status: 'partial',
+        findings: [
+          `Audit records are being generated (${auditEvidence.recordCount} sampled), but actor/timestamp attribution fields could not be confirmed in the sampled records`,
+        ],
         recommendations: [
-          'Verify audit log retention meets your framework requirements',
-          'Consider exporting to SIEM for long-term retention',
+          'Verify unified audit log entries include user identity, timestamp, and source for every event type in scope',
         ],
       }
     }

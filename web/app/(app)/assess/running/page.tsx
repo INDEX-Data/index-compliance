@@ -244,6 +244,7 @@ function RunningInner() {
     pass: { bg: 'bg-[#e7e5e4]', text: 'text-[#1c1917]', label: 'Passed' },
     fail: { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Failed' },
     partial: { bg: 'bg-[#e7e5e4]', text: 'text-[#57534e]', label: 'Partial' },
+    manual_required: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]', label: 'Attestation' },
     not_assessed: { bg: 'bg-[#f5f5f4]', text: 'text-[#44403c]', label: 'N/A' },
     not_applicable: { bg: 'bg-[#f5f5f4]', text: 'text-[#44403c]', label: 'N/A' },
   }
