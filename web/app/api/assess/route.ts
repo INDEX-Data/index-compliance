@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase'
 import { resolveGraphClient } from '@/lib/atlas-client'
 import { decryptIfNeeded } from '@/lib/crypto'
-import { runAssessment } from '@src/operations/index.js'
 
 function getAdminClient() {
   return createClient(
@@ -16,7 +15,9 @@ function getAdminClient() {
 export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabase()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -34,16 +35,27 @@ export async function POST(request: Request) {
     let clientRow: any
     if (clientId) {
       const { data, error } = await admin
-        .from('clients').select('*').eq('id', clientId).eq('user_id', user.id).single()
+        .from('clients')
+        .select('*')
+        .eq('id', clientId)
+        .eq('user_id', user.id)
+        .single()
       if (error || !data) {
         return NextResponse.json({ error: 'Client not found' }, { status: 404 })
       }
       clientRow = data
     } else {
       const { data, error } = await admin
-        .from('clients').select('*').eq('user_id', user.id).limit(1).single()
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id)
+        .limit(1)
+        .single()
       if (error || !data) {
-        return NextResponse.json({ error: 'No M365 tenant connected. Please add a client first.' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'No M365 tenant connected. Please add a client first.' },
+          { status: 400 }
+        )
       }
       clientRow = data
     }
@@ -86,6 +98,7 @@ export async function POST(request: Request) {
       const progress: any[] = []
 
       try {
+        const { runAssessment } = await import('@src/operations/index.js')
         const { graphClient } = await resolveGraphClient(user.id, clientRow.id)
 
         await runAssessment(
@@ -99,12 +112,15 @@ export async function POST(request: Request) {
           {
             onProgress: async (i, _total, title, status) => {
               progress.push({ controlId: title, title, status, done: true })
-              await bg.from('assessment_jobs').update({
-                current_index: i + 1,
-                current_title: title,
-                progress: [...progress],
-                updated_at: new Date().toISOString(),
-              }).eq('id', jobId)
+              await bg
+                .from('assessment_jobs')
+                .update({
+                  current_index: i + 1,
+                  current_title: title,
+                  progress: [...progress],
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', jobId)
             },
             onComplete: async (report) => {
               // Save report
@@ -119,7 +135,7 @@ export async function POST(request: Request) {
 
               // Save objective statuses (table may not exist in all envs)
               try {
-                const objectiveRows = report.objectiveStatuses.map(os => ({
+                const objectiveRows = report.objectiveStatuses.map((os) => ({
                   report_id: report.reportId,
                   objective_id: os.objectiveId,
                   status: os.status,
@@ -135,18 +151,24 @@ export async function POST(request: Request) {
               }
 
               // Mark job complete
-              await bg.from('assessment_jobs').update({
-                status: 'complete',
-                report_id: report.reportId,
-                updated_at: new Date().toISOString(),
-              }).eq('id', jobId)
+              await bg
+                .from('assessment_jobs')
+                .update({
+                  status: 'complete',
+                  report_id: report.reportId,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', jobId)
             },
             onError: async (err) => {
-              await bg.from('assessment_jobs').update({
-                status: 'error',
-                error_message: err.message,
-                updated_at: new Date().toISOString(),
-              }).eq('id', jobId)
+              await bg
+                .from('assessment_jobs')
+                .update({
+                  status: 'error',
+                  error_message: err.message,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('id', jobId)
             },
           }
         )
@@ -156,7 +178,6 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ ok: true, jobId })
-
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Assessment failed' },
