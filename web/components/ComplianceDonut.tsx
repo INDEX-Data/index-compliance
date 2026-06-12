@@ -7,6 +7,7 @@ const COLORS: Record<string, string> = {
   Passed:         '#1c1917',
   Partial:        '#78716c',
   Failed:         '#9f403d',
+  Manual:         '#6D28D9',
   'Not Assessed': '#a8a29e',
 }
 
@@ -14,12 +15,14 @@ interface Props { summary: ComplianceSummary }
 
 export function ComplianceDonut({ summary }: Props) {
   const { passed, partial, failed, notAssessed, totalControls } = summary
+  const manualRequired = summary.manualRequired ?? 0
 
   const data = [
-    { name: 'Passed',       value: passed       },
-    { name: 'Partial',      value: partial      },
-    { name: 'Failed',       value: failed       },
-    { name: 'Not Assessed', value: notAssessed  },
+    { name: 'Passed',       value: passed         },
+    { name: 'Partial',      value: partial        },
+    { name: 'Failed',       value: failed         },
+    { name: 'Manual',       value: manualRequired },
+    { name: 'Not Assessed', value: notAssessed    },
   ].filter(d => d.value > 0)
 
   return (
@@ -64,11 +67,12 @@ export function ComplianceDonut({ summary }: Props) {
 
       <div className="w-full grid grid-cols-2 gap-4">
         {[
-          { key: 'Passed',       color: '#1c1917', val: passed,      pct: Math.round((passed / totalControls) * 100) },
-          { key: 'Partial',      color: '#78716c', val: partial,     pct: Math.round((partial / totalControls) * 100) },
-          { key: 'Failed',       color: '#9f403d', val: failed,      pct: Math.round((failed / totalControls) * 100) },
-          { key: 'Pending',      color: '#a8a29e', val: notAssessed, pct: Math.round((notAssessed / totalControls) * 100) },
-        ].map(({ key, color, pct }) => (
+          { key: 'Passed',       color: '#1c1917', val: passed,         pct: Math.round((passed / totalControls) * 100) },
+          { key: 'Partial',      color: '#78716c', val: partial,        pct: Math.round((partial / totalControls) * 100) },
+          { key: 'Failed',       color: '#9f403d', val: failed,         pct: Math.round((failed / totalControls) * 100) },
+          { key: 'Manual',       color: '#6D28D9', val: manualRequired, pct: Math.round((manualRequired / totalControls) * 100) },
+          { key: 'Not Assessed', color: '#a8a29e', val: notAssessed,    pct: Math.round((notAssessed / totalControls) * 100) },
+        ].filter(d => d.val > 0).map(({ key, color, pct }) => (
           <div key={key} className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ background: color }} />
             <span className="text-xs text-[#44403c]">{key} ({pct}%)</span>

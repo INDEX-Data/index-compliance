@@ -1,11 +1,12 @@
 import type { ComplianceStatus } from '@/lib/types'
 
 const cfg: Record<ComplianceStatus, { label: string; dot: string; cls: string }> = {
-  pass:           { label: 'Pass',         dot: '#15803D', cls: 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]' },
-  partial:        { label: 'Partial',      dot: '#B45309', cls: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]' },
-  fail:           { label: 'Fail',         dot: '#B91C1C', cls: 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]' },
-  not_assessed:   { label: 'Not Assessed', dot: '#78716c', cls: 'bg-[#F9FAFB] text-[#505967] border-[#E5E7EB]' },
-  not_applicable: { label: 'N/A',          dot: '#d6d3d1', cls: 'bg-[#F9FAFB] text-[#78716c] border-[#F3F4F6]' },
+  pass:            { label: 'Pass',         dot: '#15803D', cls: 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]' },
+  partial:         { label: 'Partial',      dot: '#B45309', cls: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]' },
+  fail:            { label: 'Fail',         dot: '#B91C1C', cls: 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]' },
+  manual_required: { label: 'Manual',       dot: '#6D28D9', cls: 'bg-[#F5F3FF] text-[#6D28D9] border-[#DDD6FE]' },
+  not_assessed:    { label: 'Not Assessed', dot: '#78716c', cls: 'bg-[#F9FAFB] text-[#505967] border-[#E5E7EB]' },
+  not_applicable:  { label: 'N/A',          dot: '#d6d3d1', cls: 'bg-[#F9FAFB] text-[#78716c] border-[#F3F4F6]' },
 }
 
 interface Props {

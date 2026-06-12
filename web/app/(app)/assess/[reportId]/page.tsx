@@ -4,11 +4,30 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  ArrowLeft, Shield, Calendar, Building2, Loader2, Download, Play,
-  FileText, AlertCircle, Key, ClipboardList, PackageOpen, Archive,
-  AlertTriangle, ChevronDown, MoreHorizontal,
+  ArrowLeft,
+  Shield,
+  Calendar,
+  Building2,
+  Loader2,
+  Download,
+  Play,
+  FileText,
+  AlertCircle,
+  Key,
+  ClipboardList,
+  PackageOpen,
+  Archive,
+  AlertTriangle,
+  ChevronDown,
+  MoreHorizontal,
 } from 'lucide-react'
-import { getReport, exportWordReport, exportOPAReport, exportEvidenceZip, getConfigStatus } from '@/lib/api'
+import {
+  getReport,
+  exportWordReport,
+  exportOPAReport,
+  exportEvidenceZip,
+  getConfigStatus,
+} from '@/lib/api'
 import { ComplianceSummaryCards } from '@/components/ComplianceSummaryCards'
 import { ComplianceDonut } from '@/components/ComplianceDonut'
 import { ControlCard } from '@/components/ControlCard'
@@ -20,31 +39,37 @@ import { getPortalLinks } from '@/lib/portal-links'
 import type { ComplianceReport, ControlAssessment } from '@/lib/types'
 
 export default function ReportPage() {
-  const params   = useParams()
-  const router   = useRouter()
+  const params = useParams()
+  const router = useRouter()
   const reportId = params.reportId as string
 
-  const [report, setReport]               = useState<ComplianceReport | null>(null)
-  const [loading, setLoading]             = useState(true)
-  const [filter, setFilter]               = useState<ControlAssessment['status'] | 'all'>('all')
-  const [activeTab, setActiveTab]         = useState<'controls' | 'dibcac'>('controls')
+  const [report, setReport] = useState<ComplianceReport | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState<ControlAssessment['status'] | 'all'>('all')
+  const [activeTab, setActiveTab] = useState<'controls' | 'dibcac'>('controls')
   const [wordExporting, setWordExporting] = useState(false)
-  const [wordError, setWordError]         = useState<string | null>(null)
-  const [wordElapsed, setWordElapsed]     = useState(0)
-  const [opaExporting,  setOpaExporting]  = useState(false)
-  const [zipExporting,  setZipExporting]  = useState(false)
-  const [anthropicReady, setAnthropicReady]     = useState<boolean | null>(null)
-  const [showKeyModal, setShowKeyModal]         = useState(false)
-  const [evidenceControl, setEvidenceControl]   = useState<ControlAssessment | null>(null)
-  const [showAllControls, setShowAllControls]   = useState(false)
+  const [wordError, setWordError] = useState<string | null>(null)
+  const [wordElapsed, setWordElapsed] = useState(0)
+  const [opaExporting, setOpaExporting] = useState(false)
+  const [zipExporting, setZipExporting] = useState(false)
+  const [anthropicReady, setAnthropicReady] = useState<boolean | null>(null)
+  const [showKeyModal, setShowKeyModal] = useState(false)
+  const [evidenceControl, setEvidenceControl] = useState<ControlAssessment | null>(null)
+  const [showAllControls, setShowAllControls] = useState(false)
   const elapsedTimer = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     getReport(reportId)
-      .then(r => { if (!r) { router.replace('/history'); } else { setReport(r) } })
+      .then((r) => {
+        if (!r) {
+          router.replace('/history')
+        } else {
+          setReport(r)
+        }
+      })
       .finally(() => setLoading(false))
     getConfigStatus()
-      .then(s => setAnthropicReady(!!(s as any).anthropicConfigured))
+      .then((s) => setAnthropicReady(!!(s as any).anthropicConfigured))
       .catch(() => setAnthropicReady(false))
   }, [reportId, router])
 
@@ -52,9 +77,12 @@ export default function ReportPage() {
     setWordExporting(true)
     setWordError(null)
     setWordElapsed(0)
-    elapsedTimer.current = setInterval(() => setWordElapsed(s => s + 1), 1000)
+    elapsedTimer.current = setInterval(() => setWordElapsed((s) => s + 1), 1000)
     const err = await exportWordReport(reportId)
-    if (elapsedTimer.current) { clearInterval(elapsedTimer.current); elapsedTimer.current = null }
+    if (elapsedTimer.current) {
+      clearInterval(elapsedTimer.current)
+      elapsedTimer.current = null
+    }
     if (err) setWordError(err)
     setWordExporting(false)
   }
@@ -70,25 +98,35 @@ export default function ReportPage() {
   if (!report) return null
 
   // Group controls by family
-  const filtered = filter === 'all'
-    ? report.controlAssessments
-    : report.controlAssessments.filter(a => a.status === filter)
+  const filtered =
+    filter === 'all'
+      ? report.controlAssessments
+      : report.controlAssessments.filter((a) => a.status === filter)
 
   type FilterValue = ControlAssessment['status'] | 'all'
   const statusFilters: { value: FilterValue; label: string; count: number }[] = (
     [
-      { value: 'all'          as FilterValue, label: 'All',         count: report.controlAssessments.length },
-      { value: 'fail'         as FilterValue, label: 'Failed',      count: report.summary.failed },
-      { value: 'partial'      as FilterValue, label: 'Partial',     count: report.summary.partial },
-      { value: 'pass'         as FilterValue, label: 'Passed',      count: report.summary.passed },
-      { value: 'not_assessed' as FilterValue, label: 'Not Assessed',count: report.summary.notAssessed },
+      { value: 'all' as FilterValue, label: 'All', count: report.controlAssessments.length },
+      { value: 'fail' as FilterValue, label: 'Failed', count: report.summary.failed },
+      { value: 'partial' as FilterValue, label: 'Partial', count: report.summary.partial },
+      { value: 'pass' as FilterValue, label: 'Passed', count: report.summary.passed },
+      {
+        value: 'manual_required' as FilterValue,
+        label: 'Manual',
+        count: report.summary.manualRequired ?? 0,
+      },
+      {
+        value: 'not_assessed' as FilterValue,
+        label: 'Not Assessed',
+        count: report.summary.notAssessed,
+      },
     ] as { value: FilterValue; label: string; count: number }[]
-  ).filter(f => f.count > 0 || f.value === 'all')
+  ).filter((f) => f.count > 0 || f.value === 'all')
 
   function exportJSON() {
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
     a.href = url
     a.download = `${report!.reportId}.json`
     a.click()
@@ -111,11 +149,12 @@ export default function ReportPage() {
   }
 
   const statusBadgeStyles: Record<string, { bg: string; text: string; label: string }> = {
-    pass:         { bg: 'bg-[#e7e5e4]',   text: 'text-[#0c0a09]', label: 'Pass' },
-    fail:         { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Fail' },
-    partial:      { bg: 'bg-[#e7e5e4]',    text: 'text-[#57534e]', label: 'Partial' },
-    not_assessed: { bg: 'bg-[#f5f5f4]',    text: 'text-[#78716c]', label: 'N/A' },
-    not_applicable: { bg: 'bg-[#f5f5f4]',  text: 'text-[#78716c]', label: 'N/A' },
+    pass: { bg: 'bg-[#e7e5e4]', text: 'text-[#0c0a09]', label: 'Pass' },
+    fail: { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Fail' },
+    partial: { bg: 'bg-[#e7e5e4]', text: 'text-[#57534e]', label: 'Partial' },
+    manual_required: { bg: 'bg-[#F5F3FF]', text: 'text-[#6D28D9]', label: 'Manual' },
+    not_assessed: { bg: 'bg-[#f5f5f4]', text: 'text-[#78716c]', label: 'N/A' },
+    not_applicable: { bg: 'bg-[#f5f5f4]', text: 'text-[#78716c]', label: 'N/A' },
   }
 
   const statusBarColors: Record<string, string> = {
@@ -128,7 +167,6 @@ export default function ReportPage() {
 
   return (
     <div className="p-8 max-w-6xl space-y-8">
-
       {/* Evidence drawer */}
       <EvidenceDrawer
         assessment={evidenceControl}
@@ -139,7 +177,10 @@ export default function ReportPage() {
       {/* Anthropic key missing modal */}
       {showKeyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6" style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}>
+          <div
+            className="bg-white rounded-2xl w-full max-w-md p-6"
+            style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-center justify-center">
                 <Key className="w-5 h-5 text-[#B45309]" />
@@ -147,7 +188,8 @@ export default function ReportPage() {
               <h2 className="text-base font-bold text-[#1c1917]">Anthropic API Key Required</h2>
             </div>
             <p className="text-sm text-[#44403c] mb-4 leading-relaxed">
-              Word report generation uses Claude AI to write an executive narrative. Add your Anthropic API key in Settings to enable this feature.
+              Word report generation uses Claude AI to write an executive narrative. Add your
+              Anthropic API key in Settings to enable this feature.
             </p>
             <div className="bg-[#fafaf9] border border-[#e7e5e4] rounded-lg p-3 mb-4 text-xs text-[#44403c] font-mono">
               Get your API key at: <strong className="text-[#1c1917]">console.anthropic.com</strong>
@@ -160,7 +202,10 @@ export default function ReportPage() {
                 Cancel
               </button>
               <button
-                onClick={() => { setShowKeyModal(false); router.push('/settings') }}
+                onClick={() => {
+                  setShowKeyModal(false)
+                  router.push('/settings')
+                }}
                 className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#1c1917] hover:bg-[#0c0a09] rounded-lg transition"
               >
                 Open Settings
@@ -174,15 +219,23 @@ export default function ReportPage() {
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <nav className="flex items-center text-xs font-medium tracking-tight mb-4">
-            <Link href="/history" className="text-[#a8a29e] hover:text-[#44403c] transition">All reports</Link>
+            <Link href="/history" className="text-[#a8a29e] hover:text-[#44403c] transition">
+              All reports
+            </Link>
             <span className="mx-2 text-[#a8a29e]">/</span>
             <span className="text-[#1c1917] font-medium">{report.frameworkName}</span>
           </nav>
-          <h1 className="text-3xl font-bold text-[#1c1917] tracking-tight mb-2">Compliance Ledger</h1>
+          <h1 className="text-3xl font-bold text-[#1c1917] tracking-tight mb-2">
+            Compliance Ledger
+          </h1>
           <div className="flex items-center gap-4 text-sm text-[#44403c]">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4" />
-              {new Date(report.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {new Date(report.generatedAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
             </span>
             <span className="flex items-center gap-1.5">
               <Building2 className="w-4 h-4" />
@@ -192,7 +245,9 @@ export default function ReportPage() {
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-widest text-[#44403c] font-bold mb-1">Health Status</p>
+            <p className="text-[10px] uppercase tracking-widest text-[#44403c] font-bold mb-1">
+              Health Status
+            </p>
             <div className="flex items-center gap-2">
               <span className="text-4xl font-extrabold text-[#1c1917]">{pct}%</span>
               <span
@@ -205,10 +260,22 @@ export default function ReportPage() {
           </div>
           <div className="w-16 h-16 relative shrink-0">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 64 64">
-              <circle className="text-[#f5f5f4]" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" strokeWidth="6" />
               <circle
-                cx="32" cy="32" fill="transparent" r="28"
-                stroke="#1c1917" strokeWidth="6"
+                className="text-[#f5f5f4]"
+                cx="32"
+                cy="32"
+                fill="transparent"
+                r="28"
+                stroke="currentColor"
+                strokeWidth="6"
+              />
+              <circle
+                cx="32"
+                cy="32"
+                fill="transparent"
+                r="28"
+                stroke="#1c1917"
+                strokeWidth="6"
                 strokeDasharray={`${(pct / 100) * 175.9} 175.9`}
                 strokeLinecap="round"
               />
@@ -220,7 +287,11 @@ export default function ReportPage() {
       {/* ── Export Actions ── */}
       <div className="flex items-center gap-2 flex-wrap">
         <button
-          onClick={async () => { setOpaExporting(true); await exportOPAReport(reportId); setOpaExporting(false) }}
+          onClick={async () => {
+            setOpaExporting(true)
+            await exportOPAReport(reportId)
+            setOpaExporting(false)
+          }}
           disabled={opaExporting}
           className="bg-[#e7e5e4] text-[#1c1917] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
         >
@@ -234,7 +305,11 @@ export default function ReportPage() {
           Export JSON
         </button>
         <button
-          onClick={async () => { setZipExporting(true); await exportEvidenceZip(reportId); setZipExporting(false) }}
+          onClick={async () => {
+            setZipExporting(true)
+            await exportEvidenceZip(reportId)
+            setZipExporting(false)
+          }}
           disabled={zipExporting}
           className="bg-[#e7e5e4] text-[#1c1917] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
         >
@@ -255,10 +330,15 @@ export default function ReportPage() {
             disabled={wordExporting}
             className="bg-[#7C3AED] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#6D28D9] disabled:bg-[#f5f5f4] disabled:text-[#44403c] transition disabled:cursor-wait"
           >
-            {wordExporting
-              ? <><Loader2 className="w-3 h-3 animate-spin inline mr-1" /> Generating…</>
-              : <><FileText className="w-3 h-3 inline mr-1" /> Word Report</>
-            }
+            {wordExporting ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> Generating…
+              </>
+            ) : (
+              <>
+                <FileText className="w-3 h-3 inline mr-1" /> Word Report
+              </>
+            )}
           </button>
         )}
         <button
@@ -274,7 +354,9 @@ export default function ReportPage() {
         <div className="flex items-start gap-3 bg-[#F5F3FF] border border-[#DDD6FE] rounded-xl px-4 py-3">
           <Loader2 className="w-4 h-4 text-[#7C3AED] shrink-0 mt-0.5 animate-spin" />
           <div className="flex-1">
-            <p className="text-xs font-semibold text-[#7C3AED]">Generating Word report — please wait</p>
+            <p className="text-xs font-semibold text-[#7C3AED]">
+              Generating Word report — please wait
+            </p>
             <p className="text-xs text-[#6D28D9] mt-0.5 leading-relaxed">
               Writing an executive narrative. This typically takes <strong>30–60 seconds</strong>.
             </p>
@@ -291,7 +373,12 @@ export default function ReportPage() {
             <p className="text-xs font-semibold text-[#B91C1C]">Word report generation failed</p>
             <p className="text-xs text-[#991B1B] mt-0.5">{wordError}</p>
           </div>
-          <button onClick={() => setWordError(null)} className="text-[#FECACA] hover:text-[#B91C1C] text-sm transition">✕</button>
+          <button
+            onClick={() => setWordError(null)}
+            className="text-[#FECACA] hover:text-[#B91C1C] text-sm transition"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -305,7 +392,9 @@ export default function ReportPage() {
         {/* Top Findings */}
         <div className="lg:col-span-2 bg-[#fafaf9] p-6 rounded-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-bold text-[#1c1917] uppercase tracking-widest">Top Findings & Critical Issues</h3>
+            <h3 className="text-sm font-bold text-[#1c1917] uppercase tracking-widest">
+              Top Findings & Critical Issues
+            </h3>
             {report.summary.failed > 0 && (
               <span className="text-[10px] font-bold text-[#9f403d] bg-[#fe8983]/20 px-2 py-0.5 rounded">
                 REQUIRES IMMEDIATE ATTENTION
@@ -315,8 +404,13 @@ export default function ReportPage() {
           <div className="space-y-4">
             {(report.summary.topFindings ?? []).length > 0 ? (
               (report.summary.topFindings ?? []).slice(0, 4).map((finding, i) => (
-                <div key={i} className={`bg-white p-4 rounded-lg flex gap-4 ${i === 0 ? 'border-l-4 border-[#9f403d]' : i < 2 ? 'border-l-4 border-[#9f403d]/50' : 'border-l-4 border-[#78716c]'}`}>
-                  <AlertTriangle className={`w-5 h-5 shrink-0 mt-0.5 ${i < 2 ? 'text-[#9f403d]' : 'text-[#78716c]'}`} />
+                <div
+                  key={i}
+                  className={`bg-white p-4 rounded-lg flex gap-4 ${i === 0 ? 'border-l-4 border-[#9f403d]' : i < 2 ? 'border-l-4 border-[#9f403d]/50' : 'border-l-4 border-[#78716c]'}`}
+                >
+                  <AlertTriangle
+                    className={`w-5 h-5 shrink-0 mt-0.5 ${i < 2 ? 'text-[#9f403d]' : 'text-[#78716c]'}`}
+                  />
                   <div className="flex-1">
                     <p className="text-sm font-bold text-[#1c1917] mb-1">{finding}</p>
                   </div>
@@ -343,7 +437,9 @@ export default function ReportPage() {
         >
           <Shield className="w-3.5 h-3.5" />
           Control Assessments
-          <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}>
+          <span
+            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}
+          >
             {report.controlAssessments.length}
           </span>
         </button>
@@ -359,7 +455,9 @@ export default function ReportPage() {
           >
             <ClipboardList className="w-3.5 h-3.5" />
             DIBCAC 320 Objectives
-            <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}>
+            <span
+              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}
+            >
               320
             </span>
           </button>
@@ -373,7 +471,7 @@ export default function ReportPage() {
           <div className="p-6 border-b border-[#a8a29e]/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h3 className="text-lg font-bold text-[#1c1917]">Control Assessments Ledger</h3>
             <div className="flex bg-[#f5f5f4] p-1 rounded-lg">
-              {statusFilters.map(f => (
+              {statusFilters.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
@@ -394,18 +492,29 @@ export default function ReportPage() {
             <table className="w-full border-collapse">
               <thead className="bg-[#fafaf9]">
                 <tr>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">ID</th>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Control Name</th>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Status</th>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Family</th>
-                  <th className="text-right px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">Actions</th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                    ID
+                  </th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                    Control Name
+                  </th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                    Status
+                  </th>
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                    Family
+                  </th>
+                  <th className="text-right px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#a8a29e]/10">
-                {displayControls.map(a => {
+                {displayControls.map((a) => {
                   const badge = statusBadgeStyles[a.status] ?? statusBadgeStyles.not_assessed
                   const portalLinks = getPortalLinks(a.controlId)
-                  const showFix = portalLinks.length > 0 && (a.status === 'fail' || a.status === 'partial')
+                  const showFix =
+                    portalLinks.length > 0 && (a.status === 'fail' || a.status === 'partial')
 
                   return (
                     <tr
@@ -419,7 +528,9 @@ export default function ReportPage() {
                         {a.family && <p className="text-[10px] text-[#44403c]">{a.family}</p>}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`${badge.bg} ${badge.text} text-[9px] px-2 py-0.5 font-black rounded tracking-tighter uppercase`}>
+                        <span
+                          className={`${badge.bg} ${badge.text} text-[9px] px-2 py-0.5 font-black rounded tracking-tighter uppercase`}
+                        >
                           {badge.label}
                         </span>
                       </td>
@@ -427,14 +538,20 @@ export default function ReportPage() {
                       <td className="px-6 py-4 text-right">
                         {showFix ? (
                           <button
-                            onClick={(e) => { e.stopPropagation(); window.open(portalLinks[0].url, '_blank') }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              window.open(portalLinks[0].url, '_blank')
+                            }}
                             className="bg-[#1c1917] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[#0c0a09] transition"
                           >
                             Fix in Azure
                           </button>
                         ) : (
                           <button
-                            onClick={(e) => { e.stopPropagation(); setEvidenceControl(a) }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setEvidenceControl(a)
+                            }}
                             className="text-[#44403c] hover:text-[#1c1917]"
                           >
                             <MoreHorizontal className="w-4 h-4" />
@@ -456,7 +573,9 @@ export default function ReportPage() {
                 className="text-xs font-bold text-[#1c1917] flex items-center gap-1 hover:underline"
               >
                 {showAllControls ? 'SHOW LESS' : `VIEW ALL ${filtered.length} CONTROLS`}
-                <ChevronDown className={`w-4 h-4 transition-transform ${showAllControls ? 'rotate-180' : ''}`} />
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showAllControls ? 'rotate-180' : ''}`}
+                />
               </button>
             </div>
           )}
@@ -470,9 +589,10 @@ export default function ReportPage() {
       )}
 
       {/* ── DIBCAC 320 Objectives ── */}
-      {activeTab === 'dibcac' && (report.frameworkId === 'CMMC_L2' || report.frameworkId === 'cmmc-l2') && (
-        <DIBCACObjectives reportId={reportId} />
-      )}
+      {activeTab === 'dibcac' &&
+        (report.frameworkId === 'CMMC_L2' || report.frameworkId === 'cmmc-l2') && (
+          <DIBCACObjectives reportId={reportId} />
+        )}
     </div>
   )
 }

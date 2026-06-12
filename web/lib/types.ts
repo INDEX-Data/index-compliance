@@ -1,6 +1,12 @@
 // Types mirroring the backend compliance engine output shapes
 
-export type ComplianceStatus = 'pass' | 'fail' | 'partial' | 'not_assessed' | 'not_applicable'
+export type ComplianceStatus =
+  | 'pass'
+  | 'fail'
+  | 'partial'
+  | 'manual_required'
+  | 'not_assessed'
+  | 'not_applicable'
 export type RiskScore = 'low' | 'medium' | 'high' | 'critical'
 
 export interface EvidenceResult {
@@ -36,6 +42,13 @@ export interface ComplianceSummary {
   compliancePercentage: number
   riskScore: RiskScore
   topFindings: string[]
+  // Coverage model (added with the manual-attestation split). Optional so
+  // reports generated before the change still deserialize cleanly.
+  manualRequired?: number
+  assessedControls?: number
+  automatedCoverage?: number
+  collectionHealth?: number
+  lowCoverageWarning?: boolean
 }
 
 export interface ComplianceReport {
@@ -78,8 +91,8 @@ export interface Client {
   id: string
   name: string
   tenantId: string
-  clientId: string       // Azure app registration client ID
-  clientSecret: string   // Masked on API responses (e.g. "abcd••••••••")
+  clientId: string // Azure app registration client ID
+  clientSecret: string // Masked on API responses (e.g. "abcd••••••••")
   addedAt: string
   notes?: string
 }
@@ -92,12 +105,12 @@ export interface ConfigStatus {
 
 // SSE event shapes
 export type SSEEvent =
-  | { type: 'start';                  frameworkId: string; frameworkName: string; total: number }
-  | { type: 'progress';               controlId: string;   title: string;         index: number; total: number }
-  | { type: 'result';                 assessment: ControlAssessment }
-  | { type: 'objectives_initialized'; reportId: string;    summary: DIBCACObjectiveSummary }
-  | { type: 'complete';               report: ComplianceReport }
-  | { type: 'error';                  message: string }
+  | { type: 'start'; frameworkId: string; frameworkName: string; total: number }
+  | { type: 'progress'; controlId: string; title: string; index: number; total: number }
+  | { type: 'result'; assessment: ControlAssessment }
+  | { type: 'objectives_initialized'; reportId: string; summary: DIBCACObjectiveSummary }
+  | { type: 'complete'; report: ComplianceReport }
+  | { type: 'error'; message: string }
 
 // ---------------------------------------------------------------------------
 // DIBCAC 320 Objective Tracking

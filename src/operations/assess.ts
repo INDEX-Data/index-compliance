@@ -63,6 +63,8 @@ function mapControlStatusToObjectiveStatus(
       }
     case 'fail':
       return { status: 'not_met', evidenceSource: 'automated_graph' }
+    case 'manual_required':
+      return { status: 'requires_manual', evidenceSource: 'none' }
     case 'not_assessed':
     case 'not_applicable':
     default:
@@ -142,9 +144,12 @@ export async function runAssessment(
       if (!controlAssessment) {
         return {
           objectiveId: obj.objectiveId,
-          status: obj.automation === 'physical' ? 'requires_physical' as const
-            : obj.automation === 'manual' ? 'requires_manual' as const
-            : 'not_assessed' as const,
+          status:
+            obj.automation === 'physical'
+              ? ('requires_physical' as const)
+              : obj.automation === 'manual'
+                ? ('requires_manual' as const)
+                : ('not_assessed' as const),
           evidenceSource: 'none' as const,
           assessedAt: new Date().toISOString(),
           assessedBy: 'automated',
@@ -163,24 +168,26 @@ export async function runAssessment(
     // DIBCAC summary
     const dibcacSummary = {
       total: objectiveStatuses.length,
-      met: objectiveStatuses.filter(o => o.status === 'met').length,
-      partiallyMet: objectiveStatuses.filter(o => o.status === 'partially_met').length,
-      notMet: objectiveStatuses.filter(o => o.status === 'not_met').length,
-      requiresManual: objectiveStatuses.filter(o => o.status === 'requires_manual').length,
-      requiresPhysical: objectiveStatuses.filter(o => o.status === 'requires_physical').length,
-      notAssessed: objectiveStatuses.filter(o => o.status === 'not_assessed').length,
+      met: objectiveStatuses.filter((o) => o.status === 'met').length,
+      partiallyMet: objectiveStatuses.filter((o) => o.status === 'partially_met').length,
+      notMet: objectiveStatuses.filter((o) => o.status === 'not_met').length,
+      requiresManual: objectiveStatuses.filter((o) => o.status === 'requires_manual').length,
+      requiresPhysical: objectiveStatuses.filter((o) => o.status === 'requires_physical').length,
+      notAssessed: objectiveStatuses.filter((o) => o.status === 'not_assessed').length,
       coveragePercentage: 0,
     }
     const assessableObjectives = dibcacSummary.total - dibcacSummary.requiresPhysical
-    dibcacSummary.coveragePercentage = assessableObjectives > 0
-      ? Math.round(((dibcacSummary.met + dibcacSummary.partiallyMet * 0.5) / assessableObjectives) * 100)
-      : 0
+    dibcacSummary.coveragePercentage =
+      assessableObjectives > 0
+        ? Math.round(
+            ((dibcacSummary.met + dibcacSummary.partiallyMet * 0.5) / assessableObjectives) * 100
+          )
+        : 0
 
     const fullReport: FullReport = { ...report, objectiveStatuses, dibcacSummary }
 
     await callbacks?.onComplete?.(fullReport)
     return fullReport
-
   } catch (err) {
     const error = err instanceof Error ? err : new Error(String(err))
     await callbacks?.onError?.(error)

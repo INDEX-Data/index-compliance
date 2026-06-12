@@ -3,12 +3,29 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import {
-  Shield, Clock, Play, AlertTriangle, ChevronRight,
-  FileText, Building2, ArrowRight, LayoutDashboard,
-  TrendingUp, TrendingDown,
-  ShieldCheck, ShieldX, Layers,
-  CheckCircle2, XCircle, MinusCircle, HelpCircle,
-  Activity, Users, X, ChevronDown, Lock,
+  Shield,
+  Clock,
+  Play,
+  AlertTriangle,
+  ChevronRight,
+  FileText,
+  Building2,
+  ArrowRight,
+  LayoutDashboard,
+  TrendingUp,
+  TrendingDown,
+  ShieldCheck,
+  ShieldX,
+  Layers,
+  CheckCircle2,
+  XCircle,
+  MinusCircle,
+  HelpCircle,
+  Activity,
+  Users,
+  X,
+  ChevronDown,
+  Lock,
 } from 'lucide-react'
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { getReports, getClients, getReportDrift, getProfile } from '@/lib/api'
@@ -22,13 +39,13 @@ import { FRAMEWORK_CATALOG } from '@/lib/framework-catalog'
 // ─── Drift Widget ─────────────────────────────────────────────────────────────
 
 function DriftWidget() {
-  const [drift, setDrift]     = useState<DriftResult | null>(null)
+  const [drift, setDrift] = useState<DriftResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
     getReportDrift()
-      .then(d  => setDrift(d))
+      .then((d) => setDrift(d))
       .catch(() => setDrift(null))
       .finally(() => setLoading(false))
   }, [])
@@ -59,34 +76,39 @@ function DriftWidget() {
   }
 
   const deltaPos = (drift.scoreDelta ?? 0) >= 0
-  const changed  = drift.changed ?? []
+  const changed = drift.changed ?? []
 
   return (
     <div className="bg-white rounded-xl border border-[#e7e5e4] shadow-card overflow-hidden">
       {/* Header */}
       <div
         className="flex items-center gap-3 px-5 py-4 cursor-pointer select-none hover:bg-[#fafafa] transition-colors"
-        onClick={() => setExpanded(v => !v)}
+        onClick={() => setExpanded((v) => !v)}
       >
-        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-          deltaPos ? 'bg-[rgba(14,180,114,0.10)]' : 'bg-[rgba(242,87,87,0.10)]'
-        }`}>
+        <div
+          className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+            deltaPos ? 'bg-[rgba(14,180,114,0.10)]' : 'bg-[rgba(242,87,87,0.10)]'
+          }`}
+        >
           <Activity className={`w-4 h-4 ${deltaPos ? 'text-[#0eb472]' : 'text-[#f25757]'}`} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-[#1c1d1f]">
-            Configuration Drift Detected
-          </p>
+          <p className="text-[13px] font-semibold text-[#1c1d1f]">Configuration Drift Detected</p>
           <p className="text-[11px] text-[#78716c] mt-0.5">
             {drift.improved ?? 0} improved · {drift.degraded ?? 0} degraded since last scan
             {drift.scoreDelta !== undefined && (
-              <span className={`ml-2 font-semibold ${deltaPos ? 'text-[#0eb472]' : 'text-[#f25757]'}`}>
-                {deltaPos ? '+' : ''}{drift.scoreDelta}% overall
+              <span
+                className={`ml-2 font-semibold ${deltaPos ? 'text-[#0eb472]' : 'text-[#f25757]'}`}
+              >
+                {deltaPos ? '+' : ''}
+                {drift.scoreDelta}% overall
               </span>
             )}
           </p>
         </div>
-        <ChevronDown className={`w-4 h-4 text-[#a8a29e] transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-4 h-4 text-[#a8a29e] transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
       </div>
 
       {/* Expanded: changed controls list */}
@@ -94,24 +116,30 @@ function DriftWidget() {
         <div className="border-t border-[#f5f5f4] divide-y divide-[#f3f4f6]">
           {changed.slice(0, 10).map((c, i) => (
             <div key={i} className="flex items-center gap-3 px-5 py-3">
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                c.direction === 'improved' ? 'bg-[#0eb472]' : 'bg-[#f25757]'
-              }`} />
+              <div
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  c.direction === 'improved' ? 'bg-[#0eb472]' : 'bg-[#f25757]'
+                }`}
+              />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-medium text-[#1c1d1f] truncate">{c.controlName}</p>
                 <p className="text-[11px] text-[#78716c]">
                   <span className="capitalize">{c.from}</span>
                   {' → '}
-                  <span className={`font-medium ${c.direction === 'improved' ? 'text-[#0eb472]' : 'text-[#f25757]'}`}>
+                  <span
+                    className={`font-medium ${c.direction === 'improved' ? 'text-[#0eb472]' : 'text-[#f25757]'}`}
+                  >
                     {c.to}
                   </span>
                 </p>
               </div>
-              <div className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                c.direction === 'improved'
-                  ? 'bg-[rgba(14,180,114,0.10)] text-[#0eb472]'
-                  : 'bg-[rgba(242,87,87,0.10)] text-[#f25757]'
-              }`}>
+              <div
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                  c.direction === 'improved'
+                    ? 'bg-[rgba(14,180,114,0.10)] text-[#0eb472]'
+                    : 'bg-[rgba(242,87,87,0.10)] text-[#f25757]'
+                }`}
+              >
                 {c.direction === 'improved' ? '▲ Improved' : '▼ Degraded'}
               </div>
             </div>
@@ -134,10 +162,10 @@ const QUESTIONS = [
     id: 'size',
     label: 'How many employees does the organisation have?',
     options: [
-      { value: 'micro',  label: '1–10 employees' },
-      { value: 'small',  label: '11–50 employees' },
+      { value: 'micro', label: '1–10 employees' },
+      { value: 'small', label: '11–50 employees' },
       { value: 'medium', label: '51–250 employees' },
-      { value: 'large',  label: '251–1,000 employees' },
+      { value: 'large', label: '251–1,000 employees' },
       { value: 'xlarge', label: '1,000+ employees' },
     ],
   },
@@ -145,9 +173,9 @@ const QUESTIONS = [
     id: 'scope',
     label: 'How many CUI / controlled systems are in scope?',
     options: [
-      { value: 'low',    label: 'Fewer than 10 systems' },
+      { value: 'low', label: 'Fewer than 10 systems' },
       { value: 'medium', label: '10–50 systems' },
-      { value: 'high',   label: '50–200 systems' },
+      { value: 'high', label: '50–200 systems' },
       { value: 'very_high', label: '200+ systems' },
     ],
   },
@@ -155,9 +183,9 @@ const QUESTIONS = [
     id: 'maturity',
     label: 'What is the current security programme maturity?',
     options: [
-      { value: 'none',     label: 'No formal programme' },
-      { value: 'basic',    label: 'Basic (policies exist, inconsistently applied)' },
-      { value: 'managed',  label: 'Managed (documented, mostly enforced)' },
+      { value: 'none', label: 'No formal programme' },
+      { value: 'basic', label: 'Basic (policies exist, inconsistently applied)' },
+      { value: 'managed', label: 'Managed (documented, mostly enforced)' },
       { value: 'advanced', label: 'Advanced (continuous monitoring in place)' },
     ],
   },
@@ -165,20 +193,20 @@ const QUESTIONS = [
     id: 'gaps',
     label: 'Roughly how many controls are currently failing or partial?',
     options: [
-      { value: 'few',    label: 'Fewer than 10' },
-      { value: 'some',   label: '10–30' },
-      { value: 'many',   label: '30–80' },
-      { value: 'most',   label: '80+' },
+      { value: 'few', label: 'Fewer than 10' },
+      { value: 'some', label: '10–30' },
+      { value: 'many', label: '30–80' },
+      { value: 'most', label: '80+' },
     ],
   },
   {
     id: 'resources',
     label: 'Do you have dedicated security staff available for remediation?',
     options: [
-      { value: 'none',     label: 'No — would need to hire / contract' },
-      { value: 'part',     label: 'Part-time (< 50% bandwidth)' },
+      { value: 'none', label: 'No — would need to hire / contract' },
+      { value: 'part', label: 'Part-time (< 50% bandwidth)' },
       { value: 'fulltime', label: 'Full-time security engineer' },
-      { value: 'team',     label: 'Dedicated security team (2+ people)' },
+      { value: 'team', label: 'Dedicated security team (2+ people)' },
     ],
   },
 ]
@@ -186,50 +214,93 @@ const QUESTIONS = [
 // Simple heuristic scoring → weeks & FTE
 function estimateTimeline(answers: Record<string, string>) {
   let weeks = 8
-  let fte   = 0.5
+  let fte = 0.5
 
   // Size
-  if (answers.size === 'medium') { weeks += 4; fte += 0.5 }
-  if (answers.size === 'large')  { weeks += 8; fte += 1 }
-  if (answers.size === 'xlarge') { weeks += 16; fte += 2 }
+  if (answers.size === 'medium') {
+    weeks += 4
+    fte += 0.5
+  }
+  if (answers.size === 'large') {
+    weeks += 8
+    fte += 1
+  }
+  if (answers.size === 'xlarge') {
+    weeks += 16
+    fte += 2
+  }
 
   // Scope
-  if (answers.scope === 'medium')    { weeks += 2; fte += 0.25 }
-  if (answers.scope === 'high')      { weeks += 6; fte += 0.5 }
-  if (answers.scope === 'very_high') { weeks += 12; fte += 1 }
+  if (answers.scope === 'medium') {
+    weeks += 2
+    fte += 0.25
+  }
+  if (answers.scope === 'high') {
+    weeks += 6
+    fte += 0.5
+  }
+  if (answers.scope === 'very_high') {
+    weeks += 12
+    fte += 1
+  }
 
   // Maturity (inverse)
-  if (answers.maturity === 'none')    { weeks += 8; fte += 0.5 }
-  if (answers.maturity === 'basic')   { weeks += 4 }
-  if (answers.maturity === 'advanced') { weeks -= 4; fte -= 0.25 }
+  if (answers.maturity === 'none') {
+    weeks += 8
+    fte += 0.5
+  }
+  if (answers.maturity === 'basic') {
+    weeks += 4
+  }
+  if (answers.maturity === 'advanced') {
+    weeks -= 4
+    fte -= 0.25
+  }
 
   // Gaps
-  if (answers.gaps === 'some') { weeks += 4; fte += 0.25 }
-  if (answers.gaps === 'many') { weeks += 8; fte += 0.5 }
-  if (answers.gaps === 'most') { weeks += 16; fte += 1 }
+  if (answers.gaps === 'some') {
+    weeks += 4
+    fte += 0.25
+  }
+  if (answers.gaps === 'many') {
+    weeks += 8
+    fte += 0.5
+  }
+  if (answers.gaps === 'most') {
+    weeks += 16
+    fte += 1
+  }
 
   // Resources (inverse)
-  if (answers.resources === 'none')     { weeks += 4; fte += 1 }
-  if (answers.resources === 'fulltime') { weeks -= 2 }
-  if (answers.resources === 'team')     { weeks -= 4; fte -= 0.5 }
+  if (answers.resources === 'none') {
+    weeks += 4
+    fte += 1
+  }
+  if (answers.resources === 'fulltime') {
+    weeks -= 2
+  }
+  if (answers.resources === 'team') {
+    weeks -= 4
+    fte -= 0.5
+  }
 
   return {
-    weeks:  Math.max(4,  Math.round(weeks)),
-    fte:    Math.max(0.25, Math.round(fte * 4) / 4),
+    weeks: Math.max(4, Math.round(weeks)),
+    fte: Math.max(0.25, Math.round(fte * 4) / 4),
   }
 }
 
 function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
-  const [step,    setStep]    = useState(0)
+  const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [result,  setResult]  = useState<{ weeks: number; fte: number } | null>(null)
+  const [result, setResult] = useState<{ weeks: number; fte: number } | null>(null)
 
   function pick(value: string) {
-    const q    = QUESTIONS[step]
+    const q = QUESTIONS[step]
     const next = { ...answers, [q.id]: value }
     setAnswers(next)
     if (step < QUESTIONS.length - 1) {
-      setStep(s => s + 1)
+      setStep((s) => s + 1)
     } else {
       setResult(estimateTimeline(next))
     }
@@ -241,7 +312,9 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(28,29,31,0.5)', backdropFilter: 'blur(4px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
@@ -251,7 +324,9 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
               <Users className="w-4 h-4 text-[#1c1917]" />
             </div>
             <div>
-              <h2 className="text-[14px] font-semibold text-[#1c1d1f]">Staffing & Timeline Estimator</h2>
+              <h2 className="text-[14px] font-semibold text-[#1c1d1f]">
+                Staffing & Timeline Estimator
+              </h2>
               {!result && (
                 <p className="text-[11px] text-[#78716c]">
                   Question {step + 1} of {QUESTIONS.length}
@@ -259,7 +334,10 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
               )}
             </div>
           </div>
-          <button onClick={onClose} className="text-[#a8a29e] hover:text-[#505967] transition-colors">
+          <button
+            onClick={onClose}
+            className="text-[#a8a29e] hover:text-[#505967] transition-colors"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -269,7 +347,7 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
           <div className="h-0.5 bg-[#f3f4f6]">
             <div
               className="h-0.5 bg-[#1c1917] transition-all duration-500"
-              style={{ width: `${((step) / QUESTIONS.length) * 100}%` }}
+              style={{ width: `${(step / QUESTIONS.length) * 100}%` }}
             />
           </div>
         )}
@@ -282,23 +360,38 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
                 <div className="w-14 h-14 rounded-2xl bg-[rgba(37,93,173,0.15)] flex items-center justify-center mx-auto mb-4">
                   <Users className="w-6 h-6 text-[#1c1917]" />
                 </div>
-                <h3 className="text-[17px] font-bold text-[#1c1d1f] mb-1" style={{ letterSpacing: '-0.01em' }}>
+                <h3
+                  className="text-[17px] font-bold text-[#1c1d1f] mb-1"
+                  style={{ letterSpacing: '-0.01em' }}
+                >
                   Your CMMC Remediation Estimate
                 </h3>
-                <p className="text-[12px] text-[#78716c]">Based on your inputs — for planning purposes only</p>
+                <p className="text-[12px] text-[#78716c]">
+                  Based on your inputs — for planning purposes only
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[#fafafa] rounded-xl p-4 border border-[#e7e5e4] text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a8a29e] mb-1">Timeline</p>
-                  <p className="text-[28px] font-bold text-[#1c1d1f] tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a8a29e] mb-1">
+                    Timeline
+                  </p>
+                  <p
+                    className="text-[28px] font-bold text-[#1c1d1f] tabular-nums"
+                    style={{ letterSpacing: '-0.02em' }}
+                  >
                     {result.weeks}
                   </p>
                   <p className="text-[11px] text-[#78716c]">weeks to CMMC-ready</p>
                 </div>
                 <div className="bg-[#fafafa] rounded-xl p-4 border border-[#e7e5e4] text-center">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a8a29e] mb-1">Staffing</p>
-                  <p className="text-[28px] font-bold text-[#1c1d1f] tabular-nums" style={{ letterSpacing: '-0.02em' }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#a8a29e] mb-1">
+                    Staffing
+                  </p>
+                  <p
+                    className="text-[28px] font-bold text-[#1c1d1f] tabular-nums"
+                    style={{ letterSpacing: '-0.02em' }}
+                  >
                     {result.fte}
                   </p>
                   <p className="text-[11px] text-[#78716c]">FTE equiv. needed</p>
@@ -308,15 +401,20 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
               <div className="bg-[rgba(37,93,173,0.08)] border border-[rgba(37,93,173,0.3)] rounded-xl p-4 text-[12px] text-[#505967] leading-relaxed">
                 <p className="font-semibold text-[#1c1d1f] mb-1">What this means:</p>
                 <p>
-                  Based on your profile, plan for a <strong>{result.weeks}-week remediation sprint</strong> with approximately{' '}
-                  <strong>{result.fte} FTE</strong> dedicated to security improvements.
-                  Engage a C3PAO at least 60 days before your target assessment date.
+                  Based on your profile, plan for a{' '}
+                  <strong>{result.weeks}-week remediation sprint</strong> with approximately{' '}
+                  <strong>{result.fte} FTE</strong> dedicated to security improvements. Engage a
+                  C3PAO at least 60 days before your target assessment date.
                 </p>
               </div>
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setStep(0); setAnswers({}); setResult(null) }}
+                  onClick={() => {
+                    setStep(0)
+                    setAnswers({})
+                    setResult(null)
+                  }}
                   className="flex-1 text-[13px] font-medium text-[#505967] bg-[#f3f4f6] hover:bg-[#e7e5e4] px-4 py-2.5 rounded-lg transition-colors"
                 >
                   Start Over
@@ -333,11 +431,14 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
           ) : (
             /* Question */
             <div className="space-y-4">
-              <h3 className="text-[15px] font-semibold text-[#1c1d1f] leading-snug" style={{ letterSpacing: '-0.01em' }}>
+              <h3
+                className="text-[15px] font-semibold text-[#1c1d1f] leading-snug"
+                style={{ letterSpacing: '-0.01em' }}
+              >
                 {q.label}
               </h3>
               <div className="space-y-2">
-                {q.options.map(opt => (
+                {q.options.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => pick(opt.value)}
@@ -349,7 +450,7 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
               </div>
               {step > 0 && (
                 <button
-                  onClick={() => setStep(s => s - 1)}
+                  onClick={() => setStep((s) => s - 1)}
                   className="text-[12px] text-[#a8a29e] hover:text-[#78716c] transition-colors"
                 >
                   ← Back
@@ -366,9 +467,10 @@ function StaffingEstimatorModal({ onClose }: { onClose: () => void }) {
 // ─── Donut colors (Lovable palette) ──────────────────────────────────────────
 
 const DONUT_COLORS = {
-  passed:      '#0eb472',
-  partial:     '#f5a300',
-  failed:      '#f25757',
+  passed: '#0eb472',
+  partial: '#f5a300',
+  failed: '#f25757',
+  manual: '#6D28D9',
   notAssessed: '#a8a29e',
 }
 
@@ -386,19 +488,28 @@ interface StatCardProps {
 
 function StatCard({ label, value, sub, accent, danger, progress, footer }: StatCardProps) {
   return (
-    <div className={`bg-white p-6 rounded-xl flex flex-col justify-between group border border-[#e7e5e4] shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}>
-      <span className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${danger ? 'text-[#9f403d]' : 'text-[#44403c]'}`}>
+    <div
+      className={`bg-white p-6 rounded-xl flex flex-col justify-between group border border-[#e7e5e4] shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}
+    >
+      <span
+        className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${danger ? 'text-[#9f403d]' : 'text-[#44403c]'}`}
+      >
         {label}
       </span>
       <div className="flex items-baseline gap-2">
-        <span className={`text-3xl font-bold tracking-tight ${accent ? 'text-[#1c1917]' : danger ? 'text-[#9f403d]' : 'text-[#1c1917]'}`}>
+        <span
+          className={`text-3xl font-bold tracking-tight ${accent ? 'text-[#1c1917]' : danger ? 'text-[#9f403d]' : 'text-[#1c1917]'}`}
+        >
           {value}
         </span>
         {sub && <span className="text-xs text-[#44403c]">{sub}</span>}
       </div>
       {progress !== undefined && (
         <div className="mt-4 h-1 bg-[#d6d3d1] rounded-full overflow-hidden">
-          <div className="h-full bg-[#1c1917] rounded-full transition-all" style={{ width: `${progress}%` }} />
+          <div
+            className="h-full bg-[#1c1917] rounded-full transition-all"
+            style={{ width: `${progress}%` }}
+          />
         </div>
       )}
       {footer && <div className="mt-4">{footer}</div>}
@@ -409,42 +520,62 @@ function StatCard({ label, value, sub, accent, danger, progress, footer }: StatC
 // ─── Framework Card — Lovable structure + real data ───────────────────────────
 
 interface FrameworkCardProps {
-  report:  ReportMeta
+  report: ReportMeta
   history: ReportMeta[]
 }
 
 function FrameworkCard({ report, history }: FrameworkCardProps) {
-  const pct       = report.summary.compliancePercentage
-  const scores    = history.map(r => r.summary.compliancePercentage)
+  const pct = report.summary.compliancePercentage
+  const scores = history.map((r) => r.summary.compliancePercentage)
   const prevScore = scores.length >= 2 ? scores[scores.length - 2] : null
-  const delta     = prevScore !== null ? pct - prevScore : null
-  const total     = report.summary.passed + report.summary.partial + report.summary.failed + report.summary.notAssessed
+  const delta = prevScore !== null ? pct - prevScore : null
+  const manualRequired = report.summary.manualRequired ?? 0
+  const collectionHealth = report.summary.collectionHealth
+  const lowCoverage = report.summary.lowCoverageWarning ?? false
+  const total =
+    report.summary.passed +
+    report.summary.partial +
+    report.summary.failed +
+    manualRequired +
+    report.summary.notAssessed
 
   const chartData = [
-    { name: 'Passed',  value: report.summary.passed },
+    { name: 'Passed', value: report.summary.passed },
     { name: 'Partial', value: report.summary.partial },
-    { name: 'Failed',  value: report.summary.failed },
-    { name: 'N/A',     value: report.summary.notAssessed },
+    { name: 'Failed', value: report.summary.failed },
+    { name: 'Manual', value: manualRequired },
+    { name: 'N/A', value: report.summary.notAssessed },
   ]
 
   const statDots = [
-    { label: 'Passed',  count: report.summary.passed,      color: DONUT_COLORS.passed },
-    { label: 'Partial', count: report.summary.partial,     color: DONUT_COLORS.partial },
-    { label: 'Failed',  count: report.summary.failed,      color: DONUT_COLORS.failed },
-    { label: 'N/A',     count: report.summary.notAssessed, color: DONUT_COLORS.notAssessed },
+    { label: 'Passed', count: report.summary.passed, color: DONUT_COLORS.passed },
+    { label: 'Partial', count: report.summary.partial, color: DONUT_COLORS.partial },
+    { label: 'Failed', count: report.summary.failed, color: DONUT_COLORS.failed },
+    { label: 'Manual', count: manualRequired, color: DONUT_COLORS.manual },
+    { label: 'N/A', count: report.summary.notAssessed, color: DONUT_COLORS.notAssessed },
   ]
 
   return (
     <div className="bg-white rounded-xl border border-[#e7e5e4] shadow-card hover:shadow-card-hover transition-shadow">
-
       {/* ── Header ── */}
       <div className="flex items-start justify-between px-6 py-5 border-b border-[#f5f5f4]">
         <div>
           <div className="flex items-center gap-2.5">
-            <h3 className="text-[15px] font-semibold text-[#1c1d1f]" style={{ letterSpacing: '-0.01em' }}>
+            <h3
+              className="text-[15px] font-semibold text-[#1c1d1f]"
+              style={{ letterSpacing: '-0.01em' }}
+            >
               {report.frameworkName}
             </h3>
             <RiskBadge score={report.summary.riskScore} />
+            {lowCoverage && (
+              <span
+                title={`Only ${collectionHealth ?? 0}% of automatable controls were collected this run — score is on incomplete data.`}
+                className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#9f403d] bg-[#FEF2F2] border border-[#FECACA] px-2 py-0.5 rounded-full"
+              >
+                ⚠ {collectionHealth ?? 0}% data
+              </span>
+            )}
           </div>
           <p className="text-[12px] text-[#78716c] mt-1">
             {report.clientName ?? 'All clients'} · {report.frameworkId.toUpperCase()}
@@ -453,16 +584,25 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
 
         {/* Score + delta */}
         <div className="text-right shrink-0 ml-4">
-          <p className="text-[32px] font-bold text-[#1c1d1f] tabular-nums leading-none" style={{ letterSpacing: '-0.02em' }}>
+          <p
+            className="text-[32px] font-bold text-[#1c1d1f] tabular-nums leading-none"
+            style={{ letterSpacing: '-0.02em' }}
+          >
             {pct}%
           </p>
           {delta !== null && (
-            <div className={`flex items-center justify-end gap-1 text-[12px] font-medium mt-1 ${delta >= 0 ? 'text-[#0eb472]' : 'text-[#f25757]'}`}>
-              {delta >= 0
-                ? <TrendingUp className="h-3.5 w-3.5" />
-                : <TrendingDown className="h-3.5 w-3.5" />
-              }
-              <span>{delta > 0 ? '+' : ''}{delta}%</span>
+            <div
+              className={`flex items-center justify-end gap-1 text-[12px] font-medium mt-1 ${delta >= 0 ? 'text-[#0eb472]' : 'text-[#f25757]'}`}
+            >
+              {delta >= 0 ? (
+                <TrendingUp className="h-3.5 w-3.5" />
+              ) : (
+                <TrendingDown className="h-3.5 w-3.5" />
+              )}
+              <span>
+                {delta > 0 ? '+' : ''}
+                {delta}%
+              </span>
             </div>
           )}
         </div>
@@ -470,21 +610,23 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
 
       {/* ── Body: donut + stats ── */}
       <div className="px-6 py-5 flex gap-6">
-
         {/* Donut */}
         <div className="w-24 h-24 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
-                cx="50%" cy="50%"
-                innerRadius={26} outerRadius={42}
+                cx="50%"
+                cy="50%"
+                innerRadius={26}
+                outerRadius={42}
                 dataKey="value"
                 strokeWidth={0}
               >
                 <Cell fill={DONUT_COLORS.passed} />
                 <Cell fill={DONUT_COLORS.partial} />
                 <Cell fill={DONUT_COLORS.failed} />
+                <Cell fill={DONUT_COLORS.manual} />
                 <Cell fill={DONUT_COLORS.notAssessed} />
               </Pie>
             </PieChart>
@@ -493,13 +635,15 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
 
         {/* Stat dots grid */}
         <div className="flex-1 min-w-0 grid grid-cols-2 gap-x-3 gap-y-2 content-center">
-          {statDots.map(s => (
+          {statDots.map((s) => (
             <div key={s.label} className="flex items-center justify-between gap-1.5 min-w-0">
               <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
                 <div className="h-2 w-2 rounded-full shrink-0" style={{ background: s.color }} />
                 <span className="text-[12px] text-[#78716c] truncate">{s.label}</span>
               </div>
-              <span className="text-[12px] font-semibold text-[#1c1d1f] tabular-nums shrink-0">{s.count}</span>
+              <span className="text-[12px] font-semibold text-[#1c1d1f] tabular-nums shrink-0">
+                {s.count}
+              </span>
             </div>
           ))}
         </div>
@@ -540,7 +684,10 @@ function FrameworkCard({ report, history }: FrameworkCardProps) {
           </p>
           <ul className="space-y-1.5">
             {report.summary.topFindings.slice(0, 3).map((f, i) => (
-              <li key={i} className="text-[12px] text-[#505967] flex items-start gap-2 leading-relaxed">
+              <li
+                key={i}
+                className="text-[12px] text-[#505967] flex items-start gap-2 leading-relaxed"
+              >
                 <span className="w-1.5 h-1.5 rounded-full bg-[#f25757] shrink-0 mt-[5px]" />
                 {f}
               </li>
@@ -562,15 +709,15 @@ function getTimeGreeting(): string {
 }
 
 export default function DashboardPage() {
-  const [loading,          setLoading]          = useState(true)
-  const [reports,          setReports]          = useState<ReportMeta[]>([])
-  const [hasClients,       setHasClients]       = useState<boolean | null>(null)
-  const [firstClientName,  setFirstClientName]  = useState('')
-  const [showEstimator,    setShowEstimator]    = useState(false)
-  const [accountType,      setAccountType]      = useState<'org' | 'msp'>('org')
-  const [userName,         setUserName]         = useState('')
-  const [companyName,      setCompanyName]      = useState('')
-  const [greeting,         setGreeting]         = useState('Good morning')
+  const [loading, setLoading] = useState(true)
+  const [reports, setReports] = useState<ReportMeta[]>([])
+  const [hasClients, setHasClients] = useState<boolean | null>(null)
+  const [firstClientName, setFirstClientName] = useState('')
+  const [showEstimator, setShowEstimator] = useState(false)
+  const [accountType, setAccountType] = useState<'org' | 'msp'>('org')
+  const [userName, setUserName] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [greeting, setGreeting] = useState('Good morning')
 
   useEffect(() => {
     // Grab display name from Supabase session (used for greeting)
@@ -587,7 +734,7 @@ export default function DashboardPage() {
 
     // Safety timeout: if data loading takes more than 8s, clear spinner anyway
     const timeout = setTimeout(() => {
-      setLoading(prev => {
+      setLoading((prev) => {
         if (prev) console.warn('[Dashboard] Loading timeout — forcing render with defaults')
         return false
       })
@@ -604,9 +751,13 @@ export default function DashboardPage() {
       })
       .catch((err) => {
         console.error('[Dashboard] Data load error:', err)
-        setReports([]); setHasClients(false)
+        setReports([])
+        setHasClients(false)
       })
-      .finally(() => { clearTimeout(timeout); setLoading(false) })
+      .finally(() => {
+        clearTimeout(timeout)
+        setLoading(false)
+      })
   }, [])
 
   if (loading) {
@@ -632,25 +783,29 @@ export default function DashboardPage() {
     )
   }
 
-  const latestReports = Object.values(historyByFramework).map(arr => arr[arr.length - 1])
+  const latestReports = Object.values(historyByFramework).map((arr) => arr[arr.length - 1])
 
   const totals = latestReports.reduce(
     (acc, r) => ({
-      passed:      acc.passed      + r.summary.passed,
-      failed:      acc.failed      + r.summary.failed,
-      partial:     acc.partial     + r.summary.partial,
+      passed: acc.passed + r.summary.passed,
+      failed: acc.failed + r.summary.failed,
+      partial: acc.partial + r.summary.partial,
+      manualRequired: acc.manualRequired + (r.summary.manualRequired ?? 0),
       notAssessed: acc.notAssessed + r.summary.notAssessed,
     }),
-    { passed: 0, failed: 0, partial: 0, notAssessed: 0 }
+    { passed: 0, failed: 0, partial: 0, manualRequired: 0, notAssessed: 0 }
   )
 
-  const avgScore = latestReports.length > 0
-    ? Math.round(latestReports.reduce((a, r) => a + r.summary.compliancePercentage, 0) / latestReports.length)
-    : 0
+  const avgScore =
+    latestReports.length > 0
+      ? Math.round(
+          latestReports.reduce((a, r) => a + r.summary.compliancePercentage, 0) /
+            latestReports.length
+        )
+      : 0
 
   return (
     <div className="p-8 max-w-6xl space-y-8">
-
       {showEstimator && <StaffingEstimatorModal onClose={() => setShowEstimator(false)} />}
 
       {/* ── Page header ── */}
@@ -658,10 +813,13 @@ export default function DashboardPage() {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#1c1917]">
-              {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
+              {greeting}
+              {userName ? `, ${userName.split(' ')[0]}` : ''}
             </h1>
             <p className="text-sm text-[#44403c] mt-1">
-              {companyName ? `${companyName} compliance overview` : 'Overview of your compliance posture across all frameworks.'}
+              {companyName
+                ? `${companyName} compliance overview`
+                : 'Overview of your compliance posture across all frameworks.'}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -687,7 +845,8 @@ export default function DashboardPage() {
       ) : (
         <div className="max-w-4xl">
           <h1 className="text-3xl font-extrabold tracking-tight text-[#1c1917]">
-            {greeting}{userName ? `, ${userName.split(' ')[0]}` : ''}
+            {greeting}
+            {userName ? `, ${userName.split(' ')[0]}` : ''}
           </h1>
           <p className="text-[#78716c] font-medium text-base mt-1">
             Let{'\u2019'}s get your compliance monitoring set up.
@@ -696,11 +855,17 @@ export default function DashboardPage() {
       )}
 
       {latestReports.length === 0 ? (
-        !hasClients
-          ? (accountType === 'msp' ? <EmptyNoClients /> : <EmptyOrgNoTenant companyName={companyName} />)
-          : (accountType === 'msp'
-              ? <EmptyNoAssessments firstClientName={firstClientName} />
-              : <EmptyOrgNoAssessments companyName={companyName} />)
+        !hasClients ? (
+          accountType === 'msp' ? (
+            <EmptyNoClients />
+          ) : (
+            <EmptyOrgNoTenant companyName={companyName} />
+          )
+        ) : accountType === 'msp' ? (
+          <EmptyNoAssessments firstClientName={firstClientName} />
+        ) : (
+          <EmptyOrgNoAssessments companyName={companyName} />
+        )
       ) : (
         <>
           {/* ── KPI Summary Stats ── */}
@@ -720,11 +885,14 @@ export default function DashboardPage() {
             <StatCard
               label="Controls Passing"
               value={totals.passed.toLocaleString()}
-              sub={`/ ${(totals.passed + totals.failed + totals.partial + totals.notAssessed).toLocaleString()}`}
+              sub={`/ ${(totals.passed + totals.failed + totals.partial + totals.manualRequired + totals.notAssessed).toLocaleString()}`}
               footer={
                 <div className="flex gap-1">
                   {[...Array(4)].map((_, i) => (
-                    <div key={i} className={`h-1 flex-1 rounded-full ${i < 3 ? 'bg-[#1c1917]' : 'bg-[#a8a29e]/30'}`} />
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full ${i < 3 ? 'bg-[#1c1917]' : 'bg-[#a8a29e]/30'}`}
+                    />
                   ))}
                 </div>
               }
@@ -752,8 +920,11 @@ export default function DashboardPage() {
               sub="Active Monitored"
               footer={
                 <div className="flex -space-x-2">
-                  {latestReports.slice(0, 3).map(r => (
-                    <div key={r.frameworkId} className="w-6 h-6 rounded-full bg-[#e7e5e4] flex items-center justify-center text-[8px] font-bold border-2 border-[#fafaf9] text-[#1c1917]">
+                  {latestReports.slice(0, 3).map((r) => (
+                    <div
+                      key={r.frameworkId}
+                      className="w-6 h-6 rounded-full bg-[#e7e5e4] flex items-center justify-center text-[8px] font-bold border-2 border-[#fafaf9] text-[#1c1917]"
+                    >
                       {r.frameworkId.slice(0, 3).toUpperCase()}
                     </div>
                   ))}
@@ -769,11 +940,12 @@ export default function DashboardPage() {
 
           {/* ── Main Insights: Framework Posture + Drift (Asymmetric) ── */}
           <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
             {/* Framework Posture (8 cols) */}
             <div className="lg:col-span-8 space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-[#1c1917] tracking-tight uppercase">Framework Posture</h3>
+                <h3 className="text-sm font-bold text-[#1c1917] tracking-tight uppercase">
+                  Framework Posture
+                </h3>
                 <div className="flex gap-2">
                   <Link
                     href="/history"
@@ -792,7 +964,7 @@ export default function DashboardPage() {
 
               {/* Framework cards */}
               <div className="space-y-4">
-                {latestReports.map(report => (
+                {latestReports.map((report) => (
                   <FrameworkCard
                     key={report.frameworkId}
                     report={report}
@@ -804,14 +976,18 @@ export default function DashboardPage() {
 
             {/* Configuration Drift + System Pulse (4 cols) */}
             <div className="lg:col-span-4 space-y-6">
-              <h3 className="text-sm font-bold text-[#1c1917] tracking-tight uppercase">Configuration Drift</h3>
+              <h3 className="text-sm font-bold text-[#1c1917] tracking-tight uppercase">
+                Configuration Drift
+              </h3>
               <DriftWidget />
 
               {/* System Pulse card */}
               <div className="bg-[#0c0a09] p-6 rounded-xl text-white">
                 <div className="flex items-center gap-2 mb-4">
                   <Activity className="w-4 h-4" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">System Pulse</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">
+                    System Pulse
+                  </span>
                 </div>
                 <p className="text-xs font-medium opacity-90 leading-relaxed mb-4">
                   All compliance scanners are active. Assessment engine ready.
@@ -855,12 +1031,20 @@ function EmptyNoClients() {
       <section className="grid grid-cols-12 gap-6">
         {/* Step 1 — active */}
         <div className="col-span-12 lg:col-span-4 group cursor-pointer">
-          <Link href="/clients" className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden">
+          <Link
+            href="/clients"
+            className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden"
+          >
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1c1917]/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-500" />
             <div>
-              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 01</div>
+              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 01
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">Add your first client</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Connect a client&apos;s Microsoft 365 tenant using Azure App credentials to begin compliance monitoring.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Connect a client&apos;s Microsoft 365 tenant using Azure App credentials to begin
+                compliance monitoring.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#1c1917] font-semibold text-sm group-hover:translate-x-1 transition-transform">
               Add Client <ArrowRight className="w-4 h-4" />
@@ -871,9 +1055,14 @@ function EmptyNoClients() {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#fafaf9] p-8 h-full flex flex-col justify-between shadow-sm">
             <div>
-              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 02</div>
+              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 02
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">Run assessment</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Choose a compliance framework and run a full security assessment against your client&apos;s environment.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Choose a compliance framework and run a full security assessment against your
+                client&apos;s environment.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#a8a29e] font-semibold text-sm opacity-50 cursor-not-allowed">
               Select Framework <Lock className="w-3.5 h-3.5" />
@@ -884,9 +1073,14 @@ function EmptyNoClients() {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#fafaf9] p-8 h-full flex flex-col justify-between shadow-sm">
             <div>
-              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 03</div>
+              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 03
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">View results</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Review pass/fail/partial results, risk scores, key findings, and export audit-ready reports.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Review pass/fail/partial results, risk scores, key findings, and export audit-ready
+                reports.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#a8a29e] font-semibold text-sm opacity-50 cursor-not-allowed">
               View Reports <Lock className="w-3.5 h-3.5" />
@@ -898,20 +1092,26 @@ function EmptyNoClients() {
       {/* Supported frameworks */}
       <section className="space-y-6">
         <div className="flex items-center gap-6">
-          <h3 className="text-[10px] font-bold text-[#a8a29e] tracking-[0.15em] uppercase whitespace-nowrap">Supported Frameworks</h3>
+          <h3 className="text-[10px] font-bold text-[#a8a29e] tracking-[0.15em] uppercase whitespace-nowrap">
+            Supported Frameworks
+          </h3>
           <div className="h-px flex-1 bg-[#e7e5e4]" />
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {FRAMEWORK_CATALOG.map(fw => (
-            <div key={fw.id} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-2 ${
-              fw.implemented
-                ? 'bg-[#d6d3d1] text-[#1c1917] shadow-sm'
-                : 'bg-[#fafaf9] text-[#a8a29e]'
-            }`}>
-              {fw.implemented
-                ? <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917]" />
-                : <Lock className="w-2.5 h-2.5" />
-              }
+          {FRAMEWORK_CATALOG.map((fw) => (
+            <div
+              key={fw.id}
+              className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-2 ${
+                fw.implemented
+                  ? 'bg-[#d6d3d1] text-[#1c1917] shadow-sm'
+                  : 'bg-[#fafaf9] text-[#a8a29e]'
+              }`}
+            >
+              {fw.implemented ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917]" />
+              ) : (
+                <Lock className="w-2.5 h-2.5" />
+              )}
               {fw.name}
             </div>
           ))}
@@ -923,13 +1123,19 @@ function EmptyNoClients() {
         <div className="relative rounded-xl overflow-hidden h-64 bg-[#1c1d1f]">
           <div className="absolute inset-0 bg-gradient-to-t from-[#1c1d1f] via-[#1c1d1f]/60 to-transparent p-8 flex flex-col justify-end">
             <h4 className="text-white font-bold text-lg mb-2">Automated Evidence Collection</h4>
-            <p className="text-slate-300 text-xs leading-relaxed max-w-sm">Our engine automatically parses your Microsoft 365 logs to satisfy auditor requirements without manual screenshots.</p>
+            <p className="text-slate-300 text-xs leading-relaxed max-w-sm">
+              Our engine automatically parses your Microsoft 365 logs to satisfy auditor
+              requirements without manual screenshots.
+            </p>
           </div>
         </div>
         <div className="bg-[#e7e5e4]/30 rounded-xl p-8 flex flex-col justify-center border-l-4 border-[#1c1917]">
           <ShieldCheck className="w-10 h-10 text-[#1c1917] mb-4" strokeWidth={1.5} />
           <h4 className="text-[#0c0a09] font-bold text-lg mb-2">Continuous Compliance</h4>
-          <p className="text-[#0c0a09]/80 text-sm leading-relaxed">Atlas provides a continuous audit trail that meets the highest standards of federal and financial oversight.</p>
+          <p className="text-[#0c0a09]/80 text-sm leading-relaxed">
+            Atlas provides a continuous audit trail that meets the highest standards of federal and
+            financial oversight.
+          </p>
         </div>
       </section>
     </div>
@@ -958,9 +1164,13 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#f0fdf4]/50 p-8 h-full flex flex-col justify-between shadow-sm border border-[#bbf7d0]">
             <div>
-              <div className="text-[#0eb472] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 01</div>
+              <div className="text-[#0eb472] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 01
+              </div>
               <h3 className="text-xl font-bold text-[#0eb472] mb-3">Client added</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">{firstClientName || 'M365 tenant'} connected successfully.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                {firstClientName || 'M365 tenant'} connected successfully.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#0eb472] font-semibold text-sm">
               Complete <CheckCircle2 className="w-3.5 h-3.5" />
@@ -969,12 +1179,19 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
         </div>
         {/* Step 2 — active */}
         <div className="col-span-12 lg:col-span-4 group cursor-pointer">
-          <Link href="/assess" className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden">
+          <Link
+            href="/assess"
+            className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden"
+          >
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1c1917]/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-500" />
             <div>
-              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 02</div>
+              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 02
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">Run assessment</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Select a compliance framework and run a full security assessment.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Select a compliance framework and run a full security assessment.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#1c1917] font-semibold text-sm group-hover:translate-x-1 transition-transform">
               Start Assessment <ArrowRight className="w-4 h-4" />
@@ -985,9 +1202,13 @@ function EmptyNoAssessments({ firstClientName }: { firstClientName: string }) {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#fafaf9] p-8 h-full flex flex-col justify-between shadow-sm">
             <div>
-              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 03</div>
+              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 03
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">View results</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Review gaps and export audit-ready compliance reports.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Review gaps and export audit-ready compliance reports.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#a8a29e] font-semibold text-sm opacity-50 cursor-not-allowed">
               View Reports <Lock className="w-3.5 h-3.5" />
@@ -1008,12 +1229,20 @@ function EmptyOrgNoTenant({ companyName }: { companyName: string }) {
       <section className="grid grid-cols-12 gap-6">
         {/* Step 1 — active */}
         <div className="col-span-12 lg:col-span-4 group cursor-pointer">
-          <Link href="/connect" className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden">
+          <Link
+            href="/connect"
+            className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden"
+          >
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1c1917]/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-500" />
             <div>
-              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 01</div>
+              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 01
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">Connect Microsoft 365</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Integrate your enterprise tenant to begin real-time data ingestion and baseline mapping.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Integrate your enterprise tenant to begin real-time data ingestion and baseline
+                mapping.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#1c1917] font-semibold text-sm group-hover:translate-x-1 transition-transform">
               Connect Tenant <ArrowRight className="w-4 h-4" />
@@ -1024,9 +1253,14 @@ function EmptyOrgNoTenant({ companyName }: { companyName: string }) {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#fafaf9] p-8 h-full flex flex-col justify-between shadow-sm">
             <div>
-              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 02</div>
+              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 02
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">Choose a framework</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Select the regulatory standards your organization must adhere to for automated cross-referencing.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Select the regulatory standards your organization must adhere to for automated
+                cross-referencing.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#a8a29e] font-semibold text-sm opacity-50 cursor-not-allowed">
               Select Standards <Lock className="w-3.5 h-3.5" />
@@ -1037,9 +1271,14 @@ function EmptyOrgNoTenant({ companyName }: { companyName: string }) {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#fafaf9] p-8 h-full flex flex-col justify-between shadow-sm">
             <div>
-              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 03</div>
+              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 03
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">View your posture</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Generate your first compliance report and identify immediate gaps in your security architecture.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Generate your first compliance report and identify immediate gaps in your security
+                architecture.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#a8a29e] font-semibold text-sm opacity-50 cursor-not-allowed">
               Finalize Setup <Lock className="w-3.5 h-3.5" />
@@ -1051,20 +1290,26 @@ function EmptyOrgNoTenant({ companyName }: { companyName: string }) {
       {/* Supported frameworks */}
       <section className="space-y-6">
         <div className="flex items-center gap-6">
-          <h3 className="text-[10px] font-bold text-[#a8a29e] tracking-[0.15em] uppercase whitespace-nowrap">Supported Frameworks</h3>
+          <h3 className="text-[10px] font-bold text-[#a8a29e] tracking-[0.15em] uppercase whitespace-nowrap">
+            Supported Frameworks
+          </h3>
           <div className="h-px flex-1 bg-[#e7e5e4]" />
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {FRAMEWORK_CATALOG.map(fw => (
-            <div key={fw.id} className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-2 ${
-              fw.implemented
-                ? 'bg-[#d6d3d1] text-[#1c1917] shadow-sm'
-                : 'bg-[#fafaf9] text-[#a8a29e]'
-            }`}>
-              {fw.implemented
-                ? <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917]" />
-                : <Lock className="w-2.5 h-2.5" />
-              }
+          {FRAMEWORK_CATALOG.map((fw) => (
+            <div
+              key={fw.id}
+              className={`px-3.5 py-1.5 rounded-full text-[11px] font-bold tracking-wider flex items-center gap-2 ${
+                fw.implemented
+                  ? 'bg-[#d6d3d1] text-[#1c1917] shadow-sm'
+                  : 'bg-[#fafaf9] text-[#a8a29e]'
+              }`}
+            >
+              {fw.implemented ? (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917]" />
+              ) : (
+                <Lock className="w-2.5 h-2.5" />
+              )}
               {fw.name}
             </div>
           ))}
@@ -1076,13 +1321,19 @@ function EmptyOrgNoTenant({ companyName }: { companyName: string }) {
         <div className="relative rounded-xl overflow-hidden h-64 bg-[#1c1d1f]">
           <div className="absolute inset-0 bg-gradient-to-t from-[#1c1d1f] via-[#1c1d1f]/60 to-transparent p-8 flex flex-col justify-end">
             <h4 className="text-white font-bold text-lg mb-2">Automated Evidence Collection</h4>
-            <p className="text-slate-300 text-xs leading-relaxed max-w-sm">Our engine automatically parses your Microsoft 365 logs to satisfy auditor requirements without manual screenshots.</p>
+            <p className="text-slate-300 text-xs leading-relaxed max-w-sm">
+              Our engine automatically parses your Microsoft 365 logs to satisfy auditor
+              requirements without manual screenshots.
+            </p>
           </div>
         </div>
         <div className="bg-[#e7e5e4]/30 rounded-xl p-8 flex flex-col justify-center border-l-4 border-[#1c1917]">
           <ShieldCheck className="w-10 h-10 text-[#1c1917] mb-4" strokeWidth={1.5} />
           <h4 className="text-[#0c0a09] font-bold text-lg mb-2">Continuous Compliance</h4>
-          <p className="text-[#0c0a09]/80 text-sm leading-relaxed">Atlas provides a continuous audit trail that meets the highest standards of federal and financial oversight.</p>
+          <p className="text-[#0c0a09]/80 text-sm leading-relaxed">
+            Atlas provides a continuous audit trail that meets the highest standards of federal and
+            financial oversight.
+          </p>
         </div>
       </section>
     </div>
@@ -1100,7 +1351,8 @@ function EmptyOrgNoAssessments({ companyName }: { companyName: string }) {
         <div>
           <p className="text-[13px] font-semibold text-[#15803d]">Microsoft 365 connected</p>
           <p className="text-[12px] text-[#505967]">
-            {companyName ? `${companyName} is` : 'Your environment is'} ready for compliance assessment.
+            {companyName ? `${companyName} is` : 'Your environment is'} ready for compliance
+            assessment.
           </p>
         </div>
       </div>
@@ -1111,9 +1363,13 @@ function EmptyOrgNoAssessments({ companyName }: { companyName: string }) {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#f0fdf4]/50 p-8 h-full flex flex-col justify-between shadow-sm border border-[#bbf7d0]">
             <div>
-              <div className="text-[#0eb472] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 01</div>
+              <div className="text-[#0eb472] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 01
+              </div>
               <h3 className="text-xl font-bold text-[#0eb472] mb-3">M365 connected</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">{companyName || 'Microsoft 365'} tenant linked successfully.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                {companyName || 'Microsoft 365'} tenant linked successfully.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#0eb472] font-semibold text-sm">
               Complete <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1122,12 +1378,19 @@ function EmptyOrgNoAssessments({ companyName }: { companyName: string }) {
         </div>
         {/* Step 2 — active */}
         <div className="col-span-12 lg:col-span-4 group cursor-pointer">
-          <Link href="/assess" className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden">
+          <Link
+            href="/assess"
+            className="block bg-white p-8 h-full flex flex-col justify-between border-b-2 border-transparent hover:border-[#1c1917] transition-all duration-300 shadow-sm relative overflow-hidden"
+          >
             <div className="absolute top-0 right-0 w-24 h-24 bg-[#1c1917]/5 -mr-12 -mt-12 rounded-full group-hover:scale-150 transition-transform duration-500" />
             <div>
-              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 02</div>
+              <div className="text-[#1c1917] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 02
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">Run assessment</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Select a compliance framework and get a full gap analysis in minutes.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Select a compliance framework and get a full gap analysis in minutes.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#1c1917] font-semibold text-sm group-hover:translate-x-1 transition-transform">
               Start Assessment <ArrowRight className="w-4 h-4" />
@@ -1138,9 +1401,13 @@ function EmptyOrgNoAssessments({ companyName }: { companyName: string }) {
         <div className="col-span-12 lg:col-span-4">
           <div className="bg-[#fafaf9] p-8 h-full flex flex-col justify-between shadow-sm">
             <div>
-              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">STEP 03</div>
+              <div className="text-[#a8a29e] font-bold text-[10px] tracking-[0.2em] mb-6">
+                STEP 03
+              </div>
               <h3 className="text-xl font-bold text-[#1c1917] mb-3">View your posture</h3>
-              <p className="text-[#44403c] text-sm leading-relaxed mb-6">Review gaps, risk scores, and export audit-ready reports.</p>
+              <p className="text-[#44403c] text-sm leading-relaxed mb-6">
+                Review gaps, risk scores, and export audit-ready reports.
+              </p>
             </div>
             <span className="flex items-center gap-2 text-[#a8a29e] font-semibold text-sm opacity-50 cursor-not-allowed">
               Finalize Setup <Lock className="w-3.5 h-3.5" />

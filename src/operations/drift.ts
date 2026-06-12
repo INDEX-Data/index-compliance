@@ -29,14 +29,12 @@ const STATUS_RANK: Record<ComplianceStatus, number> = {
   pass: 3,
   partial: 2,
   fail: 1,
+  manual_required: 0,
   not_assessed: 0,
   not_applicable: 0,
 }
 
-function classifyDrift(
-  prior: ComplianceStatus,
-  next: ComplianceStatus
-): DriftEvent['direction'] {
+function classifyDrift(prior: ComplianceStatus, next: ComplianceStatus): DriftEvent['direction'] {
   const delta = STATUS_RANK[next] - STATUS_RANK[prior]
   if (delta < 0) return 'regression'
   if (delta > 0) return 'improvement'
@@ -59,12 +57,17 @@ export function diffAssessments(
     if (!priorAssessment) continue
     if (priorAssessment.status === nextAssessment.status) continue
 
-    // Skip not_assessed / not_applicable transitions — not meaningful
-    const ignoredStatuses: ComplianceStatus[] = ['not_assessed', 'not_applicable']
+    // Skip non-verdict transitions — manual/collection-gap/N-A churn isn't real drift
+    const ignoredStatuses: ComplianceStatus[] = [
+      'manual_required',
+      'not_assessed',
+      'not_applicable',
+    ]
     if (
       ignoredStatuses.includes(priorAssessment.status) &&
       ignoredStatuses.includes(nextAssessment.status)
-    ) continue
+    )
+      continue
 
     events.push({
       controlId: nextAssessment.controlId,

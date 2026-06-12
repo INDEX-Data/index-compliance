@@ -16,6 +16,10 @@ export interface MaturitySnapshot {
   failed: number
   partial: number
   notAssessed: number
+  /** May be null for snapshots recorded before migration 005. */
+  manualRequired: number | null
+  automatedCoverage: number | null
+  collectionHealth: number | null
   totalControls: number
   riskScore: string
   snapshottedAt: string
@@ -45,6 +49,9 @@ export async function recordMaturitySnapshot(
     failed: context.summary.failed,
     partial: context.summary.partial,
     not_assessed: context.summary.notAssessed,
+    manual_required: context.summary.manualRequired,
+    automated_coverage: context.summary.automatedCoverage,
+    collection_health: context.summary.collectionHealth,
     total_controls: context.summary.totalControls,
     risk_score: context.summary.riskScore,
     snapshotted_at: new Date().toISOString(),
@@ -83,6 +90,9 @@ export async function getMaturityTimeSeries(
     failed: row.failed as number,
     partial: row.partial as number,
     notAssessed: row.not_assessed as number,
+    manualRequired: (row.manual_required as number) ?? null,
+    automatedCoverage: (row.automated_coverage as number) ?? null,
+    collectionHealth: (row.collection_health as number) ?? null,
     totalControls: row.total_controls as number,
     riskScore: row.risk_score as string,
     snapshottedAt: row.snapshotted_at as string,
@@ -122,6 +132,9 @@ export async function getClientMaturitySummary(
         failed: row.failed as number,
         partial: row.partial as number,
         notAssessed: row.not_assessed as number,
+        manualRequired: (row.manual_required as number) ?? null,
+        automatedCoverage: (row.automated_coverage as number) ?? null,
+        collectionHealth: (row.collection_health as number) ?? null,
         totalControls: row.total_controls as number,
         riskScore: row.risk_score as string,
         snapshottedAt: row.snapshotted_at as string,
