@@ -14,7 +14,7 @@ ATLAS sits on a **genuinely sound security foundation** — Row Level Security o
 
 It is **not yet ready to run as a true multi-tenant SaaS**, gated by three things:
 
-1. **Two confirmed CRITICAL cross-tenant data leaks** (IDOR) — any authenticated tenant can read another tenant's compliance reports and attestations. For a compliance product, this is the most damaging possible bug class and must be fixed before a second tenant is onboarded.
+1. ~~**Two confirmed CRITICAL cross-tenant data leaks** (IDOR)~~ — **✅ remediated 2026-06-29 (commit `8b1e057`)**. Any authenticated tenant could read another tenant's compliance reports and attestations; both routes now enforce ownership via `getOwnedReport()`. Retained here for the audit trail.
 2. **No true org/workspace model** — isolation is per-`user_id`. There is no organization entity, so a customer is a single user and an MSP cannot cleanly hold many client orgs. Team tables exist but are unwired.
 3. **Operational immaturity** — scheduled assessments are dormant (no cron trigger deployed), and there is no structured logging, error tracking, rate limiting, app-level audit log, data-retention policy, or MFA.
 
@@ -24,8 +24,8 @@ It is **not yet ready to run as a true multi-tenant SaaS**, gated by three thing
 
 | Lens | Maturity | Score /5 | One-line |
 |---|---|---|---|
-| **Security & Trust** | Partial | **2.5** | Excellent isolation primitives (RLS, encryption, headers) undermined by 2 critical IDOR routes that bypass them, plus missing audit/retention/validation. |
-| **SaaS commercial readiness** | Early–Partial | **2.0** | Rich feature surface, but single-tenant data model, dormant automation, and zero observability/rate-limiting. |
+| **Security & Trust** | Partial | **2.5 → 3.0** | Excellent isolation primitives (RLS, encryption, headers); the 2 critical IDOR routes are now **remediated** (commit `8b1e057`), leaving only HIGH/MEDIUM gaps (audit log, retention, validation, MFA). |
+| **SaaS commercial readiness** | Early–Partial | **2.0 → 2.5** | Rich feature surface; continuous-monitoring automation is now **live** (cron wired, C-2). Remaining gaps: single-tenant data model, observability, rate-limiting. |
 | **UI/UX & design-system** | Partial | **2.5** | Mature navigation and reporting; design tokens defined but ignored (192 raw hex on one page), state-handling gaps, and no accessibility layer. |
 | **Overall** | — | **2.3** | Sound foundation; not yet multi-tenant-SaaS-ready. |
 
@@ -54,14 +54,16 @@ Severity = exploitability × blast radius (Critical / High / Medium / Low). Each
 - **HTTP security headers** — `web/next.config.ts`: `X-Frame-Options: DENY`, `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`, plus X-Content-Type-Options, Referrer-Policy, Permissions-Policy. *(ASVS V14)*
 - **Auth on every sensitive route** — all `web/app/api/*` handlers call `supabase.auth.getUser()` and 401 on absence.
 
-### S-1 · CRITICAL · Cross-tenant report export (IDOR)
+### S-1 · CRITICAL · Cross-tenant report export (IDOR) — ✅ REMEDIATED 2026-06-29 (commit `8b1e057`)
 **Evidence:** `web/app/api/generate-report/route.ts:34-45` — authenticates the user, then queries `reports` via the **service-role client** (which bypasses RLS) with `.eq('id', reportId)` and **no `user_id` filter**.
+**Resolution:** now loads the report via `getOwnedReport()` (`web/lib/authz.ts`), which enforces `.eq('user_id', user.id)`; non-owned/missing → 404.
 **Impact:** Any authenticated tenant can download the Word/OPA/ZIP export of *any* report by ID, across tenants. Leaks another customer's full compliance posture.
 **Benchmark:** SOC2 CC6.1 · OWASP ASVS V4.1 (broken access control / IDOR).
 **Fix:** Verify ownership before fetching — `.eq('id', reportId).eq('user_id', user.id)` and 404/403 if no row. One line.
 
-### S-2 · CRITICAL · Cross-tenant objective/attestation exposure (IDOR)
+### S-2 · CRITICAL · Cross-tenant objective/attestation exposure (IDOR) — ✅ REMEDIATED 2026-06-29 (commit `8b1e057`)
 **Evidence:** `web/app/api/get-objectives/route.ts:23-33` — same pattern: service-role client, `.eq('report_id', reportId)`, no ownership check.
+**Resolution:** an ownership gate via `getOwnedReport()` now runs before any objective/attestation read; non-owned/missing → 404.
 **Impact:** Any authenticated tenant can enumerate another tenant's DIBCAC objective statuses and attestation text.
 **Benchmark:** SOC2 CC6.1 · OWASP ASVS V4.1.
 **Fix:** Resolve the parent `report` with `.eq('user_id', user.id)` first; reject if not owned, then load its objectives.
@@ -114,8 +116,9 @@ Severity = exploitability × blast radius (Critical / High / Medium / Low). Each
 **Benchmark:** SaaS multi-tenancy.
 **Recommendation (GTM "both"):** introduce an `organizations`/`workspace` entity with `organization_members(role)`, and an optional `parent_org_id` for MSPs. Migrate scoping from `user_id` to `organization_id` (RLS via membership). This is the single largest piece of platform work and should precede onboarding real customers.
 
-### C-2 · HIGH · Scheduled assessments are dormant
-**Evidence:** full schedule/drift/maturity machinery exists (`web/app/api/cron/run-scheduled-assessments`, `src/operations/schedule.ts`), but there is **no `vercel.json`** and no external scheduler configured — the cron route is never invoked.
+### C-2 · HIGH · Scheduled assessments are dormant — ✅ REMEDIATED 2026-06-29
+**Evidence:** full schedule/drift/maturity machinery exists (`web/app/api/cron/run-scheduled-assessments`, `src/operations/schedule.ts`), but there was **no `vercel.json`** and no external scheduler configured — the cron route was never invoked.
+**Resolution:** added `web/vercel.json` (hourly cron `0 * * * *`); the route now also accepts Vercel's GET + `Authorization: Bearer <CRON_SECRET>`, and `nextRunAfter`/`isValidCron` use `cron-parser` (full 5-field, UTC) instead of the simplified parser. *Operational note: Vercel Hobby caps cron at daily / 2 jobs — Pro is required for hourly. Ensure `CRON_SECRET` is set in the Vercel project.*
 **Impact:** "Continuous monitoring" — a core value prop — does not actually run. The simplified cron parser (`src/operations/schedule.ts`) is also flagged in-code as not production-grade.
 **Benchmark:** SOC2 A1 (availability) · SaaS automation reliability.
 **Fix:** Add `vercel.json` cron (or a Railway/Fly scheduler) hitting the route on an interval; swap the parser for `cron-parser`.
@@ -171,9 +174,9 @@ Severity = exploitability × blast radius (Critical / High / Medium / Low). Each
 
 | Priority | Item | Findings | Rough effort |
 |---|---|---|---|
-| **P0 — before any 2nd tenant** | Fix both cross-tenant IDOR routes + add `requireOwnedReport` helper/lint | S-1, S-2 | ~0.5 day |
+| ~~**P0 — before any 2nd tenant**~~ ✅ **DONE** | Fixed both cross-tenant IDOR routes + added `getOwnedReport` helper (`web/lib/authz.ts`) | S-1, S-2 | done (`8b1e057`) |
+| ✅ **DONE** | Deploy cron trigger (`web/vercel.json`) + production `cron-parser` | C-2 | done |
 | **P1 — platform foundation** | Org/workspace data model + RLS migration from `user_id` (+ finish teams) | C-1, C-5 | ~2–3 wks |
-| | Deploy cron trigger + production cron parser | C-2 | ~1–2 days |
 | | Observability: structured logs + Sentry + analytics | C-3 | ~3–5 days |
 | **P2 — hardening (SOC2 path)** | App-level audit log | S-3 | ~3–4 days |
 | | Data-retention/deletion policy + tenant delete | S-4 | ~3–4 days |
@@ -213,4 +216,4 @@ External cron — NOT configured (C-2)
 
 ---
 
-*All findings source-verified as of 2026-06-29. This report recommends; it changes no code. Recommended immediate action: remediate S-1 and S-2 before onboarding a second tenant.*
+*All findings source-verified as of 2026-06-29. Post-audit remediation completed the same day: the two CRITICAL IDOR leaks (S-1, S-2) and the dormant-cron gap (C-2) are fixed (commit `8b1e057` and the cron wiring). Remaining items are tracked in the roadmap above; the next foundational piece is the org/workspace model (C-1).*

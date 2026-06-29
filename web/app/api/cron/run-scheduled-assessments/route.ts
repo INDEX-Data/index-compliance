@@ -1,7 +1,10 @@
-// POST /api/cron/run-scheduled-assessments
-// Called by Vercel Cron (or any external scheduler) every 30 minutes.
-// Finds all assessment schedules due for execution and runs them.
-// Secured with CRON_SECRET header to prevent unauthorized triggering.
+// GET/POST /api/cron/run-scheduled-assessments
+// Triggered by Vercel Cron (GET, see web/vercel.json) or any external
+// scheduler (POST). Finds all assessment schedules due for execution and runs
+// them. Authenticated with CRON_SECRET:
+//   - Vercel Cron sends  Authorization: Bearer <CRON_SECRET>  (automatic when
+//     CRON_SECRET is set in the project env)
+//   - External callers may use either that header or  x-cron-secret: <secret>
 import { NextResponse, after } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { resolveGraphClient } from '@/lib/atlas-client'
@@ -24,10 +27,17 @@ function getAdminClient() {
   })
 }
 
-export async function POST(request: Request) {
-  // Verify cron secret
-  const secret = request.headers.get('x-cron-secret')
-  if (secret !== env.CRON_SECRET) {
+/** Accept either Vercel's `Authorization: Bearer <secret>` or `x-cron-secret`. */
+function isAuthorized(request: Request): boolean {
+  const expected = env.CRON_SECRET
+  const bearer = request.headers.get('authorization')
+  if (bearer && bearer === `Bearer ${expected}`) return true
+  if (request.headers.get('x-cron-secret') === expected) return true
+  return false
+}
+
+async function handle(request: Request) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -35,10 +45,10 @@ export async function POST(request: Request) {
   const due = await getDueSchedules(admin)
 
   if (due.length === 0) {
-    return NextResponse.json({ ran: 0, message: 'No schedules due' })
+    return NextResponse.json({ queued: 0, message: 'No schedules due' })
   }
 
-  // Fire-and-forget: run each schedule in background
+  // Fire-and-forget: run each schedule in background after the response.
   after(async () => {
     for (const schedule of due) {
       try {
@@ -50,6 +60,16 @@ export async function POST(request: Request) {
   })
 
   return NextResponse.json({ queued: due.length })
+}
+
+// Vercel Cron invokes the route with a GET request.
+export async function GET(request: Request) {
+  return handle(request)
+}
+
+// External schedulers / manual triggers can POST.
+export async function POST(request: Request) {
+  return handle(request)
 }
 
 // ---------------------------------------------------------------------------

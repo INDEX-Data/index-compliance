@@ -4,6 +4,7 @@
 // Called by the cron endpoint; no external cron library needed.
 // =============================================================================
 
+import cronParser from 'cron-parser'
 import type { RemediationDb } from '../types.js'
 
 export interface AssessmentSchedule {
@@ -19,42 +20,31 @@ export interface AssessmentSchedule {
 }
 
 // ---------------------------------------------------------------------------
-// Cron next-run calculator (simplified — supports standard 5-field cron)
-// Only handles the patterns ATLAS uses:
-//   '0 2 * * 1'  — weekly Monday 2am UTC
-//   '0 2 * * *'  — daily 2am UTC
-//   '0 2 1 * *'  — monthly 1st 2am UTC
-// For production, swap with a proper cron library (cronstrue / cron-parser).
+// Cron next-run calculator — full 5-field cron via cron-parser, evaluated in
+// UTC. Falls back to "+1 day at the same time" only if the expression cannot
+// be parsed, so a malformed schedule never throws inside the cron runner.
 // ---------------------------------------------------------------------------
 
+/** True if `cronExpression` is a valid 5-field cron expression. */
+export function isValidCron(cronExpression: string): boolean {
+  try {
+    cronParser.parseExpression(cronExpression, { tz: 'UTC' })
+    return true
+  } catch {
+    return false
+  }
+}
+
 export function nextRunAfter(cronExpression: string, from: Date = new Date()): Date {
-  const [, hourStr, , , dowStr] = cronExpression.split(' ')
-  const hour = parseInt(hourStr, 10)
-  const next = new Date(from)
-  next.setUTCSeconds(0, 0)
-  next.setUTCMinutes(0)
-  next.setUTCHours(hour)
-
-  if (cronExpression.includes('1 * *')) {
-    // Monthly — first of next month
-    next.setUTCDate(1)
-    if (next <= from) {
-      next.setUTCMonth(next.getUTCMonth() + 1)
-    }
+  try {
+    const interval = cronParser.parseExpression(cronExpression, { currentDate: from, tz: 'UTC' })
+    return interval.next().toDate()
+  } catch {
+    // Defensive fallback — should not happen once schedules are validated on save.
+    const next = new Date(from)
+    next.setUTCDate(next.getUTCDate() + 1)
     return next
   }
-
-  if (dowStr && dowStr !== '*') {
-    // Weekly — next occurrence of day-of-week
-    const targetDow = parseInt(dowStr, 10) % 7
-    const daysUntil = (targetDow - from.getUTCDay() + 7) % 7 || 7
-    next.setUTCDate(from.getUTCDate() + daysUntil)
-    return next
-  }
-
-  // Daily — tomorrow at the specified hour
-  if (next <= from) next.setUTCDate(next.getUTCDate() + 1)
-  return next
 }
 
 // ---------------------------------------------------------------------------

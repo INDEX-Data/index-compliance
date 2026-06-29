@@ -4,7 +4,17 @@ export { runRemediation } from './remediate.js'
 export type { RemediationInput, PlanResult } from './remediate.js'
 export { diffAssessments, persistDriftEvents } from './drift.js'
 export type { DriftResult, DriftEvent } from './drift.js'
-export { recordMaturitySnapshot, getMaturityTimeSeries, getClientMaturitySummary } from './maturity.js'
+export {
+  recordMaturitySnapshot,
+  getMaturityTimeSeries,
+  getClientMaturitySummary,
+} from './maturity.js'
 export type { MaturitySnapshot } from './maturity.js'
-export { getDueSchedules, markScheduleRun, upsertSchedule, nextRunAfter } from './schedule.js'
+export {
+  getDueSchedules,
+  markScheduleRun,
+  upsertSchedule,
+  nextRunAfter,
+  isValidCron,
+} from './schedule.js'
 export type { AssessmentSchedule } from './schedule.js'
