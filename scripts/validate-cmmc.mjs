@@ -21,6 +21,7 @@ import { join } from 'path'
 import { GraphClient } from '../dist/services/graph-client.js'
 import { assessControl, buildSummary } from '../dist/services/compliance-engine.js'
 import { getFramework } from '../dist/data/framework-registry.js'
+import { GraphAuthError } from '../dist/services/graph-client.js'
 
 // ── Credentials from the existing MCP config ─────────────────────────────────
 const configPath = join(homedir(), '.claude', 'claude_code_config.json')
@@ -37,6 +38,32 @@ const client = new GraphClient({
 const fw = getFramework('CMMC_L2')
 if (!fw) throw new Error('CMMC_L2 not found in registry')
 
+// ── Preflight: fail fast & clearly if the connection itself is broken ─────────
+// Use process.exitCode (never process.exit) so Node drains in-flight sockets
+// before exiting — avoids the Windows libuv close-handle assertion and keeps
+// the exit code deterministic for CI.
+console.log(`Verifying connection to tenant ${env.AZURE_TENANT_ID} ...`)
+let connectionOk = false
+try {
+  const info = await client.verifyConnection()
+  console.log(`Connection OK — tenant: ${info.displayName ?? '(name unavailable)'}\n`)
+  connectionOk = true
+} catch (err) {
+  if (err instanceof GraphAuthError) {
+    console.error(`\n✗ CONNECTION FAILED (${err.code})`)
+    console.error(`  ${err.userMessage}`)
+    console.error(
+      `\n  This script reads credentials from claude_code_config.json. If you rotated the\n` +
+        `  secret in the ATLAS app (Supabase) but not here, update AZURE_CLIENT_SECRET in\n` +
+        `  ${configPath} too, then re-run.`
+    )
+    process.exitCode = 2
+  } else {
+    throw err
+  }
+}
+
+if (connectionOk) {
 // ── Run the assessment ────────────────────────────────────────────────────────
 console.log(`Running ${fw.name} — ${fw.controls.length} controls against tenant ${env.AZURE_TENANT_ID}\n`)
 
@@ -202,4 +229,5 @@ writeFileSync(
   )
 )
 console.log('\nFull results written to validation-cmmc-results.json')
-process.exit(violations.length > 0 ? 1 : 0)
+process.exitCode = violations.length > 0 ? 1 : 0
+} // end if (connectionOk)
