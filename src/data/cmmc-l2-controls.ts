@@ -663,6 +663,15 @@ export const cmmcL2Controls: ComplianceControl[] = [
     family: 'Access Control',
     evidenceQueries: [
       {
+        id: 'ac.l2.3.1.21-device-config-profiles',
+        description:
+          'Intune device configuration profiles (USB/removable storage, VPN, peripherals)',
+        endpoint: '/deviceManagement/deviceConfigurations',
+        method: 'GET',
+        category: 'deviceConfiguration',
+        requiredPermissions: ['DeviceManagementConfiguration.Read.All'],
+      },
+      {
         id: 'ac.1.21-device-config',
         description: 'Device configuration profiles restricting removable storage',
         endpoint: '/deviceManagement/deviceCompliancePolicies',
@@ -685,7 +694,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'Device configuration profiles restrict or monitor USB/removable storage on managed devices',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_device_usb_control',
     },
   },
 
@@ -696,6 +705,14 @@ export const cmmcL2Controls: ComplianceControl[] = [
     frameworkId: FW,
     family: 'Access Control',
     evidenceQueries: [
+      {
+        id: 'ac.l2.3.1.22-spo-settings',
+        description: 'SharePoint/OneDrive tenant external sharing settings',
+        endpoint: '/admin/sharepoint/settings',
+        method: 'GET',
+        category: 'sharePoint',
+        requiredPermissions: ['SharePointTenantSettings.Read.All'],
+      },
       {
         id: 'ac.1.22-aip-audit',
         description: 'Information protection audit logs for public sharing events',
@@ -721,7 +738,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'DLP policies prevent CUI from being posted to public systems; external sharing is restricted',
-      customEvaluator: 'evaluate_dlp_policies',
+      customEvaluator: 'evaluate_sharepoint_sharing',
     },
   },
 
@@ -1753,7 +1770,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'Temporary Access Pass (TAP) configured with short lifetime and single-use; forced password change on next sign-in enforced',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_tap_policy',
     },
   },
 
@@ -2289,6 +2306,15 @@ export const cmmcL2Controls: ComplianceControl[] = [
     family: 'Media Protection',
     evidenceQueries: [
       {
+        id: 'mp.l2.3.8.6-device-config-profiles',
+        description:
+          'Intune device configuration profiles (USB/removable storage, VPN, peripherals)',
+        endpoint: '/deviceManagement/deviceConfigurations',
+        method: 'GET',
+        category: 'deviceConfiguration',
+        requiredPermissions: ['DeviceManagementConfiguration.Read.All'],
+      },
+      {
         id: 'mp.8.6-device-compliance',
         description: 'Device compliance policies requiring portable storage encryption',
         endpoint: '/deviceManagement/deviceCompliancePolicies',
@@ -2301,7 +2327,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'BitLocker To Go or equivalent required for USB drives holding CUI; configuration profiles enforce encryption on removable media',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_device_usb_control',
     },
   },
 
@@ -2312,6 +2338,15 @@ export const cmmcL2Controls: ComplianceControl[] = [
     frameworkId: FW,
     family: 'Media Protection',
     evidenceQueries: [
+      {
+        id: 'mp.l2.3.8.7-device-config-profiles',
+        description:
+          'Intune device configuration profiles (USB/removable storage, VPN, peripherals)',
+        endpoint: '/deviceManagement/deviceConfigurations',
+        method: 'GET',
+        category: 'deviceConfiguration',
+        requiredPermissions: ['DeviceManagementConfiguration.Read.All'],
+      },
       {
         id: 'mp.8.7-device-config',
         description: 'Device configuration profiles restricting/controlling USB/removable media',
@@ -2325,7 +2360,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'Intune configuration profiles restrict USB/removable media use; only approved devices allowed; policy enforced via Defender for Endpoint',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_device_usb_control',
     },
   },
 
@@ -2337,6 +2372,15 @@ export const cmmcL2Controls: ComplianceControl[] = [
     frameworkId: FW,
     family: 'Media Protection',
     evidenceQueries: [
+      {
+        id: 'mp.l2.3.8.8-device-config-profiles',
+        description:
+          'Intune device configuration profiles (USB/removable storage, VPN, peripherals)',
+        endpoint: '/deviceManagement/deviceConfigurations',
+        method: 'GET',
+        category: 'deviceConfiguration',
+        requiredPermissions: ['DeviceManagementConfiguration.Read.All'],
+      },
       {
         id: 'mp.8.8-device-config',
         description: 'Device compliance policies blocking unidentified/unmanaged storage devices',
@@ -2350,7 +2394,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'Configuration profiles block unknown/unidentified USB storage; only organization-owned and labeled media allowed',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_device_usb_control',
     },
   },
 
@@ -3135,6 +3179,15 @@ export const cmmcL2Controls: ComplianceControl[] = [
     family: 'System and Communications Protection',
     evidenceQueries: [
       {
+        id: 'sc.l2.3.13.7-device-config-profiles',
+        description:
+          'Intune device configuration profiles (USB/removable storage, VPN, peripherals)',
+        endpoint: '/deviceManagement/deviceConfigurations',
+        method: 'GET',
+        category: 'deviceConfiguration',
+        requiredPermissions: ['DeviceManagementConfiguration.Read.All'],
+      },
+      {
         id: 'sc.13.7-device-config',
         description: 'Device configuration profiles disabling VPN split tunneling',
         endpoint: '/deviceManagement/deviceCompliancePolicies',
@@ -3147,7 +3200,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'VPN configuration disables split tunneling; all traffic forced through managed connection; Intune enforces VPN profile',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_device_vpn_tunnel',
     },
   },
 
@@ -3280,6 +3333,15 @@ export const cmmcL2Controls: ComplianceControl[] = [
     family: 'System and Communications Protection',
     evidenceQueries: [
       {
+        id: 'sc.l2.3.13.12-device-config-profiles',
+        description:
+          'Intune device configuration profiles (USB/removable storage, VPN, peripherals)',
+        endpoint: '/deviceManagement/deviceConfigurations',
+        method: 'GET',
+        category: 'deviceConfiguration',
+        requiredPermissions: ['DeviceManagementConfiguration.Read.All'],
+      },
+      {
         id: 'sc.13.12-device-config',
         description: 'Device configuration profiles controlling camera/mic activation',
         endpoint: '/deviceManagement/deviceCompliancePolicies',
@@ -3292,7 +3354,7 @@ export const cmmcL2Controls: ComplianceControl[] = [
       type: 'custom',
       passingCondition:
         'Camera/microphone access controlled via Intune configuration profiles; remote activation prevention policy documented; LED indicators required',
-      customEvaluator: 'evaluate_proxy_signal',
+      customEvaluator: 'evaluate_device_peripheral',
     },
   },
 

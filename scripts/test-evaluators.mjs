@@ -213,6 +213,75 @@ check('collection failed → not_assessed', 'evaluate_proxy_signal',
   [ev('/security/alerts', [], false)],
   'not_assessed')
 
+// ── Tier 1: evaluate_device_usb_control ──────────────────────────────────────
+const CFG = '/deviceManagement/deviceConfigurations'
+console.log('evaluate_device_usb_control')
+check('usbBlocked true → pass', 'evaluate_device_usb_control',
+  [ev(CFG, [{ '@odata.type': '#microsoft.graph.windows10GeneralConfiguration', displayName: 'Win10 Restrict', usbBlocked: true }])],
+  'pass')
+check('storageBlockRemovableStorage true → pass', 'evaluate_device_usb_control',
+  [ev(CFG, [{ displayName: 'Restrict', storageBlockRemovableStorage: true }])],
+  'pass')
+check('config profiles exist but no USB restriction → fail', 'evaluate_device_usb_control',
+  [ev(CFG, [{ displayName: 'Generic', cameraBlocked: true }])],
+  'fail')
+check('config query failed → not_assessed', 'evaluate_device_usb_control',
+  [ev(CFG, [], false)],
+  'not_assessed')
+
+// ── Tier 1: evaluate_device_vpn_tunnel ───────────────────────────────────────
+console.log('evaluate_device_vpn_tunnel')
+check('VPN split tunneling disabled → pass', 'evaluate_device_vpn_tunnel',
+  [ev(CFG, [{ '@odata.type': '#microsoft.graph.windows10VpnConfiguration', displayName: 'Corp VPN', enableSplitTunneling: false }])],
+  'pass')
+check('VPN split tunneling enabled → fail', 'evaluate_device_vpn_tunnel',
+  [ev(CFG, [{ '@odata.type': '#microsoft.graph.windows10VpnConfiguration', displayName: 'Loose VPN', enableSplitTunneling: true }])],
+  'fail')
+check('no VPN profile → partial', 'evaluate_device_vpn_tunnel',
+  [ev(CFG, [{ '@odata.type': '#microsoft.graph.windows10GeneralConfiguration', displayName: 'General' }])],
+  'partial')
+
+// ── Tier 1: evaluate_device_peripheral ───────────────────────────────────────
+console.log('evaluate_device_peripheral')
+check('cameraBlocked true → pass', 'evaluate_device_peripheral',
+  [ev(CFG, [{ displayName: 'Lock cam', cameraBlocked: true }])],
+  'pass')
+check('profiles but no camera/mic restriction → partial', 'evaluate_device_peripheral',
+  [ev(CFG, [{ displayName: 'General', usbBlocked: true }])],
+  'partial')
+
+// ── Tier 1: evaluate_tap_policy ──────────────────────────────────────────────
+const AMP = '/policies/authenticationMethodsPolicy'
+console.log('evaluate_tap_policy')
+check('TAP enabled + single-use → pass', 'evaluate_tap_policy',
+  [ev(AMP, [{ authenticationMethodConfigurations: [{ id: 'TemporaryAccessPass', state: 'enabled', isUsableOnce: true }] }])],
+  'pass')
+check('TAP enabled multi-use → pass (with recommendation)', 'evaluate_tap_policy',
+  [ev(AMP, [{ authenticationMethodConfigurations: [{ id: 'TemporaryAccessPass', state: 'enabled', isUsableOnce: false }] }])],
+  'pass')
+check('TAP disabled → fail', 'evaluate_tap_policy',
+  [ev(AMP, [{ authenticationMethodConfigurations: [{ id: 'TemporaryAccessPass', state: 'disabled' }] }])],
+  'fail')
+check('policy query failed → not_assessed', 'evaluate_tap_policy',
+  [ev(AMP, [], false)],
+  'not_assessed')
+
+// ── Tier 1: evaluate_sharepoint_sharing ──────────────────────────────────────
+const SPO = '/admin/sharepoint/settings'
+console.log('evaluate_sharepoint_sharing')
+check('sharing disabled → pass', 'evaluate_sharepoint_sharing',
+  [ev(SPO, [{ sharingCapability: 'disabled' }])],
+  'pass')
+check('existing-external-only → partial', 'evaluate_sharepoint_sharing',
+  [ev(SPO, [{ sharingCapability: 'existingExternalUserSharingOnly' }])],
+  'partial')
+check('anyone links (externalUserAndGuestSharing) → fail', 'evaluate_sharepoint_sharing',
+  [ev(SPO, [{ sharingCapability: 'externalUserAndGuestSharing' }])],
+  'fail')
+check('missing permission (query failed) → not_assessed', 'evaluate_sharepoint_sharing',
+  [ev(SPO, [], false)],
+  'not_assessed')
+
 // ── evaluate_platform_inherited ──────────────────────────────────────────────
 console.log('evaluate_platform_inherited')
 check('always pass with inheritance language', 'evaluate_platform_inherited', [], 'pass')

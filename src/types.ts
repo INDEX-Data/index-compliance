@@ -63,11 +63,14 @@ export type GraphEndpointCategory =
   | 'dlpPolicies'
   | 'auditLog'
   | 'deviceCompliance'
+  | 'deviceConfiguration'
   | 'identityProtection'
   | 'informationProtection'
   | 'retentionPolicies'
   | 'encryptionPolicies'
   | 'roleAssignments'
+  | 'authenticationMethods'
+  | 'sharePoint'
 
 export interface EvidenceQuery {
   id: string

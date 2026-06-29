@@ -106,6 +106,11 @@ const DEEP_EVALUATORS = new Set([
   'evaluate_device_av',
   'evaluate_pim_jit',
   'evaluate_org_security_contacts',
+  'evaluate_device_usb_control',
+  'evaluate_device_vpn_tunnel',
+  'evaluate_device_peripheral',
+  'evaluate_tap_policy',
+  'evaluate_sharepoint_sharing',
 ])
 
 for (const { control, assessment } of assessments) {

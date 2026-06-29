@@ -780,6 +780,241 @@ const evaluators: Record<string, EvaluatorFn> = {
     }
   },
 
+  // ── Tier 1: Intune device CONFIGURATION profiles ──────────────────────────
+  // These read /deviceManagement/deviceConfigurations (settings profiles), NOT
+  // the compliance policies — that's where USB, VPN, and peripheral settings
+  // actually live. A pass requires the specific setting to be present and set.
+
+  // USB / removable-storage restriction.
+  evaluate_device_usb_control: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceConfigurations'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Intune device configuration profiles'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const profiles = ev.rawData as any[]
+    const restricting = profiles.filter((p) =>
+      devicePolicySetting(
+        p,
+        /usbblocked|storageblockremovablestorage|removablediskdenywriteaccess|blockremovablestorage/i,
+        (v) => v === true
+      )
+    )
+    if (restricting.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${restricting.length} configuration profile(s) restrict USB/removable storage: ${restricting.map(policyName).join(', ')}`,
+        ],
+        recommendations: [],
+      }
+    }
+    return {
+      status: 'fail',
+      findings: [
+        profiles.length > 0
+          ? `${profiles.length} configuration profile(s) exist but NONE restrict USB/removable storage`
+          : 'No Intune device configuration profiles found',
+      ],
+      recommendations: [
+        'Create a Device Restrictions profile that blocks or restricts removable storage (set "Removable storage" to Block)',
+        'For CUI media, require BitLocker To Go encryption on any permitted removable drives',
+      ],
+    }
+  },
+
+  // VPN split-tunneling disabled (force all traffic through the managed tunnel).
+  evaluate_device_vpn_tunnel: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceConfigurations'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Intune device configuration profiles'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const profiles = ev.rawData as any[]
+    const vpnProfiles = profiles.filter((p) => /vpn/i.test(p?.['@odata.type'] ?? ''))
+    const splitDisabled = vpnProfiles.filter((p) =>
+      devicePolicySetting(p, /splittunnel/i, (v) => v === false || v === 'disabled')
+    )
+    const splitEnabled = vpnProfiles.filter((p) =>
+      devicePolicySetting(p, /splittunnel/i, (v) => v === true)
+    )
+
+    if (splitDisabled.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${splitDisabled.length} VPN profile(s) force all traffic through the managed tunnel (split tunneling disabled): ${splitDisabled.map(policyName).join(', ')}`,
+        ],
+        recommendations: [],
+      }
+    }
+    if (splitEnabled.length > 0) {
+      return {
+        status: 'fail',
+        findings: [
+          `${splitEnabled.length} VPN profile(s) ENABLE split tunneling — remote traffic can bypass the managed connection`,
+        ],
+        recommendations: ['Disable split tunneling in the VPN configuration profile'],
+      }
+    }
+    return {
+      status: 'partial',
+      findings: [
+        vpnProfiles.length > 0
+          ? 'VPN profile(s) exist but the split-tunneling setting could not be confirmed'
+          : 'No managed VPN configuration profile found — if remote access uses VPN, it is not managed via Intune',
+      ],
+      recommendations: [
+        'Deploy a managed VPN profile with split tunneling disabled so all remote traffic is routed through the managed connection',
+      ],
+    }
+  },
+
+  // Camera / microphone (collaborative-device) control.
+  evaluate_device_peripheral: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('deviceConfigurations'))
+    if (!ev?.success) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query Intune device configuration profiles'],
+        recommendations: ['Verify Graph API permissions: DeviceManagementConfiguration.Read.All'],
+      }
+    }
+    const profiles = ev.rawData as any[]
+    const restricting = profiles.filter((p) =>
+      devicePolicySetting(p, /camerablocked|microphone|voicerecording/i, (v) => v === true)
+    )
+    if (restricting.length > 0) {
+      return {
+        status: 'pass',
+        findings: [
+          `${restricting.length} configuration profile(s) restrict camera/microphone use: ${restricting.map(policyName).join(', ')}`,
+        ],
+        recommendations: [],
+      }
+    }
+    return {
+      status: 'partial',
+      findings: [
+        profiles.length > 0
+          ? `${profiles.length} configuration profile(s) exist but none restrict camera/microphone access`
+          : 'No Intune device configuration profiles found',
+      ],
+      recommendations: [
+        'If collaborative-computing devices process CUI, add a profile that disables camera/microphone where required and document remote-activation prevention',
+      ],
+    }
+  },
+
+  // ── Tier 1: Entra authentication-methods policy ───────────────────────────
+  // Temporary Access Pass (TAP) configuration — reads the actual method policy.
+  evaluate_tap_policy: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('authenticationMethodsPolicy'))
+    if (!ev?.success || ev.recordCount === 0) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query the authentication methods policy'],
+        recommendations: ['Verify Graph API permissions: Policy.Read.All'],
+      }
+    }
+    const policy = (ev.rawData as any[])[0] ?? {}
+    const configs: any[] = policy.authenticationMethodConfigurations ?? []
+    const tap = configs.find((c) => /temporaryaccesspass/i.test(c?.id ?? ''))
+
+    if (tap?.state === 'enabled') {
+      const oneTime = tap.isUsableOnce === true
+      return {
+        status: 'pass',
+        findings: [
+          "Temporary Access Pass is enabled — authentication methods policy reports method 'TemporaryAccessPass' state: enabled",
+          oneTime
+            ? 'TAP is configured as single-use (one-time)'
+            : 'TAP allows multi-use passes — confirm lifetime and single-use settings meet policy',
+        ],
+        recommendations: oneTime
+          ? []
+          : [
+              'Set TAP to one-time use with a short maximum lifetime for onboarding/recovery scenarios',
+            ],
+      }
+    }
+    return {
+      status: 'fail',
+      findings: ['Temporary Access Pass (TAP) is not enabled in the authentication methods policy'],
+      recommendations: [
+        'Enable Temporary Access Pass with a short lifetime and single-use for secure onboarding and credential recovery',
+      ],
+    }
+  },
+
+  // ── Tier 1: SharePoint/OneDrive external sharing ──────────────────────────
+  // Reads /admin/sharepoint/settings sharingCapability to verify external
+  // sharing is actually restricted (CUI not exposed on public-facing systems).
+  evaluate_sharepoint_sharing: (_control, evidence) => {
+    const ev = evidence.find((e) => e.endpoint.includes('sharepoint/settings'))
+    if (!ev?.success || ev.recordCount === 0) {
+      return {
+        status: 'not_assessed',
+        findings: ['Unable to query SharePoint/OneDrive tenant sharing settings'],
+        recommendations: [
+          'Grant SharePointTenantSettings.Read.All (application) and admin consent to assess external sharing',
+        ],
+      }
+    }
+    const settings = (ev.rawData as any[])[0] ?? {}
+    // sharingCapability: disabled | existingExternalUserSharingOnly |
+    //                    externalUserSharingOnly | externalUserAndGuestSharing
+    const cap: string = settings.sharingCapability ?? 'unknown'
+
+    if (cap === 'disabled') {
+      return {
+        status: 'pass',
+        findings: [
+          'External sharing is disabled tenant-wide — content cannot be shared to external/public users',
+        ],
+        recommendations: [],
+      }
+    }
+    if (cap === 'existingExternalUserSharingOnly') {
+      return {
+        status: 'partial',
+        findings: [
+          'External sharing is limited to existing (already-known) external users — no new anonymous/public links',
+        ],
+        recommendations: [
+          'Confirm this meets your CUI handling requirements; consider disabling external sharing on CUI-bearing sites specifically',
+        ],
+      }
+    }
+    if (cap === 'externalUserAndGuestSharing') {
+      return {
+        status: 'fail',
+        findings: [
+          'External sharing permits "Anyone" (anonymous) links — CUI could be exposed on publicly accessible URLs',
+        ],
+        recommendations: [
+          'Change SharePoint/OneDrive external sharing to "New and existing guests" or stricter; disable Anyone links',
+          'Apply tighter site-level sharing on any site that stores CUI',
+        ],
+      }
+    }
+    return {
+      status: 'partial',
+      findings: [
+        `SharePoint external sharing capability: "${cap}" — review against CUI requirements`,
+      ],
+      recommendations: [
+        'Restrict external sharing to authenticated guests or disable it for CUI sites',
+      ],
+    }
+  },
+
   // Platform-inherited control — satisfied by documented, always-on Microsoft
   // platform behavior that tenant configuration cannot disable. The pass is
   // honest because the basis is the platform itself, stated explicitly.
