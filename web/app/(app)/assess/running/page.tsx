@@ -192,6 +192,13 @@ function RunningInner() {
   const failedItems = items.filter((i) => i.done && i.status === 'fail')
   const passedItems = items.filter((i) => i.done && i.status === 'pass')
   const checkedCount = items.filter((i) => i.done).length
+  // Degenerate completion: the run finished but NOT ONE control produced a real
+  // verdict (every assessed control is not_assessed). This almost always means
+  // evidence collection failed wholesale — a broken M365 connection — so warn
+  // instead of presenting an empty report as a clean result.
+  const assessedItems = items.filter((i) => i.done)
+  const noEvidenceWarning =
+    done && assessedItems.length > 0 && assessedItems.every((i) => i.status === 'not_assessed')
   const elapsedMin = Math.floor(startingSeconds / 60)
   const elapsedSec = startingSeconds % 60
   const elapsedStr = `${String(elapsedMin).padStart(2, '0')}:${String(elapsedSec).padStart(2, '0')}s`
@@ -305,6 +312,18 @@ function RunningInner() {
           </button>
         </div>
       </div>
+
+      {/* ── No-evidence warning (broken connection produced an empty report) ── */}
+      {noEvidenceWarning && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>
+            No controls could be assessed — every control returned “not assessed.” This usually
+            means the Microsoft 365 connection failed (most often an invalid or expired client
+            secret). Reconnect this tenant under Clients and run the assessment again.
+          </span>
+        </div>
+      )}
 
       {/* ── Progress Card ── */}
       <div className="bg-white rounded-xl p-8 border border-[#a8a29e]/10">

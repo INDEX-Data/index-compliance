@@ -12,6 +12,7 @@ import type {
   ComplianceSummary,
   FrameworkId,
 } from '../types.js'
+import { GraphAuthError } from './graph-client.js'
 import type { GraphClient } from './graph-client.js'
 
 // -------------------------------------------------------------------------
@@ -63,6 +64,10 @@ export async function collectEvidence(
         success: true,
       })
     } catch (error) {
+      // A credential-class failure isn't a per-query gap — it breaks every query.
+      // Re-throw so the caller (runAssessment) aborts the whole run with one
+      // actionable message instead of recording it as N collected failures.
+      if (error instanceof GraphAuthError) throw error
       results.push({
         queryId: query.id,
         queryDescription: query.description,

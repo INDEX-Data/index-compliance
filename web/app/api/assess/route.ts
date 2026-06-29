@@ -71,6 +71,27 @@ export async function POST(request: Request) {
       )
     }
 
+    // Preflight: confirm the M365 connection works BEFORE creating a job and
+    // sending the user to the running screen. A dead/expired client secret would
+    // otherwise produce a "complete" report full of not_assessed verdicts. Fail
+    // fast with one actionable message instead.
+    try {
+      const { GraphAuthError } = await import('@src/services/graph-client.js')
+      const { graphClient } = await resolveGraphClient(user.id, clientRow.id)
+      try {
+        await graphClient.verifyConnection()
+      } catch (preflightErr) {
+        if (preflightErr instanceof GraphAuthError) {
+          return NextResponse.json({ error: preflightErr.userMessage }, { status: 400 })
+        }
+        // Non-auth failure (e.g. missing Organization.Read.All) — allow the run
+        // to proceed; per-control evaluators will report their own permission gaps.
+      }
+    } catch {
+      // resolveGraphClient/import failure is non-fatal here; the background run
+      // surfaces its own error via the job's error_message.
+    }
+
     // Create assessment job row
     const { data: job, error: jobErr } = await admin
       .from('assessment_jobs')

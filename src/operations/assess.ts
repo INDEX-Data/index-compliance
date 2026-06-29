@@ -6,6 +6,7 @@
 import { assessControl, buildSummary } from '../services/compliance-engine.js'
 import { getFramework } from '../data/framework-registry.js'
 import { DIBCAC_OBJECTIVES } from '../data/dibcac-objectives.js'
+import { GraphAuthError } from '../services/graph-client.js'
 import type { GraphClient } from '../services/graph-client.js'
 import type {
   ControlAssessment,
@@ -89,6 +90,23 @@ export async function runAssessment(
     throw err
   }
 
+  // Fail-fast preflight: confirm the connection works BEFORE assessing 100+
+  // controls. A dead/expired credential would otherwise fail every control
+  // identically and produce a misleading "complete" report full of
+  // not_assessed verdicts. On a credential/tenant/app failure we abort the
+  // whole run with one actionable message instead.
+  try {
+    await input.graphClient.verifyConnection()
+  } catch (err) {
+    if (err instanceof GraphAuthError) {
+      const error = new Error(err.userMessage)
+      await callbacks?.onError?.(error)
+      throw error
+    }
+    // Non-auth failure (e.g. missing Organization.Read.All): don't block the
+    // run — individual controls will surface their own per-permission gaps.
+  }
+
   const assessments: ControlAssessment[] = []
 
   try {
@@ -99,6 +117,13 @@ export async function runAssessment(
       try {
         assessment = await assessControl(control, input.graphClient)
       } catch (err) {
+        // A credential-class failure mid-run means EVERY remaining control will
+        // fail identically — abort loudly rather than emit 100 not_assessed rows.
+        if (err instanceof GraphAuthError) {
+          const error = new Error(err.userMessage)
+          await callbacks?.onError?.(error)
+          throw error
+        }
         assessment = {
           controlId: control.controlId,
           controlTitle: control.title,
