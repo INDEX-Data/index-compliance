@@ -74,10 +74,10 @@ export default function HistoryPage() {
     <div className="p-8 max-w-6xl">
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-[24px] font-bold text-[#1c1d1f]" style={{ letterSpacing: '-0.02em' }}>
+          <h1 className="text-[24px] font-bold text-ink" style={{ letterSpacing: '-0.02em' }}>
             Report History
           </h1>
-          <p className="text-[14px] text-[#78716c] mt-1.5">
+          <p className="text-[14px] text-faint mt-1.5">
             {reports.length > 0
               ? `${reports.length} report${reports.length !== 1 ? 's' : ''} across ${frameworkIds.length} framework${frameworkIds.length !== 1 ? 's' : ''}`
               : 'All saved compliance assessment reports'}
@@ -85,7 +85,7 @@ export default function HistoryPage() {
         </div>
         <Link
           href="/assess"
-          className="inline-flex items-center gap-2 bg-[#1c1917] hover:bg-[#0c0a09] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
+          className="inline-flex items-center gap-2 bg-ink hover:bg-ink text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition"
         >
           <Play className="w-3.5 h-3.5" />
           New Assessment
@@ -100,22 +100,22 @@ export default function HistoryPage() {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center py-32 text-[#78716c]">
+        <div className="flex items-center justify-center py-32 text-faint">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />
           <span className="text-sm">Loading reports…</span>
         </div>
       ) : reports.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-32 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-white border border-[#e7e5e4] flex items-center justify-center mb-5 shadow-card">
+          <div className="w-14 h-14 rounded-2xl bg-white border border-border flex items-center justify-center mb-5 shadow-card">
             <FileText className="w-7 h-7 text-[#d6d3d1]" />
           </div>
-          <h3 className="text-base font-semibold text-[#1c1d1f] mb-2">No reports yet</h3>
-          <p className="text-sm text-[#505967] max-w-sm mb-7 leading-relaxed">
+          <h3 className="text-base font-semibold text-ink mb-2">No reports yet</h3>
+          <p className="text-sm text-muted max-w-sm mb-7 leading-relaxed">
             Run an assessment to generate your first compliance report.
           </p>
           <Link
             href="/assess"
-            className="inline-flex items-center gap-2 bg-[#1c1917] hover:bg-[#0c0a09] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+            className="inline-flex items-center gap-2 bg-ink hover:bg-ink text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             <Play className="w-3.5 h-3.5" />
             Run Assessment
@@ -128,42 +128,40 @@ export default function HistoryPage() {
             return (
               <div
                 key={fwId}
-                className="bg-white rounded-xl border border-[#e7e5e4] overflow-hidden shadow-card"
+                className="bg-white rounded-xl border border-border overflow-hidden shadow-card"
               >
                 {/* Framework group header */}
-                <div className="px-5 py-3 bg-[#fafafa] border-b border-[#f5f5f4] flex items-center gap-3">
-                  <div className="w-7 h-7 rounded-lg bg-white border border-[#e7e5e4] flex items-center justify-center shrink-0">
-                    <Shield className="w-3.5 h-3.5 text-[#78716c]" />
+                <div className="px-5 py-3 bg-[#fafafa] border-b border-border-subtle flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-lg bg-white border border-border flex items-center justify-center shrink-0">
+                    <Shield className="w-3.5 h-3.5 text-faint" />
                   </div>
                   <div className="flex-1">
-                    <span className="text-[13px] font-bold text-[#1c1d1f]">
-                      {rows[0].frameworkName}
-                    </span>
+                    <span className="text-[13px] font-bold text-ink">{rows[0].frameworkName}</span>
                   </div>
-                  <span className="text-[11px] text-[#a8a29e]">
+                  <span className="text-[11px] text-faint">
                     {rows.length} run{rows.length !== 1 ? 's' : ''}
                   </span>
                 </div>
 
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-[#f5f5f4]">
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#78716c] uppercase tracking-widest">
+                    <tr className="border-b border-border-subtle">
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-faint uppercase tracking-widest">
                         Date
                       </th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#78716c] uppercase tracking-widest">
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-faint uppercase tracking-widest">
                         Score
                       </th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#78716c] uppercase tracking-widest">
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-faint uppercase tracking-widest">
                         Δ vs prev
                       </th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#78716c] uppercase tracking-widest">
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-faint uppercase tracking-widest">
                         Risk
                       </th>
-                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-[#78716c] uppercase tracking-widest">
+                      <th className="text-left px-5 py-3 text-[10px] font-semibold text-faint uppercase tracking-widest">
                         Controls
                       </th>
-                      <th className="text-right px-5 py-3 text-[10px] font-semibold text-[#78716c] uppercase tracking-widest" />
+                      <th className="text-right px-5 py-3 text-[10px] font-semibold text-faint uppercase tracking-widest" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#f5f5f4]">
@@ -191,15 +189,15 @@ export default function HistoryPage() {
                                 </span>
                               )}
                               <div>
-                                <div className="text-[12px] text-[#1c1d1f] flex items-center gap-1.5">
-                                  <Calendar className="w-3 h-3 text-[#a8a29e]" />
+                                <div className="text-[12px] text-ink flex items-center gap-1.5">
+                                  <Calendar className="w-3 h-3 text-faint" />
                                   {new Date(r.generatedAt).toLocaleDateString(undefined, {
                                     month: 'short',
                                     day: 'numeric',
                                     year: 'numeric',
                                   })}
                                 </div>
-                                <div className="text-[10px] text-[#a8a29e] mt-0.5 ml-4.5">
+                                <div className="text-[10px] text-faint mt-0.5 ml-4.5">
                                   {new Date(r.generatedAt).toLocaleTimeString(undefined, {
                                     hour: '2-digit',
                                     minute: '2-digit',
@@ -215,7 +213,7 @@ export default function HistoryPage() {
                           {/* Score */}
                           <td className="px-5 py-3.5">
                             <div className="flex items-center gap-2">
-                              <div className="w-16 bg-[#f5f5f4] rounded-full h-1.5">
+                              <div className="w-16 bg-surface-sunken rounded-full h-1.5">
                                 <div
                                   className="h-1.5 rounded-full transition-all"
                                   style={{ width: `${pct}%`, background: color }}
@@ -268,7 +266,7 @@ export default function HistoryPage() {
                             <div className="flex items-center justify-end gap-1">
                               <Link
                                 href={`/assess/${r.reportId}`}
-                                className="p-1.5 rounded-lg text-[#a8a29e] hover:text-[#1c1d1f] hover:bg-[#fafafa] transition"
+                                className="p-1.5 rounded-lg text-faint hover:text-ink hover:bg-[#fafafa] transition"
                                 title="View report"
                               >
                                 <ChevronRight className="w-4 h-4" />
@@ -276,7 +274,7 @@ export default function HistoryPage() {
                               <button
                                 onClick={() => handleDelete(r.reportId)}
                                 disabled={deleting === r.reportId}
-                                className="p-1.5 rounded-lg text-[#a8a29e] hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition disabled:opacity-40"
+                                className="p-1.5 rounded-lg text-faint hover:text-[#B91C1C] hover:bg-[#FEF2F2] transition disabled:opacity-40"
                                 title="Delete report"
                               >
                                 {deleting === r.reportId ? (
@@ -307,7 +305,7 @@ function DeltaCell({ delta }: { delta: number | null }) {
   }
   if (Math.abs(delta) < 0.5) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-[#78716c]">
+      <span className="inline-flex items-center gap-1 text-[11px] text-faint">
         <Minus className="w-3 h-3" /> 0%
       </span>
     )

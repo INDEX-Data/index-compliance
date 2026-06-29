@@ -33,14 +33,14 @@ export function ComplianceSummaryCards({ summary, className }: Props) {
           return (
             <div
               key={label}
-              className={`bg-white p-5 rounded-xl border border-[#e7e5e4] shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}
+              className={`bg-white p-5 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}
             >
               <div className="flex justify-between items-start mb-4">
-                <p className="text-xs font-bold text-[#44403c] uppercase tracking-wider">{label}</p>
+                <p className="text-xs font-bold text-muted uppercase tracking-wider">{label}</p>
                 <Icon className="w-5 h-5" style={{ color }} strokeWidth={1.5} />
               </div>
-              <p className="text-2xl font-bold text-[#1c1917] mb-1">{value}</p>
-              <p className="text-xs text-[#44403c]">{pct}% of {totalControls} controls</p>
+              <p className="text-2xl font-bold text-ink mb-1">{value}</p>
+              <p className="text-xs text-muted">{pct}% of {totalControls} controls</p>
               <div className="mt-4 w-full bg-[#d6d3d1] h-1 rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{ background: color, width: `${pct}%` }} />
               </div>
@@ -50,14 +50,14 @@ export function ComplianceSummaryCards({ summary, className }: Props) {
       </div>
 
       {/* Coverage strip — makes the score's basis honest. */}
-      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 bg-[#fafaf9] border border-[#e7e5e4] rounded-xl px-5 py-3 text-xs">
-        <span className="text-[#44403c]">
-          <span className="font-bold text-[#1c1917]">{automatedCoverage}%</span> automated coverage
-          <span className="text-[#78716c]"> · {manualRequired} controls need attestation</span>
+      <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 bg-canvas border border-border rounded-xl px-5 py-3 text-xs">
+        <span className="text-muted">
+          <span className="font-bold text-ink">{automatedCoverage}%</span> automated coverage
+          <span className="text-faint"> · {manualRequired} controls need attestation</span>
         </span>
-        <span className="text-[#44403c]">
-          <span className={`font-bold ${lowCoverage ? 'text-[#9f403d]' : 'text-[#1c1917]'}`}>{collectionHealth}%</span> collection health
-          {notAssessed > 0 && <span className="text-[#78716c]"> · {notAssessed} collection gap{notAssessed === 1 ? '' : 's'}</span>}
+        <span className="text-muted">
+          <span className={`font-bold ${lowCoverage ? 'text-[#9f403d]' : 'text-ink'}`}>{collectionHealth}%</span> collection health
+          {notAssessed > 0 && <span className="text-faint"> · {notAssessed} collection gap{notAssessed === 1 ? '' : 's'}</span>}
         </span>
         {lowCoverage && (
           <span className="inline-flex items-center gap-1.5 text-[#9f403d] font-medium">

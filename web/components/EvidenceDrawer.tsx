@@ -35,39 +35,39 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
   pass:           { bg: 'bg-emerald-100', text: 'text-emerald-800', label: 'Pass' },
   fail:           { bg: 'bg-red-100',     text: 'text-[#9f403d]',  label: 'Fail' },
   partial:        { bg: 'bg-amber-100',   text: 'text-amber-800',  label: 'Partial' },
-  not_assessed:   { bg: 'bg-[#f5f5f4]',   text: 'text-[#78716c]',  label: 'N/A' },
-  not_applicable: { bg: 'bg-[#f5f5f4]',   text: 'text-[#78716c]',  label: 'N/A' },
+  not_assessed:   { bg: 'bg-surface-sunken',   text: 'text-faint',  label: 'N/A' },
+  not_applicable: { bg: 'bg-surface-sunken',   text: 'text-faint',  label: 'N/A' },
 }
 
 // ── Evidence table for Graph query data ─────────────────────────────────────
 
 function EvidenceTable({ data, title }: { data: unknown[]; title?: string }) {
   if (data.length === 0)
-    return <p className="text-xs text-[#44403c] italic py-2">No records returned.</p>
+    return <p className="text-xs text-muted italic py-2">No records returned.</p>
 
   const first = data[0]
   if (typeof first !== 'object' || first === null)
-    return <pre className="text-[11px] font-mono text-[#1c1917] bg-[#fafaf9] p-3 rounded-lg overflow-auto max-h-32">{String(first)}</pre>
+    return <pre className="text-[11px] font-mono text-ink bg-canvas p-3 rounded-lg overflow-auto max-h-32">{String(first)}</pre>
 
   const allKeys = Object.keys(first as object).filter(k => !k.startsWith('@'))
   const cols    = allKeys.slice(0, 7)
   const rows    = data.slice(0, 15)
 
   if (cols.length === 0)
-    return <p className="text-xs text-[#44403c] italic py-2">Metadata-only response.</p>
+    return <p className="text-xs text-muted italic py-2">Metadata-only response.</p>
 
   return (
-    <div className="rounded-lg border border-[#a8a29e]/20 overflow-hidden">
+    <div className="rounded-lg border border-border overflow-hidden">
       {title && (
-        <div className="bg-[#f5f5f4] p-3 border-b border-[#a8a29e]/20">
-          <h4 className="text-[11px] font-black uppercase tracking-widest text-[#44403c]">{title}</h4>
+        <div className="bg-surface-sunken p-3 border-b border-border">
+          <h4 className="text-[11px] font-black uppercase tracking-widest text-muted">{title}</h4>
         </div>
       )}
       <table className="w-full text-left text-xs border-collapse">
-        <thead className="bg-[#fafaf9]">
+        <thead className="bg-canvas">
           <tr>
             {cols.map(c => (
-              <th key={c} className="px-4 py-2 font-bold text-[#44403c] border-b border-[#a8a29e]/10 whitespace-nowrap">
+              <th key={c} className="px-4 py-2 font-bold text-muted border-b border-[#a8a29e]/10 whitespace-nowrap">
                 {c}
               </th>
             ))}
@@ -75,11 +75,11 @@ function EvidenceTable({ data, title }: { data: unknown[]; title?: string }) {
         </thead>
         <tbody className="divide-y divide-[#a8a29e]/10">
           {rows.map((row, i) => (
-            <tr key={i} className="hover:bg-[#fafaf9]/50 transition-colors">
+            <tr key={i} className="hover:bg-canvas/50 transition-colors">
               {cols.map((col, ci) => (
                 <td
                   key={col}
-                  className={`px-4 py-3 max-w-[220px] truncate ${ci === 0 ? 'font-mono text-[10px] text-[#1c1917]' : 'text-[#1c1917]'}`}
+                  className={`px-4 py-3 max-w-[220px] truncate ${ci === 0 ? 'font-mono text-[10px] text-ink' : 'text-ink'}`}
                   title={String((row as Record<string, unknown>)[col] ?? '')}
                 >
                   {cellVal((row as Record<string, unknown>)[col])}
@@ -90,7 +90,7 @@ function EvidenceTable({ data, title }: { data: unknown[]; title?: string }) {
         </tbody>
       </table>
       {data.length > 15 && (
-        <div className="px-4 py-2 bg-[#fafaf9] border-t border-[#a8a29e]/10 text-[11px] text-[#44403c]">
+        <div className="px-4 py-2 bg-canvas border-t border-[#a8a29e]/10 text-[11px] text-muted">
           Showing 15 of {data.length} records
         </div>
       )}
@@ -162,18 +162,18 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
         className={[
           'border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors group',
           dragOver
-            ? 'border-[#1c1917] bg-[#1c1917]/5'
-            : 'border-[#a8a29e]/30 bg-white hover:bg-[#fafaf9]',
+            ? 'border-[#1c1917] bg-ink/5'
+            : 'border-border bg-white hover:bg-canvas',
         ].join(' ')}
       >
         {uploading
-          ? <Loader2 className="w-10 h-10 text-[#a8a29e] animate-spin mb-2" />
-          : <CloudUpload className="w-10 h-10 text-[#a8a29e] group-hover:text-[#1c1917] mb-2 transition-colors" />
+          ? <Loader2 className="w-10 h-10 text-faint animate-spin mb-2" />
+          : <CloudUpload className="w-10 h-10 text-faint group-hover:text-ink mb-2 transition-colors" />
         }
-        <p className="text-sm font-semibold text-[#1c1917]">
+        <p className="text-sm font-semibold text-ink">
           {uploading ? 'Uploading…' : 'Drop files here or click to upload'}
         </p>
-        <p className="text-xs text-[#44403c] mt-1">
+        <p className="text-xs text-muted mt-1">
           {files.length === 0 ? 'No files uploaded yet' : `${files.length} file${files.length !== 1 ? 's' : ''} uploaded`}
         </p>
       </div>
@@ -194,31 +194,31 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
       {/* File list */}
       {loading ? (
         <div className="flex justify-center py-3">
-          <Loader2 className="w-4 h-4 animate-spin text-[#a8a29e]" />
+          <Loader2 className="w-4 h-4 animate-spin text-faint" />
         </div>
       ) : files.length > 0 && (
         <ul className="space-y-1.5">
           {files.map(f => (
             <li
               key={f.id}
-              className="flex items-center gap-2 bg-white border border-[#a8a29e]/20 rounded-lg px-3 py-2 group"
+              className="flex items-center gap-2 bg-white border border-border rounded-lg px-3 py-2 group"
             >
-              <FileIcon className="w-3.5 h-3.5 text-[#44403c] shrink-0" />
+              <FileIcon className="w-3.5 h-3.5 text-muted shrink-0" />
               <div className="flex-1 min-w-0">
                 <button
                   onClick={() => downloadEvidenceFile(reportId, objectiveId, f.id, f.originalName)}
-                  className="text-[12px] font-medium text-[#1c1917] hover:text-[#1c1917] truncate block max-w-full text-left"
+                  className="text-[12px] font-medium text-ink hover:text-ink truncate block max-w-full text-left"
                   title={f.originalName}
                 >
                   {f.originalName}
                 </button>
-                <p className="text-[10px] text-[#a8a29e]">
+                <p className="text-[10px] text-faint">
                   {formatBytes(f.fileSize)} · {new Date(f.uploadedAt).toLocaleDateString()}
                 </p>
               </div>
               <button
                 onClick={() => handleDelete(f.id)}
-                className="p-1 rounded hover:bg-[#fe8983]/10 text-[#a8a29e] hover:text-[#9f403d] opacity-0 group-hover:opacity-100 transition"
+                className="p-1 rounded hover:bg-[#fe8983]/10 text-faint hover:text-[#9f403d] opacity-0 group-hover:opacity-100 transition"
                 title="Delete file"
               >
                 <Trash2 className="w-3 h-3" />
@@ -236,8 +236,8 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
 function Section({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
     <section>
-      <h3 className="text-xs font-bold uppercase tracking-widest text-[#44403c] mb-3 flex items-center gap-2">
-        <span className="text-[#78716c]">{icon}</span> {label}
+      <h3 className="text-xs font-bold uppercase tracking-widest text-muted mb-3 flex items-center gap-2">
+        <span className="text-faint">{icon}</span> {label}
       </h3>
       {children}
     </section>
@@ -283,7 +283,7 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[9998] bg-[#1c1917]/20 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[9998] bg-ink/20 backdrop-blur-[2px]"
         onClick={onClose}
       />
 
@@ -292,10 +292,10 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
         className="fixed top-0 bottom-0 right-0 w-full max-w-[600px] h-screen z-[9999] bg-white shadow-2xl flex flex-col animate-slide-in-right"
       >
         {/* ── Glass Header ── */}
-        <div className="shrink-0 px-6 pt-5 pb-4 border-b border-[#a8a29e]/20" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(255,255,255,0.85)' }}>
+        <div className="shrink-0 px-6 pt-5 pb-4 border-b border-border" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(255,255,255,0.85)' }}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold font-mono tracking-wider text-[#1c1917] bg-[#e7e5e4]/30 px-2 py-0.5 rounded">
+              <span className="text-xs font-bold font-mono tracking-wider text-ink bg-[#e7e5e4]/30 px-2 py-0.5 rounded">
                 {assessment.controlId}
               </span>
               <span className={`text-[10px] font-black uppercase tracking-widest ${badge.bg} ${badge.text} px-2 py-0.5 rounded-full flex items-center gap-1`}>
@@ -306,22 +306,22 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
             </div>
             <button
               onClick={onClose}
-              className="text-[#44403c] hover:text-[#1c1917] transition-colors"
+              className="text-muted hover:text-ink transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
-          <h2 className="text-2xl font-bold text-[#1c1917] leading-tight">{assessment.controlTitle}</h2>
+          <h2 className="text-2xl font-bold text-ink leading-tight">{assessment.controlTitle}</h2>
           <div className="mt-1 flex items-center gap-4">
             {assessment.family && (
-              <span className="text-sm font-medium text-[#44403c]">{assessment.family}</span>
+              <span className="text-sm font-medium text-muted">{assessment.family}</span>
             )}
             {assessment.family && collected && (
               <span className="h-1 w-1 bg-[#a8a29e] rounded-full" />
             )}
             {collected && (
-              <span className="text-sm font-medium text-[#44403c]">
-                Collection Date: <span className="text-[#1c1917]">{collected}</span>
+              <span className="text-sm font-medium text-muted">
+                Collection Date: <span className="text-ink">{collected}</span>
               </span>
             )}
           </div>
@@ -333,9 +333,9 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
           {/* 1. Findings */}
           {assessment.findings.length > 0 && (
             <Section icon={<Search className="w-4 h-4" />} label="Findings">
-              <div className="p-4 bg-[#fafaf9] rounded-lg border-l-2 border-[#1c1917]">
+              <div className="p-4 bg-canvas rounded-lg border-l-2 border-[#1c1917]">
                 {assessment.findings.map((f, i) => (
-                  <p key={i} className="text-sm leading-relaxed text-[#1c1917]">
+                  <p key={i} className="text-sm leading-relaxed text-ink">
                     {f}{i < assessment.findings.length - 1 ? ' ' : ''}
                   </p>
                 ))}
@@ -346,9 +346,9 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
           {/* 2. Recommendations */}
           {assessment.recommendations.length > 0 && (
             <Section icon={<Lightbulb className="w-4 h-4" />} label="Recommendations">
-              <div className="p-4 bg-[#fafaf9] rounded-lg">
+              <div className="p-4 bg-canvas rounded-lg">
                 {assessment.recommendations.map((r, i) => (
-                  <p key={i} className="text-sm leading-relaxed text-[#1c1917]">
+                  <p key={i} className="text-sm leading-relaxed text-ink">
                     {r}{i < assessment.recommendations.length - 1 ? ' ' : ''}
                   </p>
                 ))}
@@ -392,19 +392,19 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
             <div className="space-y-6">
               {/* Query / Record count badges */}
               <div className="flex gap-4">
-                <span className="text-[10px] font-bold text-[#1c1917] px-2 py-0.5 bg-[#e7e5e4] rounded">
+                <span className="text-[10px] font-bold text-ink px-2 py-0.5 bg-[#e7e5e4] rounded">
                   {queries.length} {queries.length === 1 ? 'Query' : 'Queries'}
                 </span>
-                <span className="text-[10px] font-bold text-[#78716c] px-2 py-0.5 bg-[#e7e5e4] rounded">
+                <span className="text-[10px] font-bold text-faint px-2 py-0.5 bg-[#e7e5e4] rounded">
                   {totalRecords} {totalRecords === 1 ? 'Record' : 'Records'}
                 </span>
               </div>
 
               {queries.length === 0 ? (
-                <div className="border-2 border-dashed border-[#a8a29e]/20 rounded-xl p-8 flex flex-col items-center justify-center">
-                  <Database className="w-10 h-10 text-[#a8a29e] mb-2" />
-                  <p className="text-sm font-semibold text-[#1c1917]">No automated evidence</p>
-                  <p className="text-xs text-[#44403c] mt-1">No Graph API queries were executed for this control.</p>
+                <div className="border-2 border-dashed border-border rounded-xl p-8 flex flex-col items-center justify-center">
+                  <Database className="w-10 h-10 text-faint mb-2" />
+                  <p className="text-sm font-semibold text-ink">No automated evidence</p>
+                  <p className="text-xs text-muted mt-1">No Graph API queries were executed for this control.</p>
                 </div>
               ) : !hasData ? (
                 <div className="space-y-4">
@@ -413,9 +413,9 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
                   </div>
                   {queries.map(ev => (
                     <div key={ev.queryId} className="space-y-2">
-                      <div className="rounded-lg border border-[#a8a29e]/20 overflow-hidden">
-                        <div className="bg-[#f5f5f4] p-3 border-b border-[#a8a29e]/20">
-                          <h4 className="text-[11px] font-black uppercase tracking-widest text-[#44403c]">{ev.queryDescription}</h4>
+                      <div className="rounded-lg border border-border overflow-hidden">
+                        <div className="bg-surface-sunken p-3 border-b border-border">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-muted">{ev.queryDescription}</h4>
                         </div>
                         <div className="p-4">
                           <div className="flex items-center gap-2 mb-2">
@@ -423,9 +423,9 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
                               ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                               : <AlertCircle className="w-3.5 h-3.5 text-[#9f403d]" />
                             }
-                            <p className="text-[10px] font-mono text-[#44403c] break-all">{ev.endpoint}</p>
+                            <p className="text-[10px] font-mono text-muted break-all">{ev.endpoint}</p>
                           </div>
-                          <span className="text-[10px] text-[#1c1917] bg-[#e7e5e4] px-2 py-0.5 rounded font-bold">
+                          <span className="text-[10px] text-ink bg-[#e7e5e4] px-2 py-0.5 rounded font-bold">
                             {ev.recordCount} {ev.recordCount === 1 ? 'record' : 'records'}
                           </span>
                           {!ev.success && (
@@ -442,9 +442,9 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
                     {ev.success && (ev.rawData?.length ?? 0) > 0 ? (
                       <EvidenceTable data={ev.rawData ?? []} title={ev.queryDescription} />
                     ) : (
-                      <div className="rounded-lg border border-[#a8a29e]/20 overflow-hidden">
-                        <div className="bg-[#f5f5f4] p-3 border-b border-[#a8a29e]/20">
-                          <h4 className="text-[11px] font-black uppercase tracking-widest text-[#44403c]">{ev.queryDescription}</h4>
+                      <div className="rounded-lg border border-border overflow-hidden">
+                        <div className="bg-surface-sunken p-3 border-b border-border">
+                          <h4 className="text-[11px] font-black uppercase tracking-widest text-muted">{ev.queryDescription}</h4>
                         </div>
                         <div className="p-4">
                           <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
                               ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                               : <AlertCircle className="w-3.5 h-3.5 text-[#9f403d]" />
                             }
-                            <p className="text-xs text-[#44403c]">
+                            <p className="text-xs text-muted">
                               {ev.success ? `${ev.recordCount} records returned` : (ev.errorMessage ?? 'Query failed')}
                             </p>
                           </div>
@@ -468,10 +468,10 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
         </div>
 
         {/* ── Footer ── */}
-        <div className="shrink-0 p-4 border-t border-[#a8a29e]/20 bg-white flex justify-end gap-3">
+        <div className="shrink-0 p-4 border-t border-border bg-white flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-[#44403c] hover:bg-[#f5f5f4] rounded transition-colors"
+            className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-muted hover:bg-surface-sunken rounded transition-colors"
           >
             Cancel
           </button>

@@ -90,7 +90,7 @@ export default function ReportPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-5 h-5 animate-spin text-[#a8a29e]" />
+        <Loader2 className="w-5 h-5 animate-spin text-faint" />
       </div>
     )
   }
@@ -149,12 +149,12 @@ export default function ReportPage() {
   }
 
   const statusBadgeStyles: Record<string, { bg: string; text: string; label: string }> = {
-    pass: { bg: 'bg-[#e7e5e4]', text: 'text-[#0c0a09]', label: 'Pass' },
+    pass: { bg: 'bg-[#e7e5e4]', text: 'text-ink', label: 'Pass' },
     fail: { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Fail' },
-    partial: { bg: 'bg-[#e7e5e4]', text: 'text-[#57534e]', label: 'Partial' },
+    partial: { bg: 'bg-[#e7e5e4]', text: 'text-muted', label: 'Partial' },
     manual_required: { bg: 'bg-[#F5F3FF]', text: 'text-[#6D28D9]', label: 'Manual' },
-    not_assessed: { bg: 'bg-[#f5f5f4]', text: 'text-[#78716c]', label: 'N/A' },
-    not_applicable: { bg: 'bg-[#f5f5f4]', text: 'text-[#78716c]', label: 'N/A' },
+    not_assessed: { bg: 'bg-surface-sunken', text: 'text-faint', label: 'N/A' },
+    not_applicable: { bg: 'bg-surface-sunken', text: 'text-faint', label: 'N/A' },
   }
 
   const statusBarColors: Record<string, string> = {
@@ -185,19 +185,19 @@ export default function ReportPage() {
               <div className="w-10 h-10 rounded-xl bg-[#FFFBEB] border border-[#FDE68A] flex items-center justify-center">
                 <Key className="w-5 h-5 text-[#B45309]" />
               </div>
-              <h2 className="text-base font-bold text-[#1c1917]">Anthropic API Key Required</h2>
+              <h2 className="text-base font-bold text-ink">Anthropic API Key Required</h2>
             </div>
-            <p className="text-sm text-[#44403c] mb-4 leading-relaxed">
+            <p className="text-sm text-muted mb-4 leading-relaxed">
               Word report generation uses Claude AI to write an executive narrative. Add your
               Anthropic API key in Settings to enable this feature.
             </p>
-            <div className="bg-[#fafaf9] border border-[#e7e5e4] rounded-lg p-3 mb-4 text-xs text-[#44403c] font-mono">
-              Get your API key at: <strong className="text-[#1c1917]">console.anthropic.com</strong>
+            <div className="bg-canvas border border-border rounded-lg p-3 mb-4 text-xs text-muted font-mono">
+              Get your API key at: <strong className="text-ink">console.anthropic.com</strong>
             </div>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowKeyModal(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-[#44403c] bg-[#fafaf9] hover:bg-[#f5f5f4] rounded-lg transition border border-[#e7e5e4]"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-muted bg-canvas hover:bg-surface-sunken rounded-lg transition border border-border"
               >
                 Cancel
               </button>
@@ -206,7 +206,7 @@ export default function ReportPage() {
                   setShowKeyModal(false)
                   router.push('/settings')
                 }}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-[#1c1917] hover:bg-[#0c0a09] rounded-lg transition"
+                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-ink hover:bg-ink rounded-lg transition"
               >
                 Open Settings
               </button>
@@ -219,16 +219,14 @@ export default function ReportPage() {
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <nav className="flex items-center text-xs font-medium tracking-tight mb-4">
-            <Link href="/history" className="text-[#a8a29e] hover:text-[#44403c] transition">
+            <Link href="/history" className="text-faint hover:text-muted transition">
               All reports
             </Link>
-            <span className="mx-2 text-[#a8a29e]">/</span>
-            <span className="text-[#1c1917] font-medium">{report.frameworkName}</span>
+            <span className="mx-2 text-faint">/</span>
+            <span className="text-ink font-medium">{report.frameworkName}</span>
           </nav>
-          <h1 className="text-3xl font-bold text-[#1c1917] tracking-tight mb-2">
-            Compliance Ledger
-          </h1>
-          <div className="flex items-center gap-4 text-sm text-[#44403c]">
+          <h1 className="text-3xl font-bold text-ink tracking-tight mb-2">Compliance Ledger</h1>
+          <div className="flex items-center gap-4 text-sm text-muted">
             <span className="flex items-center gap-1.5">
               <Calendar className="w-4 h-4" />
               {new Date(report.generatedAt).toLocaleDateString('en-US', {
@@ -245,11 +243,11 @@ export default function ReportPage() {
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
-            <p className="text-[10px] uppercase tracking-widest text-[#44403c] font-bold mb-1">
+            <p className="text-[10px] uppercase tracking-widest text-muted font-bold mb-1">
               Health Status
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-4xl font-extrabold text-[#1c1917]">{pct}%</span>
+              <span className="text-4xl font-extrabold text-ink">{pct}%</span>
               <span
                 className="text-[10px] px-2 py-0.5 font-bold rounded-full text-white"
                 style={{ background: riskColor }}
@@ -293,14 +291,14 @@ export default function ReportPage() {
             setOpaExporting(false)
           }}
           disabled={opaExporting}
-          className="bg-[#e7e5e4] text-[#1c1917] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
+          className="bg-[#e7e5e4] text-ink text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
         >
           {opaExporting ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
           Export OPA
         </button>
         <button
           onClick={exportJSON}
-          className="bg-[#1c1917] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#0c0a09] transition-colors"
+          className="bg-ink text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-ink transition-colors"
         >
           Export JSON
         </button>
@@ -311,7 +309,7 @@ export default function ReportPage() {
             setZipExporting(false)
           }}
           disabled={zipExporting}
-          className="bg-[#e7e5e4] text-[#1c1917] text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
+          className="bg-[#e7e5e4] text-ink text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#d6d3d1] transition-colors disabled:opacity-60"
         >
           {zipExporting ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
           Evidence ZIP
@@ -328,7 +326,7 @@ export default function ReportPage() {
           <button
             onClick={handleWordExport}
             disabled={wordExporting}
-            className="bg-[#7C3AED] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#6D28D9] disabled:bg-[#f5f5f4] disabled:text-[#44403c] transition disabled:cursor-wait"
+            className="bg-[#7C3AED] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#6D28D9] disabled:bg-surface-sunken disabled:text-muted transition disabled:cursor-wait"
           >
             {wordExporting ? (
               <>
@@ -343,7 +341,7 @@ export default function ReportPage() {
         )}
         <button
           onClick={() => router.push(`/assess/running?framework=${report.frameworkId}`)}
-          className="bg-[#1c1917] text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-[#0c0a09] transition ml-auto"
+          className="bg-ink text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-ink transition ml-auto"
         >
           <Play className="w-3 h-3 inline mr-1" /> Re-run
         </button>
@@ -390,9 +388,9 @@ export default function ReportPage() {
         <ComplianceDonut summary={report.summary} />
 
         {/* Top Findings */}
-        <div className="lg:col-span-2 bg-[#fafaf9] p-6 rounded-xl">
+        <div className="lg:col-span-2 bg-canvas p-6 rounded-xl">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-sm font-bold text-[#1c1917] uppercase tracking-widest">
+            <h3 className="text-sm font-bold text-ink uppercase tracking-widest">
               Top Findings & Critical Issues
             </h3>
             {report.summary.failed > 0 && (
@@ -409,15 +407,15 @@ export default function ReportPage() {
                   className={`bg-white p-4 rounded-lg flex gap-4 ${i === 0 ? 'border-l-4 border-[#9f403d]' : i < 2 ? 'border-l-4 border-[#9f403d]/50' : 'border-l-4 border-[#78716c]'}`}
                 >
                   <AlertTriangle
-                    className={`w-5 h-5 shrink-0 mt-0.5 ${i < 2 ? 'text-[#9f403d]' : 'text-[#78716c]'}`}
+                    className={`w-5 h-5 shrink-0 mt-0.5 ${i < 2 ? 'text-[#9f403d]' : 'text-faint'}`}
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-bold text-[#1c1917] mb-1">{finding}</p>
+                    <p className="text-sm font-bold text-ink mb-1">{finding}</p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="bg-white p-4 rounded-lg text-center text-sm text-[#44403c]">
+              <div className="bg-white p-4 rounded-lg text-center text-sm text-muted">
                 No critical findings detected.
               </div>
             )}
@@ -426,19 +424,17 @@ export default function ReportPage() {
       </section>
 
       {/* ── Tab Bar (Controls / DIBCAC) ── */}
-      <div className="flex items-center gap-1 bg-white border border-[#a8a29e]/20 rounded-xl p-1">
+      <div className="flex items-center gap-1 bg-white border border-border rounded-xl p-1">
         <button
           onClick={() => setActiveTab('controls')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
-            activeTab === 'controls'
-              ? 'bg-[#1c1917] text-white shadow-sm'
-              : 'text-[#44403c] hover:text-[#1c1917]'
+            activeTab === 'controls' ? 'bg-ink text-white shadow-sm' : 'text-muted hover:text-ink'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
           Control Assessments
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}
+            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted'}`}
           >
             {report.controlAssessments.length}
           </span>
@@ -448,15 +444,13 @@ export default function ReportPage() {
           <button
             onClick={() => setActiveTab('dibcac')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
-              activeTab === 'dibcac'
-                ? 'bg-[#1c1917] text-white shadow-sm'
-                : 'text-[#44403c] hover:text-[#1c1917]'
+              activeTab === 'dibcac' ? 'bg-ink text-white shadow-sm' : 'text-muted hover:text-ink'
             }`}
           >
             <ClipboardList className="w-3.5 h-3.5" />
             DIBCAC 320 Objectives
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-[#f5f5f4] text-[#44403c]'}`}
+              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted'}`}
             >
               320
             </span>
@@ -469,16 +463,14 @@ export default function ReportPage() {
         <section className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#a8a29e]/10">
           {/* Table header */}
           <div className="p-6 border-b border-[#a8a29e]/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h3 className="text-lg font-bold text-[#1c1917]">Control Assessments Ledger</h3>
-            <div className="flex bg-[#f5f5f4] p-1 rounded-lg">
+            <h3 className="text-lg font-bold text-ink">Control Assessments Ledger</h3>
+            <div className="flex bg-surface-sunken p-1 rounded-lg">
               {statusFilters.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={`px-4 py-1 text-[11px] font-bold rounded-md transition-colors ${
-                    filter === f.value
-                      ? 'bg-white shadow-sm text-[#1c1917]'
-                      : 'text-[#44403c] hover:text-[#1c1917]'
+                    filter === f.value ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'
                   }`}
                 >
                   {f.label}
@@ -490,21 +482,21 @@ export default function ReportPage() {
           {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
-              <thead className="bg-[#fafaf9]">
+              <thead className="bg-canvas">
                 <tr>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-muted uppercase tracking-widest">
                     ID
                   </th>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-muted uppercase tracking-widest">
                     Control Name
                   </th>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-muted uppercase tracking-widest">
                     Status
                   </th>
-                  <th className="text-left px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                  <th className="text-left px-6 py-3 text-[10px] font-bold text-muted uppercase tracking-widest">
                     Family
                   </th>
-                  <th className="text-right px-6 py-3 text-[10px] font-bold text-[#44403c] uppercase tracking-widest">
+                  <th className="text-right px-6 py-3 text-[10px] font-bold text-muted uppercase tracking-widest">
                     Actions
                   </th>
                 </tr>
@@ -519,13 +511,13 @@ export default function ReportPage() {
                   return (
                     <tr
                       key={a.controlId}
-                      className="hover:bg-[#fafaf9]/50 transition-colors cursor-pointer"
+                      className="hover:bg-canvas/50 transition-colors cursor-pointer"
                       onClick={() => setEvidenceControl(a)}
                     >
-                      <td className="px-6 py-4 text-xs font-bold text-[#44403c]">{a.controlId}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-muted">{a.controlId}</td>
                       <td className="px-6 py-4">
-                        <p className="text-sm font-semibold text-[#1c1917]">{a.controlTitle}</p>
-                        {a.family && <p className="text-[10px] text-[#44403c]">{a.family}</p>}
+                        <p className="text-sm font-semibold text-ink">{a.controlTitle}</p>
+                        {a.family && <p className="text-[10px] text-muted">{a.family}</p>}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -534,7 +526,7 @@ export default function ReportPage() {
                           {badge.label}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-[#44403c]">{a.family ?? '—'}</td>
+                      <td className="px-6 py-4 text-xs text-muted">{a.family ?? '—'}</td>
                       <td className="px-6 py-4 text-right">
                         {showFix ? (
                           <button
@@ -542,7 +534,7 @@ export default function ReportPage() {
                               e.stopPropagation()
                               window.open(portalLinks[0].url, '_blank')
                             }}
-                            className="bg-[#1c1917] text-white text-[10px] font-bold px-3 py-1.5 rounded hover:bg-[#0c0a09] transition"
+                            className="bg-ink text-white text-[10px] font-bold px-3 py-1.5 rounded hover:bg-ink transition"
                           >
                             Fix in Azure
                           </button>
@@ -552,7 +544,7 @@ export default function ReportPage() {
                               e.stopPropagation()
                               setEvidenceControl(a)
                             }}
-                            className="text-[#44403c] hover:text-[#1c1917]"
+                            className="text-muted hover:text-ink"
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </button>
@@ -567,10 +559,10 @@ export default function ReportPage() {
 
           {/* Show all / pagination */}
           {filtered.length > 10 && (
-            <div className="p-4 bg-[#fafaf9]/30 flex justify-center">
+            <div className="p-4 bg-canvas/30 flex justify-center">
               <button
                 onClick={() => setShowAllControls(!showAllControls)}
-                className="text-xs font-bold text-[#1c1917] flex items-center gap-1 hover:underline"
+                className="text-xs font-bold text-ink flex items-center gap-1 hover:underline"
               >
                 {showAllControls ? 'SHOW LESS' : `VIEW ALL ${filtered.length} CONTROLS`}
                 <ChevronDown
@@ -581,7 +573,7 @@ export default function ReportPage() {
           )}
 
           {filtered.length === 0 && (
-            <div className="p-10 text-center text-sm text-[#a8a29e]">
+            <div className="p-10 text-center text-sm text-faint">
               No controls match this filter.
             </div>
           )}

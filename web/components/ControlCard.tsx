@@ -22,7 +22,7 @@ export function ControlCard({ assessment, onViewEvidence }: Props) {
     <button
       type="button"
       onClick={() => onViewEvidence(assessment)}
-      className="w-full bg-white rounded-lg border border-[#e7e5e4] hover:border-[#d6d3d1] hover:bg-[#fafafa] active:bg-[#f5f5f4] transition-colors text-left"
+      className="w-full bg-white rounded-lg border border-border hover:border-border-strong hover:bg-[#fafafa] active:bg-surface-sunken transition-colors text-left"
     >
       <div className="flex items-center gap-3 px-4 py-3.5">
         <span className="shrink-0 text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">
@@ -30,8 +30,8 @@ export function ControlCard({ assessment, onViewEvidence }: Props) {
         </span>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[#1c1d1f] truncate">{controlTitle}</p>
-          {family && <p className="text-[11px] text-[#78716c] mt-0.5">{family}</p>}
+          <p className="text-sm font-medium text-ink truncate">{controlTitle}</p>
+          {family && <p className="text-[11px] text-faint mt-0.5">{family}</p>}
         </div>
 
         {showRemediation && (
