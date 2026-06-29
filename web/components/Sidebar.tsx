@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  ShieldCheck, AlertTriangle, Wrench, Waves, FileCheck,
+  ShieldCheck, AlertTriangle, Wrench, Waves, FileCheck, FileText,
   Plug, Layers, Sparkles, ChevronDown,
   Plus, UserCog, HelpCircle, LogOut,
 } from 'lucide-react'
@@ -24,6 +24,7 @@ const NAV_SECTIONS = [
       { href: '/remediation', label: 'Remediation', icon: Wrench },
       { href: '/drift', label: 'Drift', icon: Waves },
       { href: '/evidence', label: 'Evidence', icon: FileCheck },
+      { href: '/reports', label: 'Reports', icon: FileText },
     ],
   },
   {
