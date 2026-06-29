@@ -1,12 +1,14 @@
 import type { ComplianceStatus } from '@/lib/types'
+import { Badge, type BadgeTone } from '@/components/ui/Badge'
 
-const cfg: Record<ComplianceStatus, { label: string; dot: string; cls: string }> = {
-  pass:            { label: 'Pass',         dot: '#15803D', cls: 'bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0]' },
-  partial:         { label: 'Partial',      dot: '#B45309', cls: 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A]' },
-  fail:            { label: 'Fail',         dot: '#B91C1C', cls: 'bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA]' },
-  manual_required: { label: 'Manual',       dot: '#6D28D9', cls: 'bg-[#F5F3FF] text-[#6D28D9] border-[#DDD6FE]' },
-  not_assessed:    { label: 'Not Assessed', dot: '#78716c', cls: 'bg-[#F9FAFB] text-[#505967] border-[#E5E7EB]' },
-  not_applicable:  { label: 'N/A',          dot: '#d6d3d1', cls: 'bg-[#F9FAFB] text-[#78716c] border-[#F3F4F6]' },
+// Compliance status → semantic tone (token-driven; no inline hex).
+const MAP: Record<ComplianceStatus, { label: string; tone: BadgeTone }> = {
+  pass: { label: 'Pass', tone: 'pass' },
+  partial: { label: 'Partial', tone: 'warn' },
+  fail: { label: 'Fail', tone: 'fail' },
+  manual_required: { label: 'Manual', tone: 'info' },
+  not_assessed: { label: 'Not Assessed', tone: 'neutral' },
+  not_applicable: { label: 'N/A', tone: 'neutral' },
 }
 
 interface Props {
@@ -15,12 +17,10 @@ interface Props {
 }
 
 export function StatusBadge({ status, size = 'md' }: Props) {
-  const { label, dot, cls } = cfg[status] ?? cfg.not_assessed
-  const padCls = size === 'sm' ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-xs'
+  const { label, tone } = MAP[status] ?? MAP.not_assessed
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full font-semibold border ${cls} ${padCls}`}>
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: dot }} />
+    <Badge tone={tone} size={size} dot>
       {label}
-    </span>
+    </Badge>
   )
 }

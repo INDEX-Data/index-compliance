@@ -1,6 +1,7 @@
 import type { Config } from 'tailwindcss'
 
 const config: Config = {
+  darkMode: 'class',
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -9,41 +10,60 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // ── Semantic tokens (stone palette) ─────────────────────────────────
-        canvas:        '#fafaf9',     // page background (stone-50)
-        surface:       '#ffffff',     // card / modal backgrounds
-        border:        '#e7e5e4',     // standard border (stone-200)
-        'border-subtle': '#f5f5f4',   // dividers, sidebar border (stone-100)
-        ink:           '#1c1917',     // primary text (stone-900)
-        secondary:     '#292524',     // nav text, button text (stone-800)
-        muted:         '#44403c',     // body text, descriptions (stone-700)
-        faint:         '#78716c',     // secondary muted, icons (stone-500)
-        placeholder:   '#a8a29e',     // placeholder, overlines (stone-400)
-        // ── Surface states ───────────────────────────────────────────────────
-        hover:         '#f5f5f4',     // ghost button hover (stone-100)
-        active:        '#e7e5e4',     // ghost button active (stone-200)
-        // ── Sidebar ──────────────────────────────────────────────────────────
+        // ── Surfaces (cool slate, var-driven, dark-ready) ───────────────────
+        canvas:          'var(--surface-canvas)',
+        surface:         'var(--surface-card)',
+        'surface-raised':'var(--surface-raised)',
+        'surface-sunken':'var(--surface-sunken)',
+        // ── Text ─────────────────────────────────────────────────────────────
+        ink:           'var(--text-ink)',
+        muted:         'var(--text-muted)',
+        faint:         'var(--text-faint)',
+        'on-accent':   'var(--text-on-accent)',
+        // ── Borders ──────────────────────────────────────────────────────────
+        border:          'var(--border-default)',
+        'border-subtle': 'var(--border-subtle)',
+        'border-strong': 'var(--border-strong)',
+        // ── Brand — INDEX orange (mark + primary action only) ────────────────
+        brand: {
+          DEFAULT: 'var(--brand)',
+          hover:   'var(--brand-hover)',
+          active:  'var(--brand-active)',
+          wash:    'var(--brand-wash)',
+          ink:     'var(--brand-ink)',
+        },
+        'on-brand': 'var(--text-on-brand)',
+        // ── Dark navigation rail ─────────────────────────────────────────────
+        rail: {
+          DEFAULT: 'var(--rail-bg)',
+          raised:  'var(--rail-raised)',
+          border:  'var(--rail-border)',
+          text:    'var(--rail-text)',
+          faint:   'var(--rail-faint)',
+        },
+        // ── Status — semantic, distinct from brand ───────────────────────────
+        pass:    { DEFAULT: 'var(--status-pass)',    bg: 'var(--status-pass-bg)',    border: 'var(--status-pass-border)' },
+        warn:    { DEFAULT: 'var(--status-warn)',    bg: 'var(--status-warn-bg)',    border: 'var(--status-warn-border)' },
+        fail:    { DEFAULT: 'var(--status-fail)',    bg: 'var(--status-fail-bg)',    border: 'var(--status-fail-border)' },
+        info:    { DEFAULT: 'var(--status-info)',    bg: 'var(--status-info-bg)',    border: 'var(--status-info-border)' },
+        neutral: { DEFAULT: 'var(--status-neutral)', bg: 'var(--status-neutral-bg)', border: 'var(--status-neutral-border)' },
+        // ── Legacy aliases (existing pages still reference these) ─────────────
+        secondary:     '#292524',
+        placeholder:   'var(--text-faint)',
+        hover:         'var(--surface-sunken)',
+        active:        'var(--border-default)',
         sidebar: {
-          bg:     '#fafaf9',          // stone-50
-          border: '#e7e5e4',          // stone-200
-          hover:  '#f5f5f4',          // stone-100
-          active: '#e7e5e4',          // stone-200
-          text:   '#44403c',          // stone-700
+          bg: 'var(--rail-bg)', border: 'var(--rail-border)',
+          hover: 'var(--rail-raised)', active: 'var(--rail-active-bg)', text: 'var(--rail-text)',
         },
-        // ── Accent (monochrome) ──────────────────────────────────────────────
         accent: {
-          DEFAULT: '#1c1917',   // stone-900 — primary
-          hover:   '#0c0a09',   // stone-950 — hover
-          dark:    '#0c0a09',   // stone-950 — active press
-          light:   '#a8a29e',   // stone-400 — light
-          wash:    '#e7e5e4',   // stone-200 — wash bg
+          DEFAULT: 'var(--brand)', hover: 'var(--brand-hover)',
+          dark: 'var(--brand-active)', light: 'var(--text-faint)', wash: 'var(--brand-wash)',
         },
-        // ── Surface containers (multi-level bg system) ──────────────────────
-        'surface-low':  '#fafaf9',    // stone-50
-        'surface-mid':  '#f5f5f4',    // stone-100
-        'surface-high': '#e7e5e4',    // stone-200
-        blue:          '#1c1917',     // was interactive blue, now stone-900
-        // ── Semantic status (kept as pops of color) ───────────────────────────
+        'surface-low':  'var(--surface-canvas)',
+        'surface-mid':  'var(--surface-sunken)',
+        'surface-high': 'var(--border-default)',
+        blue:          'var(--text-ink)',
         teal: {
           50:  '#F0FDFA',
           100: '#CCFBF1',
@@ -54,7 +74,16 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        xl: 'var(--radius-xl)',
+      },
+      transitionTimingFunction: {
+        'out-expo': 'var(--ease-out)',
       },
       animation: {
         'pulse-fast': 'pulse 0.8s cubic-bezier(0.4,0,0.6,1) infinite',

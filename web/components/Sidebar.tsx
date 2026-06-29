@@ -4,29 +4,43 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  ShieldCheck, LayoutDashboard, Play, Clock,
-  Building2, Plug, Settings, ChevronDown,
-  Plus, ChevronsLeft, ChevronsRight,
-  UserCog, HelpCircle, Lightbulb, LogOut,
+  ShieldCheck, AlertTriangle, Wrench, Waves, FileCheck,
+  Plug, Layers, Sparkles, ChevronDown,
+  Plus, UserCog, HelpCircle, LogOut,
 } from 'lucide-react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { createClientSupabase } from '@/lib/supabase'
 import { getClients, getConfigStatus, getProfile } from '@/lib/api'
+import { useCopilot } from '@/contexts/CopilotContext'
 import type { UserProfile } from '@/lib/types'
+
+// Audit-centric information architecture (the locked direction's nav).
+const NAV_SECTIONS = [
+  {
+    label: 'The Audit',
+    items: [
+      { href: '/dashboard', label: 'Posture', icon: ShieldCheck },
+      { href: '/findings', label: 'Findings', icon: AlertTriangle },
+      { href: '/remediation', label: 'Remediation', icon: Wrench },
+      { href: '/drift', label: 'Drift', icon: Waves },
+      { href: '/evidence', label: 'Evidence', icon: FileCheck },
+    ],
+  },
+  {
+    label: 'Setup',
+    items: [
+      { href: '/clients', label: 'Connections', icon: Plug },
+      { href: '/assess', label: 'Frameworks', icon: Layers },
+    ],
+  },
+]
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const COLLAPSED_KEY = 'idx:sidebar:collapsed'
 
-const SHORTCUTS: Record<string, string> = {
-  '/dashboard':    'D',
-  '/assess':       'A',
-  '/history':      'H',
-  '/clients':      'C',
-  '/integrations': 'I',
-  '/settings':     'S',
-}
+// Decorative hover hints (no global handler wired). Empty until keybindings exist.
+const SHORTCUTS: Record<string, string> = {}
 
 // ─── Tooltip (dark, right-side, collapsed mode only) ─────────────────────────
 
@@ -63,50 +77,36 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
   const inner = (
     <Link
       href={href}
+      aria-current={active ? 'page' : undefined}
       className={[
-        'group/nav relative flex items-center gap-3 rounded-[10px] select-none outline-none',
-        collapsed
-          ? 'w-9 h-9 justify-center mx-auto'
-          : 'h-11 px-4 w-full',
+        'group/nav relative flex items-center gap-3 rounded-md select-none outline-none',
+        collapsed ? 'w-9 h-9 justify-center mx-auto' : 'h-10 px-3 w-full',
         active
-          ? 'bg-slate-200/50 text-[#1c1917] font-semibold'
-          : 'text-slate-500 hover:bg-slate-200/50 hover:text-slate-700',
-        'transition-colors duration-300 hover:duration-50',
+          ? 'bg-[color:var(--rail-active-bg)] text-white font-medium'
+          : 'text-rail-text hover:bg-rail-raised hover:text-white',
+        'transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white/25',
       ].join(' ')}
     >
-      {/* Blue right accent — active only */}
-      {active && !collapsed && (
-        <span className="absolute right-0 top-[8px] bottom-[8px] w-[2px] rounded-l-full bg-[#1c1917]" />
-      )}
-
       <Icon
-        className={[
-          'shrink-0',
-          collapsed ? 'w-[18px] h-[18px]' : 'w-[18px] h-[18px]',
-          active ? 'text-[#1c1917]' : 'text-current',
-        ].join(' ')}
+        className={['shrink-0 w-[18px] h-[18px]', active ? 'text-white' : 'text-rail-faint'].join(' ')}
         strokeWidth={1.6}
       />
 
       {!collapsed && (
         <>
-          <span className="flex-1 text-sm font-medium leading-none tracking-tight">
-            {label}
-          </span>
+          <span className="flex-1 text-[13px] leading-none tracking-tight">{label}</span>
 
           {badge != null && badge > 0 && (
             <span className={[
-              'text-[10.5px] font-semibold tabular-nums rounded-full px-[7px] py-[3px] leading-none',
-              active
-                ? 'bg-[#d6d3d1]/50 text-[#505967]'
-                : 'bg-[#f5f5f4] text-[#78716c] group-hover/nav:bg-[#e7e5e4]',
+              'text-[10.5px] font-medium tabular-nums rounded-full px-[7px] py-[3px] leading-none font-mono',
+              active ? 'bg-white/15 text-white' : 'bg-rail-raised text-rail-faint group-hover/nav:bg-rail-border',
             ].join(' ')}>
               {badge}
             </span>
           )}
 
           {shortcut && (badge == null || badge === 0) && (
-            <kbd className="text-[10.5px] font-mono text-[#a8a29e] leading-none
+            <kbd className="text-[10.5px] font-mono text-rail-faint leading-none
                             opacity-0 group-hover/nav:opacity-100 transition-opacity duration-100">
               {shortcut}
             </kbd>
@@ -212,6 +212,7 @@ function WorkspaceMenu({ orgName, onClose, toggleRef }: { orgName: string; onClo
 export function Sidebar() {
   const path     = usePathname()
   const router   = useRouter()
+  const { toggle: toggleCopilot } = useCopilot()
 
   const [supaUser,    setSupaUser]    = useState<{ id: string; email?: string } | null>(null)
   const [collapsed,   setCollapsed]   = useState(false)
@@ -244,43 +245,6 @@ export function Sidebar() {
     getProfile().then(setProfile).catch(() => {})
   }, [])
 
-  const isMsp = profile?.accountType === 'msp' // default to org nav while profile loads
-
-  const NAV_SECTIONS = isMsp ? [
-    {
-      label: 'Overview',
-      items: [
-        { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-        { href: '/assess',       label: 'Assess',       icon: Play },
-        { href: '/history',      label: 'History',      icon: Clock },
-      ],
-    },
-    {
-      label: 'Manage',
-      items: [
-        { href: '/clients',      label: 'Clients',      icon: Building2 },
-        { href: '/integrations', label: 'Integrations', icon: Plug },
-      ],
-    },
-  ] : [
-    {
-      label: 'Overview',
-      items: [
-        { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-        { href: '/assess',       label: 'Assess',       icon: Play },
-        { href: '/history',      label: 'History',      icon: Clock },
-        { href: '/insights',     label: 'Insights',     icon: Lightbulb },
-      ],
-    },
-  ]
-
-  const handleSignOut2 = async () => {
-    const supabase = createClientSupabase()
-    await supabase.auth.signOut()
-    router.push('/sign-in')
-    router.refresh()
-  }
-
   const toggleCollapsed = useCallback(() => {
     setWsOpen(false)
     const next = !collapsed
@@ -297,91 +261,71 @@ export function Sidebar() {
 
   // Prevent SSR flash
   if (!hydrated) {
-    return (
-      <aside
-        className="w-[256px] shrink-0 h-screen"
-        style={{ background: '#fafaf9', borderRight: '1px solid #f5f5f4' }}
-      />
-    )
+    return <aside className="w-[256px] shrink-0 h-screen bg-rail border-r border-rail-border" />
   }
 
   return (
     <aside
-      className={[
-        'relative flex flex-col shrink-0 h-screen overflow-hidden',
-        'transition-[width] duration-200 ease-in-out',
-      ].join(' ')}
-      style={{
-        width: collapsed ? 64 : 256,
-        background: '#fafaf9',
-        borderRight: '1px solid #f5f5f4',
-      }}
+      className="relative flex flex-col shrink-0 h-screen overflow-hidden bg-rail border-r border-rail-border transition-[width] duration-200 ease-in-out"
+      style={{ width: collapsed ? 64 : 256 }}
     >
 
-      {/* ── Logo / Brand ── */}
-      <div ref={brandRef} className="relative px-6 pt-6 mb-10">
-        {collapsed ? (
-          <Tip label="Atlas">
-            <button
-              onClick={() => setWsOpen(s => !s)}
-              className="w-9 h-9 rounded-[10px] flex items-center justify-center mx-auto
-                         hover:bg-slate-200/50 transition-colors"
-            >
-              <Image src="/atlas-logo.svg" alt="Atlas" width={36} height={36} className="h-7 w-auto" />
-            </button>
-          </Tip>
-        ) : (
-          <button
-            onClick={() => setWsOpen(s => !s)}
-            className="group text-left w-full flex items-center justify-between rounded-lg px-2 py-1.5 -mx-2
-                       hover:bg-slate-200/50 transition-colors"
-          >
-            <div className="flex items-center">
-              <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto" />
-            </div>
-            <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform
-                          ${wsOpen ? 'rotate-180' : ''}`} />
-          </button>
-        )}
+      {/* ── Brand mark (dark-safe: orange square + wordmark) ── */}
+      <div ref={brandRef} className={`relative pt-5 mb-5 ${collapsed ? 'px-3' : 'px-4'}`}>
+        <button
+          onClick={() => setWsOpen(s => !s)}
+          className={`group w-full flex items-center rounded-md hover:bg-rail-raised transition-colors
+                      ${collapsed ? 'justify-center p-1.5' : 'gap-2.5 px-2 py-1.5'}`}
+        >
+          <span className="w-7 h-7 rounded-md bg-brand flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-white" strokeWidth={2} />
+          </span>
+          {!collapsed && (
+            <>
+              <span className="flex-1 text-left text-[15px] font-semibold text-white tracking-[-0.01em]">ATLAS</span>
+              <ChevronDown className={`w-3.5 h-3.5 text-rail-faint transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
+            </>
+          )}
+        </button>
 
         {wsOpen && <WorkspaceMenu orgName={profile?.companyName ?? orgName} onClose={() => setWsOpen(false)} toggleRef={brandRef} />}
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll px-4 space-y-2 pb-4">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll px-3 pb-4 space-y-5">
         {NAV_SECTIONS.map(section => (
-          <div key={section.label}>
-            <div className="space-y-2">
-              {section.items.map(item => (
-                <NavItem
-                  key={item.href}
-                  {...item}
-                  active={isActive(item.href)}
-                  collapsed={collapsed}
-                  badge={item.href === '/clients' ? clientCount : null}
-                />
-              ))}
-            </div>
+          <div key={section.label} className="space-y-1">
+            {!collapsed && (
+              <div className="px-3 mb-1.5 text-[10px] font-medium uppercase tracking-[0.1em] text-rail-faint">
+                {section.label}
+              </div>
+            )}
+            {section.items.map(item => (
+              <NavItem
+                key={item.href}
+                {...item}
+                active={isActive(item.href)}
+                collapsed={collapsed}
+                badge={item.href === '/clients' ? clientCount : null}
+              />
+            ))}
           </div>
         ))}
       </nav>
 
-      {/* ── Bottom: Settings + Support ── */}
-      <div className="mt-auto px-4 space-y-2 pb-6">
-        <NavItem
-          href="/settings"
-          label="Settings"
-          icon={Settings}
-          active={isActive('/settings')}
-          collapsed={collapsed}
-        />
-        <NavItem
-          href="#"
-          label="Support"
-          icon={HelpCircle}
-          active={false}
-          collapsed={collapsed}
-        />
+      {/* ── Bottom: Ask your environment (Copilot launcher) ── */}
+      <div className="mt-auto px-3 pb-5">
+        <button
+          onClick={toggleCopilot}
+          aria-label="Ask your environment"
+          className={`group w-full flex items-center rounded-md border border-rail-border
+                      text-rail-text hover:bg-rail-raised hover:text-white transition-colors
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/25
+                      ${collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2.5'}`}
+        >
+          <Sparkles className="w-[18px] h-[18px] text-rail-faint shrink-0 group-hover:text-white" strokeWidth={1.6} />
+          {!collapsed && <span className="text-[13px] leading-tight text-left">Ask your environment</span>}
+        </button>
       </div>
 
     </aside>

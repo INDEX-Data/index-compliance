@@ -208,21 +208,17 @@ function UserMenu() {
 export function TopNavbar() {
   return (
     <header
-      className="h-14 shrink-0 flex items-center justify-between px-8 z-10"
-      style={{
-        background: 'rgba(247,249,251,0.80)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid #f5f5f4',
-      }}
+      className="h-14 shrink-0 flex items-center justify-between px-8 z-10 bg-surface/80 border-b border-border-subtle"
+      style={{ backdropFilter: 'blur(12px)' }}
     >
       {/* Search */}
       <div className="relative w-full max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a8a29e]" strokeWidth={1.5} />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-faint" strokeWidth={1.5} />
         <input
           type="text"
           placeholder="Search compliance data..."
-          className="w-full bg-white border border-[#e7e5e4] text-[13px] text-[#1c1d1f] pl-10 pr-4 h-9 rounded-lg
-                     placeholder-[#a8a29e] outline-none focus:border-[#1c1917] focus:ring-1 focus:ring-[#1c1917]/20
+          className="w-full bg-canvas border border-border text-[13px] text-ink pl-10 pr-4 h-9 rounded-md
+                     placeholder:text-faint outline-none focus:border-border-strong focus:ring-2 focus:ring-[color:var(--text-ink)]/10
                      transition-colors"
         />
       </div>
