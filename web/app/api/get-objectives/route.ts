@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase'
+import { getOwnedReport } from '@/lib/authz'
 import { DIBCAC_OBJECTIVES } from '@src/data/dibcac-objectives.js'
 import type { ObjectiveStatusValue, ObjectiveEvidenceSource } from '@src/types.js'
 
@@ -9,7 +10,9 @@ import type { ObjectiveStatusValue, ObjectiveEvidenceSource } from '@src/types.j
 export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabase()
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -25,6 +28,14 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
+
+    // Ownership gate FIRST. The service-role client below bypasses RLS, so
+    // without this any tenant could read another tenant's objective statuses
+    // and attestation text by passing an arbitrary reportId.
+    const owned = await getOwnedReport(admin, reportId, user.id)
+    if (!owned) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+    }
 
     // Load stored objective statuses for this report
     const { data: rows } = await admin
@@ -65,24 +76,28 @@ export async function POST(request: Request) {
     }
 
     // Enrich each DIBCAC objective with its stored status
-    const objectives = DIBCAC_OBJECTIVES.map(def => {
+    const objectives = DIBCAC_OBJECTIVES.map((def) => {
       const stored = statusMap.get(def.objectiveId)
-      const status = stored ? {
-        objectiveId: def.objectiveId,
-        status: (stored.status ?? 'not_assessed') as ObjectiveStatusValue,
-        evidenceSource: (stored.evidence_source ?? 'none') as ObjectiveEvidenceSource,
-        attestationText: stored.attestation_text ?? undefined,
-        documentRef: stored.document_ref ?? undefined,
-        documentName: stored.document_name ?? undefined,
-        assessedAt: stored.assessed_at ?? undefined,
-        assessedBy: stored.assessed_by ?? undefined,
-      } : {
-        objectiveId: def.objectiveId,
-        status: (def.automation === 'physical' ? 'requires_physical'
-          : def.automation === 'manual' ? 'requires_manual'
-          : 'not_assessed') as ObjectiveStatusValue,
-        evidenceSource: 'none' as ObjectiveEvidenceSource,
-      }
+      const status = stored
+        ? {
+            objectiveId: def.objectiveId,
+            status: (stored.status ?? 'not_assessed') as ObjectiveStatusValue,
+            evidenceSource: (stored.evidence_source ?? 'none') as ObjectiveEvidenceSource,
+            attestationText: stored.attestation_text ?? undefined,
+            documentRef: stored.document_ref ?? undefined,
+            documentName: stored.document_name ?? undefined,
+            assessedAt: stored.assessed_at ?? undefined,
+            assessedBy: stored.assessed_by ?? undefined,
+          }
+        : {
+            objectiveId: def.objectiveId,
+            status: (def.automation === 'physical'
+              ? 'requires_physical'
+              : def.automation === 'manual'
+                ? 'requires_manual'
+                : 'not_assessed') as ObjectiveStatusValue,
+            evidenceSource: 'none' as ObjectiveEvidenceSource,
+          }
 
       return {
         objectiveId: def.objectiveId,
@@ -98,28 +113,28 @@ export async function POST(request: Request) {
     })
 
     // Compute summary
-    const statuses = objectives.map(o => o.status.status)
+    const statuses = objectives.map((o) => o.status.status)
     const summary = {
       total: statuses.length,
-      met: statuses.filter(s => s === 'met').length,
-      partiallyMet: statuses.filter(s => s === 'partially_met').length,
-      notMet: statuses.filter(s => s === 'not_met').length,
-      requiresManual: statuses.filter(s => s === 'requires_manual').length,
-      requiresPhysical: statuses.filter(s => s === 'requires_physical').length,
-      notAssessed: statuses.filter(s => s === 'not_assessed').length,
+      met: statuses.filter((s) => s === 'met').length,
+      partiallyMet: statuses.filter((s) => s === 'partially_met').length,
+      notMet: statuses.filter((s) => s === 'not_met').length,
+      requiresManual: statuses.filter((s) => s === 'requires_manual').length,
+      requiresPhysical: statuses.filter((s) => s === 'requires_physical').length,
+      notAssessed: statuses.filter((s) => s === 'not_assessed').length,
       coveragePercentage: 0,
     }
     const assessable = summary.total - summary.requiresPhysical
-    summary.coveragePercentage = assessable > 0
-      ? Math.round(((summary.met + summary.partiallyMet * 0.5) / assessable) * 100)
-      : 0
+    summary.coveragePercentage =
+      assessable > 0
+        ? Math.round(((summary.met + summary.partiallyMet * 0.5) / assessable) * 100)
+        : 0
 
     return NextResponse.json({
       reportId,
       summary,
       objectives,
     })
-
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Failed to load objectives' },

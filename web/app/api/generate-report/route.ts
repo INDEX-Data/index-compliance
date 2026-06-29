@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase'
+import { getOwnedReport } from '@/lib/authz'
 import env from '@/lib/env'
 import { generateWordReport } from '@src/services/report-generator.js'
 import type { ComplianceReport } from '@src/types.js'
@@ -37,14 +38,13 @@ export async function POST(request: Request) {
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // Load report data
-    const { data: row, error: reportErr } = await admin
-      .from('reports')
-      .select('data')
-      .eq('id', reportId)
-      .single()
+    // Load report data — ownership-checked. The service-role client bypasses
+    // RLS, so we MUST scope by user_id here or any tenant could export any
+    // report by ID. getOwnedReport verifies ownership and loads `data` in one
+    // round trip; a non-owned or missing report returns null → 404.
+    const row = await getOwnedReport<{ data: ComplianceReport }>(admin, reportId, user.id, 'data')
 
-    if (reportErr || !row?.data) {
+    if (!row?.data) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 })
     }
 
