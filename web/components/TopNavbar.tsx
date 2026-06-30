@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Search, Bell, HelpCircle, Sparkles, Settings, LogOut, BookOpen, MessageSquare, ExternalLink } from 'lucide-react'
 import { createClientSupabase } from '@/lib/supabase'
 import { useCopilot } from '@/contexts/CopilotContext'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 function CopilotButton() {
   const { isOpen, toggle } = useCopilot()
@@ -13,8 +14,8 @@ function CopilotButton() {
       onClick={toggle}
       className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
         isOpen
-          ? 'bg-[#1c1917] text-white'
-          : 'text-[#78716c] hover:text-[#1c1917] hover:bg-[#f3f4f6]'
+          ? 'bg-ink text-on-accent'
+          : 'text-faint hover:text-ink hover:bg-surface-sunken'
       }`}
       title="Atlas Copilot"
     >
@@ -40,20 +41,20 @@ function NotificationsButton() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setShow(s => !s)}
-        className="w-9 h-9 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f3f4f6] transition-colors"
+        className="w-9 h-9 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
         title="Notifications"
       >
         <Bell className="w-[18px] h-[18px]" strokeWidth={1.5} />
       </button>
       {show && (
-        <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-[#e7e5e4] rounded-xl shadow-lg z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#f5f5f4]">
-            <p className="text-[13px] font-semibold text-[#1c1917]">Notifications</p>
+        <div className="absolute right-0 top-full mt-2 w-72 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border-subtle">
+            <p className="text-[13px] font-semibold text-ink">Notifications</p>
           </div>
           <div className="px-4 py-8 flex flex-col items-center text-center">
             <Bell className="w-8 h-8 text-[#d6d3d1] mb-2" strokeWidth={1.5} />
-            <p className="text-[13px] text-[#78716c]">No notifications yet</p>
-            <p className="text-[11px] text-[#a8a29e] mt-1">Assessment alerts and updates will appear here.</p>
+            <p className="text-[13px] text-faint">No notifications yet</p>
+            <p className="text-[11px] text-faint mt-1">Assessment alerts and updates will appear here.</p>
           </div>
         </div>
       )}
@@ -85,13 +86,13 @@ function HelpButton() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setShow(s => !s)}
-        className="w-9 h-9 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f3f4f6] transition-colors"
+        className="w-9 h-9 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
         title="Help & resources"
       >
         <HelpCircle className="w-[18px] h-[18px]" strokeWidth={1.5} />
       </button>
       {show && (
-        <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-[#e7e5e4] rounded-xl shadow-lg z-50 overflow-hidden py-1">
+        <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden py-1">
           {items.map(item => (
             item.href ? (
               <a
@@ -100,19 +101,19 @@ function HelpButton() {
                 target={item.external ? '_blank' : undefined}
                 rel={item.external ? 'noopener noreferrer' : undefined}
                 onClick={() => setShow(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#44403c] hover:bg-[#f5f5f4] transition-colors"
+                className="flex items-center gap-3 px-4 py-2.5 text-[13px] text-muted hover:bg-surface-sunken transition-colors"
               >
-                <item.icon className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                <item.icon className="w-4 h-4 text-faint" strokeWidth={1.5} />
                 {item.label}
-                {item.external && <ExternalLink className="w-3 h-3 text-[#a8a29e] ml-auto" strokeWidth={1.5} />}
+                {item.external && <ExternalLink className="w-3 h-3 text-faint ml-auto" strokeWidth={1.5} />}
               </a>
             ) : (
               <button
                 key={item.label}
                 onClick={item.onClick}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#44403c] hover:bg-[#f5f5f4] transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-muted hover:bg-surface-sunken transition-colors"
               >
-                <item.icon className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                <item.icon className="w-4 h-4 text-faint" strokeWidth={1.5} />
                 {item.label}
               </button>
             )
@@ -164,31 +165,31 @@ function UserMenu() {
 
   return (
     <div className="relative ml-3" ref={ref}>
-      <button onClick={() => setShow(s => !s)} className="rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1c1917]/20">
+      <button onClick={() => setShow(s => !s)} className="rounded-lg focus:outline-none focus:ring-2 focus:ring-[color:var(--text-ink)]/15">
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt=""
-            className="w-8 h-8 rounded-lg object-cover border border-[#e7e5e4]"
+            className="w-8 h-8 rounded-lg object-cover border border-border"
           />
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-[#d6d3d1] flex items-center justify-center text-[12px] font-bold text-[#1c1917]">
+          <div className="w-8 h-8 rounded-lg bg-[#d6d3d1] flex items-center justify-center text-[12px] font-bold text-ink">
             {initials}
           </div>
         )}
       </button>
       {show && (
-        <div className="absolute right-0 top-full mt-2 w-60 bg-white border border-[#e7e5e4] rounded-xl shadow-lg z-50 overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#f5f5f4]">
-            <p className="text-[13px] font-semibold text-[#1c1917] truncate">{displayName}</p>
-            <p className="text-[11px] text-[#a8a29e] truncate">{email}</p>
+        <div className="absolute right-0 top-full mt-2 w-60 bg-surface border border-border rounded-xl shadow-lg z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border-subtle">
+            <p className="text-[13px] font-semibold text-ink truncate">{displayName}</p>
+            <p className="text-[11px] text-faint truncate">{email}</p>
           </div>
           <div className="py-1">
             <button
               onClick={() => { setShow(false); router.push('/settings') }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-[#44403c] hover:bg-[#f5f5f4] transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-[13px] text-muted hover:bg-surface-sunken transition-colors"
             >
-              <Settings className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+              <Settings className="w-4 h-4 text-faint" strokeWidth={1.5} />
               Settings
             </button>
             <button
@@ -225,6 +226,7 @@ export function TopNavbar() {
 
       {/* Right actions */}
       <div className="flex items-center gap-1">
+        <ThemeToggle />
         <NotificationsButton />
         <HelpButton />
         <CopilotButton />

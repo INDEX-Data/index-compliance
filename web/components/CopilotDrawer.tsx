@@ -40,7 +40,7 @@ function MessageActions({ content }: { content: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const btnClass = 'w-7 h-7 flex items-center justify-center rounded-md text-[#a8a29e] hover:text-[#44403c] hover:bg-[#f5f5f4] transition-colors'
+  const btnClass = 'w-7 h-7 flex items-center justify-center rounded-md text-faint hover:text-muted hover:bg-surface-sunken transition-colors'
 
   return (
     <div className="flex items-center gap-0.5 mt-2">
@@ -48,7 +48,7 @@ function MessageActions({ content }: { content: string }) {
         {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" strokeWidth={1.5} /> : <Copy className="w-3.5 h-3.5" strokeWidth={1.5} />}
       </button>
       <button onClick={() => setLiked(liked === 'up' ? null : 'up')} className={btnClass} title="Good response">
-        <ThumbsUp className={`w-3.5 h-3.5 ${liked === 'up' ? 'text-[#1c1917] fill-current' : ''}`} strokeWidth={1.5} />
+        <ThumbsUp className={`w-3.5 h-3.5 ${liked === 'up' ? 'text-ink fill-current' : ''}`} strokeWidth={1.5} />
       </button>
       <button onClick={() => setLiked(liked === 'down' ? null : 'down')} className={btnClass} title="Bad response">
         <ThumbsDown className={`w-3.5 h-3.5 ${liked === 'down' ? 'text-[#9f403d] fill-current' : ''}`} strokeWidth={1.5} />
@@ -82,7 +82,7 @@ function ActionChips({ content, onChipClick }: { content: string; onChipClick: (
         <button
           key={chip.label}
           onClick={() => onChipClick(chip.label)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-[#44403c] bg-white border border-[#e7e5e4] rounded-full hover:bg-[#f5f5f4] hover:border-[#d6d3d1] transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium text-muted bg-surface border border-border rounded-full hover:bg-surface-sunken hover:border-border-strong transition-colors"
         >
           <chip.icon className="w-3 h-3" strokeWidth={1.5} />
           {chip.label}
@@ -132,19 +132,19 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
   }
 
   return (
-    <div className="w-[280px] shrink-0 flex flex-col h-full border-l border-[#e7e5e4]">
+    <div className="w-[280px] shrink-0 flex flex-col h-full border-l border-border">
       {/* Header */}
       <div className="px-5 pt-5 pb-3">
-        <h3 className="text-[15px] font-semibold text-[#1c1917]">Reference & Context</h3>
-        <p className="text-[11px] text-[#a8a29e] mt-0.5">Upload documents or view live data</p>
+        <h3 className="text-[15px] font-semibold text-ink">Reference & Context</h3>
+        <p className="text-[11px] text-faint mt-0.5">Upload documents or view live data</p>
       </div>
 
       {/* Tab switcher */}
-      <div className="mx-5 flex bg-[#f5f5f4] rounded-lg p-0.5 mb-4">
+      <div className="mx-5 flex bg-surface-sunken rounded-lg p-0.5 mb-4">
         <button
           onClick={() => setTab('documents')}
           className={`flex-1 text-[12px] font-medium py-1.5 rounded-md transition-colors ${
-            tab === 'documents' ? 'bg-white text-[#1c1917] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+            tab === 'documents' ? 'bg-surface text-ink shadow-sm' : 'text-faint hover:text-muted'
           }`}
         >
           Documents
@@ -152,7 +152,7 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
         <button
           onClick={() => setTab('live')}
           className={`flex-1 text-[12px] font-medium py-1.5 rounded-md transition-colors ${
-            tab === 'live' ? 'bg-white text-[#1c1917] shadow-sm' : 'text-[#78716c] hover:text-[#44403c]'
+            tab === 'live' ? 'bg-surface text-ink shadow-sm' : 'text-faint hover:text-muted'
           }`}
         >
           Live data
@@ -171,15 +171,15 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
               onClick={() => fileInputRef.current?.click()}
               className={`flex flex-col items-center justify-center gap-2 p-6 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
                 isDragging
-                  ? 'border-[#1c1917] bg-[#f5f5f4]'
-                  : 'border-[#e7e5e4] hover:border-[#d6d3d1] hover:bg-[#fafaf9]'
+                  ? 'border-[#1c1917] bg-surface-sunken'
+                  : 'border-border hover:border-border-strong hover:bg-canvas'
               }`}
             >
-              <Upload className={`w-6 h-6 ${isDragging ? 'text-[#1c1917]' : 'text-[#a8a29e]'}`} strokeWidth={1.5} />
-              <p className="text-[12px] text-[#78716c] text-center">
-                Drop files here or <span className="text-[#1c1917] font-medium underline">browse</span>
+              <Upload className={`w-6 h-6 ${isDragging ? 'text-ink' : 'text-faint'}`} strokeWidth={1.5} />
+              <p className="text-[12px] text-faint text-center">
+                Drop files here or <span className="text-ink font-medium underline">browse</span>
               </p>
-              <p className="text-[10px] text-[#a8a29e]">PDF, DOCX, TXT, CSV, XLSX</p>
+              <p className="text-[10px] text-faint">PDF, DOCX, TXT, CSV, XLSX</p>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -193,21 +193,21 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
             {/* Uploaded files list */}
             {files.length > 0 && (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-wider">
+                <p className="text-[10px] font-bold text-faint uppercase tracking-wider">
                   Uploaded ({files.length})
                 </p>
                 {files.map(f => (
-                  <div key={f.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-[#e7e5e4] group">
-                    <div className="w-7 h-7 rounded-md bg-[#f5f5f4] flex items-center justify-center shrink-0">
-                      <FileText className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={1.5} />
+                  <div key={f.id} className="flex items-center gap-2.5 p-2.5 rounded-lg border border-border group">
+                    <div className="w-7 h-7 rounded-md bg-surface-sunken flex items-center justify-center shrink-0">
+                      <FileText className="w-3.5 h-3.5 text-faint" strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-medium text-[#1c1917] truncate">{f.name}</p>
-                      <p className="text-[10px] text-[#a8a29e]">{formatFileSize(f.size)}</p>
+                      <p className="text-[11px] font-medium text-ink truncate">{f.name}</p>
+                      <p className="text-[10px] text-faint">{formatFileSize(f.size)}</p>
                     </div>
                     <button
                       onClick={() => removeFile(f.id)}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[#a8a29e] hover:text-red-500 transition-all"
+                      className="shrink-0 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-faint hover:text-red-500 transition-all"
                     >
                       <XCircle className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </button>
@@ -217,7 +217,7 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
             )}
 
             {files.length === 0 && (
-              <p className="text-[11px] text-[#a8a29e] text-center py-2">
+              <p className="text-[11px] text-faint text-center py-2">
                 Add policies, plans, or compliance documents for Atlas to reference during your conversation.
               </p>
             )}
@@ -231,13 +231,13 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
                 { label: 'Security & Compliance', desc: 'Alerts, secure score, incidents', icon: Activity },
                 { label: 'Conditional Access', desc: 'Policies, named locations', icon: Link2 },
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-[#e7e5e4]">
-                  <div className="w-8 h-8 rounded-lg bg-[#f5f5f4] flex items-center justify-center shrink-0">
-                    <item.icon className="w-4 h-4 text-[#78716c]" strokeWidth={1.5} />
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl border border-border">
+                  <div className="w-8 h-8 rounded-lg bg-surface-sunken flex items-center justify-center shrink-0">
+                    <item.icon className="w-4 h-4 text-faint" strokeWidth={1.5} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium text-[#1c1917]">{item.label}</p>
-                    <p className="text-[10px] text-[#a8a29e] mt-0.5">{item.desc}</p>
+                    <p className="text-[12px] font-medium text-ink">{item.label}</p>
+                    <p className="text-[10px] text-faint mt-0.5">{item.desc}</p>
                     <div className="flex items-center gap-1.5 mt-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                       <span className="text-[10px] text-emerald-600 font-medium">Connected via {activeClient.name}</span>
@@ -249,8 +249,8 @@ function ReferencePanel({ activeClient }: { activeClient: { name: string; tenant
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Activity className="w-8 h-8 text-[#d6d3d1] mb-2" strokeWidth={1.5} />
-              <p className="text-[12px] text-[#78716c]">No integrations connected</p>
-              <p className="text-[10px] text-[#a8a29e] mt-1 max-w-[200px]">
+              <p className="text-[12px] text-faint">No integrations connected</p>
+              <p className="text-[10px] text-faint mt-1 max-w-[200px]">
                 Connect a Microsoft 365 tenant to see live data from your environment.
               </p>
             </div>
@@ -283,7 +283,7 @@ function ExpandedSidebar({
   relativeTime: (d: string) => string
 }) {
   return (
-    <div className="w-[240px] shrink-0 flex flex-col h-full bg-[#fafaf9] border-r border-[#e7e5e4]">
+    <div className="w-[240px] shrink-0 flex flex-col h-full bg-canvas border-r border-border">
       {/* Brand */}
       <div className="px-4 pt-5 pb-4 flex items-center gap-3">
         <Image src="/atlas-logo.svg" alt="Atlas" width={120} height={32} className="h-8 w-auto" />
@@ -293,7 +293,7 @@ function ExpandedSidebar({
       <div className="px-4 mb-4">
         <button
           onClick={onNewChat}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[#1c1917] text-white text-[13px] font-medium hover:bg-[#0c0a09] transition-colors"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-ink text-on-accent text-[13px] font-medium hover:bg-ink transition-colors"
         >
           <Plus className="w-4 h-4" strokeWidth={1.5} />
           New chat
@@ -313,16 +313,16 @@ function ExpandedSidebar({
             disabled={item.comingSoon}
             className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-colors ${
               item.active
-                ? 'text-[#1c1917] font-medium bg-white border border-[#e7e5e4] shadow-sm'
+                ? 'text-ink font-medium bg-surface border border-border shadow-sm'
                 : item.comingSoon
-                  ? 'text-[#a8a29e] cursor-default'
-                  : 'text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4]'
+                  ? 'text-faint cursor-default'
+                  : 'text-faint hover:text-ink hover:bg-surface-sunken'
             }`}
           >
             <item.icon className="w-4 h-4" strokeWidth={1.5} />
             <span className="flex-1 text-left">{item.label}</span>
             {item.comingSoon && (
-              <span className="text-[9px] font-medium text-[#a8a29e] bg-[#f5f5f4] px-1.5 py-0.5 rounded-full">Soon</span>
+              <span className="text-[9px] font-medium text-faint bg-surface-sunken px-1.5 py-0.5 rounded-full">Soon</span>
             )}
           </button>
         ))}
@@ -330,23 +330,23 @@ function ExpandedSidebar({
 
       {/* Chat history */}
       <div className="flex-1 overflow-y-auto px-3">
-        <p className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-wider px-3 mb-2">Chats</p>
+        <p className="text-[10px] font-bold text-faint uppercase tracking-wider px-3 mb-2">Chats</p>
         {conversations.length === 0 ? (
-          <p className="text-[11px] text-[#a8a29e] px-3">No conversations yet</p>
+          <p className="text-[11px] text-faint px-3">No conversations yet</p>
         ) : (
           <div className="space-y-0.5">
             {conversations.map(conv => (
               <div
                 key={conv.id}
                 className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
-                  conv.id === activeConversationId ? 'bg-white border border-[#e7e5e4] shadow-sm' : 'hover:bg-[#f5f5f4]'
+                  conv.id === activeConversationId ? 'bg-surface border border-border shadow-sm' : 'hover:bg-surface-sunken'
                 }`}
                 onClick={() => onLoadConversation(conv)}
               >
-                <MessageSquare className="w-3.5 h-3.5 text-[#a8a29e] shrink-0" strokeWidth={1.5} />
+                <MessageSquare className="w-3.5 h-3.5 text-faint shrink-0" strokeWidth={1.5} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] text-[#1c1917] truncate">{conv.title}</p>
-                  <p className="text-[10px] text-[#a8a29e]">{relativeTime(conv.updatedAt)}</p>
+                  <p className="text-[12px] text-ink truncate">{conv.title}</p>
+                  <p className="text-[10px] text-faint">{relativeTime(conv.updatedAt)}</p>
                 </div>
                 {deletingId === conv.id ? (
                   <div className="flex items-center gap-0.5 shrink-0">
@@ -358,7 +358,7 @@ function ExpandedSidebar({
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeletingId(null) }}
-                      className="text-[10px] text-[#78716c] px-1 rounded hover:bg-[#f5f5f4]"
+                      className="text-[10px] text-faint px-1 rounded hover:bg-surface-sunken"
                     >
                       No
                     </button>
@@ -366,7 +366,7 @@ function ExpandedSidebar({
                 ) : (
                   <button
                     onClick={(e) => { e.stopPropagation(); setDeletingId(conv.id) }}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-[#a8a29e] hover:text-red-500 transition-all"
+                    className="shrink-0 opacity-0 group-hover:opacity-100 w-5 h-5 flex items-center justify-center rounded text-faint hover:text-red-500 transition-all"
                   >
                     <Trash2 className="w-3 h-3" strokeWidth={1.5} />
                   </button>
@@ -379,8 +379,8 @@ function ExpandedSidebar({
       </div>
 
       {/* System status */}
-      <div className="px-4 py-4 border-t border-[#e7e5e4]">
-        <p className="text-[10px] font-bold text-[#a8a29e] uppercase tracking-wider mb-2">System status</p>
+      <div className="px-4 py-4 border-t border-border">
+        <p className="text-[10px] font-bold text-faint uppercase tracking-wider mb-2">System status</p>
         {[
           { name: 'Microsoft Graph', status: 'Connected' },
           { name: 'Supabase', status: 'Connected' },
@@ -389,7 +389,7 @@ function ExpandedSidebar({
           <div key={s.name} className="flex items-center justify-between py-1">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] text-[#44403c]">{s.name}</span>
+              <span className="text-[11px] text-muted">{s.name}</span>
             </div>
             <span className="text-[10px] text-emerald-600 font-medium">{s.status}</span>
           </div>
@@ -686,10 +686,10 @@ export function CopilotDrawer() {
     <>
       {messages.length === 0 && (
         <div className="flex flex-col items-center justify-center h-full text-center px-6">
-          <p className={`font-medium text-[#1c1917] mb-1 ${expanded ? 'text-xl' : 'text-[15px]'}`}>Hi, I&apos;m Atlas</p>
-          <p className={`text-[13px] text-[#78716c] leading-relaxed mb-5 ${expanded ? 'max-w-[520px]' : 'max-w-[280px]'}`}>
+          <p className={`font-medium text-ink mb-1 ${expanded ? 'text-xl' : 'text-[15px]'}`}>Hi, I&apos;m Atlas</p>
+          <p className={`text-[13px] text-faint leading-relaxed mb-5 ${expanded ? 'max-w-[520px]' : 'max-w-[280px]'}`}>
             I have live access to{' '}
-            <span className="font-medium text-[#1c1917]">{activeClient?.name || 'your tenant'}</span>.
+            <span className="font-medium text-ink">{activeClient?.name || 'your tenant'}</span>.
             Ask me anything about {profileCompany ? `${profileCompany}'s` : 'your'} compliance posture or environment.
           </p>
           <div className={`flex flex-col gap-2 w-full ${expanded ? 'max-w-[520px]' : 'max-w-[300px]'}`}>
@@ -704,7 +704,7 @@ export function CopilotDrawer() {
                   setInput(prompt)
                   setTimeout(() => textareaRef.current?.focus(), 50)
                 }}
-                className="text-left text-[12px] text-[#78716c] px-4 py-2.5 rounded-full border border-[#e7e5e4] hover:border-[#d6d3d1] hover:bg-[#fafaf9] transition-colors"
+                className="text-left text-[12px] text-faint px-4 py-2.5 rounded-full border border-border hover:border-border-strong hover:bg-canvas transition-colors"
               >
                 {prompt}
               </button>
@@ -722,12 +722,12 @@ export function CopilotDrawer() {
                 const isLatest = si === msg.steps!.length - 1
                 const isActive = isLatest && !msg.content && (step.type === 'thinking' || step.type === 'tool_start' || step.type === 'responding')
                 return (
-                  <div key={si} className={`flex items-center gap-2 text-[11px] ${isActive ? 'text-[#44403c]' : 'text-[#a8a29e]'}`}>
-                    {step.type === 'thinking' && <Brain className={`w-3 h-3 shrink-0 ${isActive ? 'text-[#78716c] animate-pulse' : ''}`} strokeWidth={1.5} />}
-                    {step.type === 'tool_start' && <Search className={`w-3 h-3 shrink-0 ${isActive ? 'text-[#78716c] animate-pulse' : ''}`} strokeWidth={1.5} />}
+                  <div key={si} className={`flex items-center gap-2 text-[11px] ${isActive ? 'text-muted' : 'text-faint'}`}>
+                    {step.type === 'thinking' && <Brain className={`w-3 h-3 shrink-0 ${isActive ? 'text-faint animate-pulse' : ''}`} strokeWidth={1.5} />}
+                    {step.type === 'tool_start' && <Search className={`w-3 h-3 shrink-0 ${isActive ? 'text-faint animate-pulse' : ''}`} strokeWidth={1.5} />}
                     {step.type === 'tool_done' && <CheckCircle2 className="w-3 h-3 shrink-0 text-emerald-500" strokeWidth={1.5} />}
                     {step.type === 'tool_error' && <AlertCircle className="w-3 h-3 shrink-0 text-red-400" strokeWidth={1.5} />}
-                    {step.type === 'responding' && <Sparkles className={`w-3 h-3 shrink-0 ${isActive ? 'text-[#78716c] animate-pulse' : ''}`} strokeWidth={1.5} />}
+                    {step.type === 'responding' && <Sparkles className={`w-3 h-3 shrink-0 ${isActive ? 'text-faint animate-pulse' : ''}`} strokeWidth={1.5} />}
                     <span className="truncate">{step.detail}</span>
                   </div>
                 )
@@ -742,10 +742,10 @@ export function CopilotDrawer() {
                 <div
                   className={`px-4 py-2.5 text-[13.5px] leading-relaxed ${
                     msg.role === 'user'
-                      ? 'bg-[#f5f5f4] text-[#1c1917] rounded-2xl rounded-br-md'
+                      ? 'bg-surface-sunken text-ink rounded-2xl rounded-br-md'
                       : expanded
-                        ? 'text-[#1c1917]'
-                        : 'bg-[#f5f5f4] text-[#1c1917] rounded-2xl rounded-bl-md'
+                        ? 'text-ink'
+                        : 'bg-surface-sunken text-ink rounded-2xl rounded-bl-md'
                   }`}
                 >
                   {msg.role === 'assistant' ? (
@@ -755,8 +755,8 @@ export function CopilotDrawer() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 py-1">
-                        <Loader2 className="w-3.5 h-3.5 text-[#a8a29e] animate-spin" />
-                        <span className="text-[12px] text-[#a8a29e]">Starting...</span>
+                        <Loader2 className="w-3.5 h-3.5 text-faint animate-spin" />
+                        <span className="text-[12px] text-faint">Starting...</span>
                       </div>
                     )
                   ) : (
@@ -783,10 +783,10 @@ export function CopilotDrawer() {
   // ─── Input bar rendering ───────────────────────────────────────────────────
 
   const renderInputBar = (expanded: boolean) => (
-    <div className={`shrink-0 border-t border-[#e7e5e4] py-3 bg-white ${expanded ? 'px-6' : 'px-4'}`}>
-      <div className={`flex items-end gap-2 rounded-2xl px-4 py-2.5 ${expanded ? 'bg-[#f5f5f4] border border-[#e7e5e4]' : 'bg-[#f5f5f4]'}`}>
+    <div className={`shrink-0 border-t border-border py-3 bg-surface ${expanded ? 'px-6' : 'px-4'}`}>
+      <div className={`flex items-end gap-2 rounded-2xl px-4 py-2.5 ${expanded ? 'bg-surface-sunken border border-border' : 'bg-surface-sunken'}`}>
         {expanded && (
-          <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-[#a8a29e] hover:text-[#44403c] transition-colors mb-0.5">
+          <button className="shrink-0 w-7 h-7 flex items-center justify-center rounded-lg text-faint hover:text-muted transition-colors mb-0.5">
             <Plus className="w-4 h-4" strokeWidth={1.5} />
           </button>
         )}
@@ -800,13 +800,13 @@ export function CopilotDrawer() {
             : activeClient ? `Ask about ${activeClient.name}...` : 'Ask Atlas about compliance...'
           }
           rows={1}
-          className="flex-1 bg-transparent text-[13.5px] text-[#1c1917] placeholder-[#a8a29e] resize-none outline-none leading-relaxed max-h-[120px]"
+          className="flex-1 bg-transparent text-[13.5px] text-ink placeholder-[#a8a29e] resize-none outline-none leading-relaxed max-h-[120px]"
           disabled={isStreaming}
         />
         {isStreaming ? (
           <button
             onClick={handleStop}
-            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[#1c1917] text-white hover:bg-[#0c0a09] transition-colors"
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-ink text-on-accent hover:bg-ink transition-colors"
           >
             <Square className="w-3.5 h-3.5" fill="currentColor" />
           </button>
@@ -814,14 +814,14 @@ export function CopilotDrawer() {
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-[#1c1917] text-white hover:bg-[#0c0a09] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            className="shrink-0 w-8 h-8 flex items-center justify-center rounded-full bg-ink text-on-accent hover:bg-ink transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <Send className="w-4 h-4" strokeWidth={1.5} />
           </button>
         )}
       </div>
       {!expanded && (
-        <p className="text-[11px] text-[#a8a29e] text-center mt-2">
+        <p className="text-[11px] text-faint text-center mt-2">
           Atlas has live access to your tenant. Verify important compliance data.
         </p>
       )}
@@ -832,7 +832,7 @@ export function CopilotDrawer() {
 
   if (isExpanded) {
     return (
-      <div className="fixed inset-0 z-50 flex bg-white">
+      <div className="fixed inset-0 z-50 flex bg-surface">
         {/* Left sidebar */}
         <ExpandedSidebar
           conversations={conversations}
@@ -846,32 +846,32 @@ export function CopilotDrawer() {
         />
 
         {/* Center chat */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
+        <div className="flex-1 flex flex-col min-w-0 bg-surface">
           {/* Chat header */}
           <div
-            className="shrink-0 flex items-center justify-between px-6 h-14 border-b border-[#e7e5e4]"
+            className="shrink-0 flex items-center justify-between px-6 h-14 border-b border-border"
             style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)' }}
           >
             <div className="flex items-center gap-3">
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors">
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors">
                 <Minimize2 className="w-[18px] h-[18px]" strokeWidth={1.5} />
               </button>
             </div>
-            <span className="text-[15px] font-semibold text-[#1c1917]">Atlas Copilot</span>
+            <span className="text-[15px] font-semibold text-ink">Atlas Copilot</span>
             <div className="flex items-center gap-1">
-              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors" title="Download">
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors" title="Download">
                 <Download className="w-[18px] h-[18px]" strokeWidth={1.5} />
               </button>
               <button
                 onClick={toggleExpand}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
                 title="Collapse to drawer"
               >
                 <Minimize2 className="w-[18px] h-[18px]" strokeWidth={1.5} />
               </button>
               <button
                 onClick={close}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
               >
                 <MoreHorizontal className="w-[18px] h-[18px]" strokeWidth={1.5} />
               </button>
@@ -896,26 +896,26 @@ export function CopilotDrawer() {
   // ─── DRAWER LAYOUT (unchanged compact mode) ───────────────────────────────
 
   return (
-    <div className="w-[420px] shrink-0 h-screen flex flex-col bg-white border-l border-[#e7e5e4]">
+    <div className="w-[420px] shrink-0 h-screen flex flex-col bg-surface border-l border-border">
       {/* Header */}
       <div
-        className="shrink-0 flex items-center justify-between px-5 h-14 border-b border-[#e7e5e4]"
+        className="shrink-0 flex items-center justify-between px-5 h-14 border-b border-border"
         style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)' }}
       >
         <div className="flex items-center gap-2.5">
           {view === 'history' ? (
             <button
               onClick={() => setView('chat')}
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
             >
               <ArrowLeft className="w-4 h-4" strokeWidth={1.5} />
             </button>
           ) : (
-            <div className="w-7 h-7 rounded-lg bg-[#1c1917] flex items-center justify-center">
+            <div className="w-7 h-7 rounded-lg bg-ink flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" strokeWidth={1.5} />
             </div>
           )}
-          <span className="text-[15px] font-semibold text-[#1c1917]">
+          <span className="text-[15px] font-semibold text-ink">
             {view === 'history' ? 'Chat History' : 'Atlas Copilot'}
           </span>
         </div>
@@ -924,14 +924,14 @@ export function CopilotDrawer() {
             <>
               <button
                 onClick={() => { setView('history'); refreshConversations() }}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
                 title="Chat history"
               >
                 <Clock className="w-[18px] h-[18px]" strokeWidth={1.5} />
               </button>
               <button
                 onClick={startNewChat}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
                 title="New chat"
               >
                 <Plus className="w-[18px] h-[18px]" strokeWidth={1.5} />
@@ -940,14 +940,14 @@ export function CopilotDrawer() {
           )}
           <button
             onClick={toggleExpand}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
             title="Expand to fullscreen"
           >
             <Maximize2 className="w-[18px] h-[18px]" strokeWidth={1.5} />
           </button>
           <button
             onClick={close}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#78716c] hover:text-[#1c1917] hover:bg-[#f5f5f4] transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-faint hover:text-ink hover:bg-surface-sunken transition-colors"
           >
             <X className="w-[18px] h-[18px]" strokeWidth={1.5} />
           </button>
@@ -955,24 +955,24 @@ export function CopilotDrawer() {
       </div>
 
       {/* Org scope bar */}
-      <div className="shrink-0 px-4 py-2 border-b border-[#f5f5f4] bg-[#fafaf9]">
+      <div className="shrink-0 px-4 py-2 border-b border-border-subtle bg-canvas">
         <div className="relative" ref={pickerRef}>
           <button
             onClick={() => setShowClientPicker(s => !s)}
-            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-left hover:bg-[#f5f5f4] transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-left hover:bg-surface-sunken transition-colors"
           >
-            <Building2 className="w-3.5 h-3.5 text-[#78716c]" strokeWidth={1.5} />
-            <span className="text-[12px] font-medium text-[#44403c] truncate flex-1">
+            <Building2 className="w-3.5 h-3.5 text-faint" strokeWidth={1.5} />
+            <span className="text-[12px] font-medium text-muted truncate flex-1">
               {activeClient ? activeClient.name : 'No org selected'}
             </span>
             {activeClient && (
-              <span className="text-[10px] text-[#a8a29e] font-mono">{activeClient.tenantId?.slice(0, 8)}...</span>
+              <span className="text-[10px] text-faint font-mono">{activeClient.tenantId?.slice(0, 8)}...</span>
             )}
-            <ChevronDown className={`w-3 h-3 text-[#a8a29e] transition-transform ${showClientPicker ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-3 h-3 text-faint transition-transform ${showClientPicker ? 'rotate-180' : ''}`} />
           </button>
 
           {showClientPicker && allClients.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#e7e5e4] rounded-lg shadow-lg z-10 py-1 max-h-48 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-border rounded-lg shadow-lg z-10 py-1 max-h-48 overflow-y-auto">
               {allClients.map(c => (
                 <button
                   key={c.id}
@@ -980,14 +980,14 @@ export function CopilotDrawer() {
                     setActiveClientId(c.id)
                     setShowClientPicker(false)
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-[#f5f5f4] transition-colors ${
-                    c.id === activeClient?.id ? 'bg-[#f5f5f4]' : ''
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-sunken transition-colors ${
+                    c.id === activeClient?.id ? 'bg-surface-sunken' : ''
                   }`}
                 >
-                  <Building2 className="w-3.5 h-3.5 text-[#78716c] shrink-0" strokeWidth={1.5} />
+                  <Building2 className="w-3.5 h-3.5 text-faint shrink-0" strokeWidth={1.5} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium text-[#1c1917] truncate">{c.name}</p>
-                    <p className="text-[10px] text-[#a8a29e] font-mono">{c.tenantId}</p>
+                    <p className="text-[12px] font-medium text-ink truncate">{c.name}</p>
+                    <p className="text-[10px] text-faint font-mono">{c.tenantId}</p>
                   </div>
                   {c.id === activeClient?.id && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -1005,26 +1005,26 @@ export function CopilotDrawer() {
           {conversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center px-6">
               <MessageSquare className="w-10 h-10 text-[#d6d3d1] mb-3" strokeWidth={1.5} />
-              <p className="text-[13px] text-[#78716c]">No conversations yet</p>
-              <p className="text-[12px] text-[#a8a29e] mt-1">Start chatting and your history will appear here.</p>
+              <p className="text-[13px] text-faint">No conversations yet</p>
+              <p className="text-[12px] text-faint mt-1">Start chatting and your history will appear here.</p>
             </div>
           ) : (
             <div className="py-2">
               {conversations.map(conv => (
                 <div
                   key={conv.id}
-                  className={`group flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-[#fafaf9] transition-colors ${
-                    conv.id === activeConversationId ? 'bg-[#f5f5f4]' : ''
+                  className={`group flex items-start gap-3 px-5 py-3 cursor-pointer hover:bg-canvas transition-colors ${
+                    conv.id === activeConversationId ? 'bg-surface-sunken' : ''
                   }`}
                   onClick={() => loadConversation(conv)}
                 >
-                  <MessageSquare className="w-4 h-4 text-[#a8a29e] shrink-0 mt-0.5" strokeWidth={1.5} />
+                  <MessageSquare className="w-4 h-4 text-faint shrink-0 mt-0.5" strokeWidth={1.5} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-[#1c1917] truncate">{conv.title}</p>
+                    <p className="text-[13px] font-medium text-ink truncate">{conv.title}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] text-[#a8a29e]">{relativeTime(conv.updatedAt)}</span>
+                      <span className="text-[11px] text-faint">{relativeTime(conv.updatedAt)}</span>
                       <span className="text-[11px] text-[#d6d3d1]">&middot;</span>
-                      <span className="text-[11px] text-[#a8a29e]">{conv.messageCount} msg{conv.messageCount !== 1 ? 's' : ''}</span>
+                      <span className="text-[11px] text-faint">{conv.messageCount} msg{conv.messageCount !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
                   {deletingId === conv.id ? (
@@ -1037,7 +1037,7 @@ export function CopilotDrawer() {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); setDeletingId(null) }}
-                        className="text-[11px] text-[#78716c] hover:text-[#1c1917] px-1.5 py-0.5 rounded hover:bg-[#f5f5f4]"
+                        className="text-[11px] text-faint hover:text-ink px-1.5 py-0.5 rounded hover:bg-surface-sunken"
                       >
                         Cancel
                       </button>
@@ -1045,7 +1045,7 @@ export function CopilotDrawer() {
                   ) : (
                     <button
                       onClick={(e) => { e.stopPropagation(); setDeletingId(conv.id) }}
-                      className="shrink-0 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg text-[#a8a29e] hover:text-red-500 hover:bg-red-50 transition-all"
+                      className="shrink-0 opacity-0 group-hover:opacity-100 w-7 h-7 flex items-center justify-center rounded-lg text-faint hover:text-red-500 hover:bg-red-50 transition-all"
                     >
                       <Trash2 className="w-3.5 h-3.5" strokeWidth={1.5} />
                     </button>
@@ -1055,10 +1055,10 @@ export function CopilotDrawer() {
             </div>
           )}
 
-          <div className="sticky bottom-0 px-4 py-3 border-t border-[#e7e5e4] bg-white">
+          <div className="sticky bottom-0 px-4 py-3 border-t border-border bg-surface">
             <button
               onClick={startNewChat}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1c1917] text-white text-[13px] font-medium hover:bg-[#0c0a09] transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-ink text-on-accent text-[13px] font-medium hover:bg-ink transition-colors"
             >
               <Plus className="w-4 h-4" strokeWidth={1.5} />
               New Chat

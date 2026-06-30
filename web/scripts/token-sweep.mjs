@@ -41,6 +41,16 @@ const MAP = [
   // focus rings on the old near-black
   ['ring-[#1c1917]/20', 'ring-[color:var(--text-ink)]/15'],
   ['focus:border-[#1c1917]', 'focus:border-border-strong'],
+  // white / light literals → dark surfaces (these would be bright blocks on dark)
+  ['bg-white', 'bg-surface'],
+  ['bg-[#ffffff]', 'bg-surface'],
+  ['bg-[#fff]', 'bg-surface'],
+  ['bg-[#fafafa]', 'bg-canvas'],
+  ['hover:bg-white', 'hover:bg-surface'],
+  ['hover:bg-[#fafafa]', 'hover:bg-surface-sunken'],
+  // inverse buttons: dark-on-light became near-white bg → white text would vanish
+  ['bg-ink text-white', 'bg-ink text-on-accent'],
+  ['text-white text-xs font-semibold\n                         bg-[#1c1917]', 'text-on-accent text-xs font-semibold\n                         bg-ink'],
 ]
 
 let total = 0

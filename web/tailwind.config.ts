@@ -96,26 +96,14 @@ const config: Config = {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
-      // ── Attio multi-layer shadow system ──────────────────────────────────────
-      // Base color: rgba(28,29,31,…) — their near-black, not pure black
+      // ── Flat elevation — monochrome dark relies on hairline borders, not
+      // soft shadows. Cards get a near-invisible depth; popovers get a quiet
+      // drop so they separate from the surface beneath.
       boxShadow: {
-        card: [
-          '0px 0px 0px 1px rgba(28,29,31,0.08)',
-          '0px 1px 2px 0px rgba(28,29,31,0.05)',
-          '0px 2px 4px -1px rgba(28,29,31,0.04)',
-        ].join(', '),
-        'card-hover': [
-          '0px 0px 0px 1px rgba(28,29,31,0.08)',
-          '0px 4px 8px -2px rgba(28,29,31,0.06)',
-          '0px 8px 16px -4px rgba(28,29,31,0.08)',
-          '0px 16px 32px -8px rgba(28,29,31,0.06)',
-        ].join(', '),
-        'card-lg': [
-          '0px 0px 0px 1px rgba(28,29,31,0.08)',
-          '0px 2px 6px 0px rgba(28,29,31,0.06)',
-          '0px 6px 20px -2px rgba(28,29,31,0.08)',
-        ].join(', '),
-        float: '0px 2px 6px 0px rgba(28,40,64,0.06), 0px 6px 20px -2px rgba(28,40,64,0.08)',
+        card: 'none',
+        'card-hover': 'none',
+        'card-lg': '0 1px 2px rgba(0,0,0,0.3)',
+        float: '0 8px 24px -8px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.4)',
       },
     },
   },

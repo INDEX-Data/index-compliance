@@ -217,15 +217,15 @@ function RunningInner() {
           <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center mx-auto mb-5">
             <XCircle className="w-7 h-7 text-[#B91C1C]" />
           </div>
-          <h2 className="text-base font-bold text-[#1c1917] mb-2">
+          <h2 className="text-base font-bold text-ink mb-2">
             {noTenant ? 'M365 tenant not connected' : 'Assessment failed'}
           </h2>
-          <p className="text-sm text-[#44403c] mb-6 leading-relaxed">{error}</p>
+          <p className="text-sm text-muted mb-6 leading-relaxed">{error}</p>
           <div className="flex flex-col gap-2 items-center">
             {noTenant && (
               <button
                 onClick={() => router.push('/connect')}
-                className="w-full bg-[#1c1917] hover:bg-[#0c0a09] text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition"
+                className="w-full bg-ink hover:bg-ink text-on-accent text-sm font-semibold px-5 py-2.5 rounded-lg transition"
               >
                 Connect Microsoft 365
               </button>
@@ -234,8 +234,8 @@ function RunningInner() {
               onClick={() => router.push('/assess')}
               className={`w-full text-sm font-semibold px-5 py-2.5 rounded-lg transition border ${
                 noTenant
-                  ? 'bg-white text-[#44403c] border-[#a8a29e]/30'
-                  : 'bg-[#1c1917] hover:bg-[#0c0a09] text-white border-transparent'
+                  ? 'bg-surface text-muted border-border'
+                  : 'bg-ink hover:bg-ink text-on-accent border-transparent'
               }`}
             >
               Back to Frameworks
@@ -248,12 +248,12 @@ function RunningInner() {
 
   // ── Status badge styles ───────────────────────────────────────────────────
   const badgeStyles: Record<string, { bg: string; text: string; label: string }> = {
-    pass: { bg: 'bg-[#e7e5e4]', text: 'text-[#1c1917]', label: 'Passed' },
+    pass: { bg: 'bg-[#e7e5e4]', text: 'text-ink', label: 'Passed' },
     fail: { bg: 'bg-[#fe8983]/30', text: 'text-[#9f403d]', label: 'Failed' },
-    partial: { bg: 'bg-[#e7e5e4]', text: 'text-[#57534e]', label: 'Partial' },
+    partial: { bg: 'bg-[#e7e5e4]', text: 'text-muted', label: 'Partial' },
     manual_required: { bg: 'bg-[#fef3c7]', text: 'text-[#92400e]', label: 'Attestation' },
-    not_assessed: { bg: 'bg-[#f5f5f4]', text: 'text-[#44403c]', label: 'N/A' },
-    not_applicable: { bg: 'bg-[#f5f5f4]', text: 'text-[#44403c]', label: 'N/A' },
+    not_assessed: { bg: 'bg-surface-sunken', text: 'text-muted', label: 'N/A' },
+    not_applicable: { bg: 'bg-surface-sunken', text: 'text-muted', label: 'N/A' },
   }
 
   // ── Main render ───────────────────────────────────────────────────────────
@@ -262,13 +262,13 @@ function RunningInner() {
       {/* ── Header ── */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-[#0c0a09] mb-1">
+          <div className="flex items-center gap-2 text-ink mb-1">
             <Shield className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-widest">
               {done ? 'Assessment Complete' : 'Running Assessment'}
             </span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1c1917]">
+          <h1 className="text-3xl font-bold tracking-tight text-ink">
             {done
               ? 'Compliance Scan Complete'
               : starting
@@ -277,9 +277,9 @@ function RunningInner() {
           </h1>
           <div className="flex items-center gap-3 mt-2">
             {frameworkId && (
-              <span className="px-2.5 py-1 bg-[#e7e5e4] rounded text-xs font-medium text-[#44403c]">
-                <span className="text-[#a8a29e]">Framework:</span>{' '}
-                <span className="font-semibold text-[#1c1917]">{frameworkName || frameworkId}</span>
+              <span className="px-2.5 py-1 bg-[#e7e5e4] rounded text-xs font-medium text-muted">
+                <span className="text-faint">Framework:</span>{' '}
+                <span className="font-semibold text-ink">{frameworkName || frameworkId}</span>
               </span>
             )}
           </div>
@@ -288,7 +288,7 @@ function RunningInner() {
           {!done && (
             <button
               onClick={() => router.push('/assess')}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-[#44403c] font-semibold text-sm border border-[#a8a29e]/30 rounded shadow-sm hover:bg-[#fafaf9] transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-surface text-muted font-semibold text-sm border border-border rounded shadow-sm hover:bg-canvas transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -300,7 +300,7 @@ function RunningInner() {
             className={`px-6 py-2 font-semibold text-sm rounded shadow-sm transition-colors ${
               done && reportId
                 ? 'text-white hover:opacity-90'
-                : 'bg-[#f5f5f4] text-[#a8a29e] cursor-not-allowed'
+                : 'bg-surface-sunken text-faint cursor-not-allowed'
             }`}
             style={
               done && reportId
@@ -326,23 +326,23 @@ function RunningInner() {
       )}
 
       {/* ── Progress Card ── */}
-      <div className="bg-white rounded-xl p-8 border border-[#a8a29e]/10">
+      <div className="bg-surface rounded-xl p-8 border border-[#a8a29e]/10">
         <div className="flex justify-between items-end mb-4">
           <div className="space-y-1">
-            <span className="text-[11px] font-bold text-[#44403c] uppercase tracking-widest">
+            <span className="text-[11px] font-bold text-muted uppercase tracking-widest">
               Current Evaluation Phase
             </span>
-            <h3 className="text-xl font-semibold text-[#1c1917]">{currentDomain}</h3>
+            <h3 className="text-xl font-semibold text-ink">{currentDomain}</h3>
           </div>
           <div className="text-right">
-            <span className="text-4xl font-black text-[#0c0a09] tracking-tighter">
+            <span className="text-4xl font-black text-ink tracking-tighter">
               {done ? 100 : pct}%
             </span>
-            <span className="text-xs block font-bold text-[#44403c] uppercase">Complete</span>
+            <span className="text-xs block font-bold text-muted uppercase">Complete</span>
           </div>
         </div>
 
-        <div className="h-3 w-full bg-[#f5f5f4] rounded-full overflow-hidden">
+        <div className="h-3 w-full bg-surface-sunken rounded-full overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-500 relative"
             style={{
@@ -350,32 +350,32 @@ function RunningInner() {
               background: done ? '#15803D' : 'linear-gradient(90deg, #1c1917, #0c0a09)',
             }}
           >
-            {!done && <div className="absolute inset-0 bg-white/20 animate-pulse" />}
+            {!done && <div className="absolute inset-0 bg-surface/20 animate-pulse" />}
           </div>
         </div>
 
         <div className="grid grid-cols-4 mt-6 gap-4">
-          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
-            <span className="text-[10px] uppercase font-bold text-[#44403c]">Elapsed Time</span>
-            <p className="text-sm font-semibold text-[#1c1917]">{elapsedStr}</p>
+          <div className="space-y-1 border-l-2 border-border pl-3">
+            <span className="text-[10px] uppercase font-bold text-muted">Elapsed Time</span>
+            <p className="text-sm font-semibold text-ink">{elapsedStr}</p>
           </div>
-          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
-            <span className="text-[10px] uppercase font-bold text-[#44403c]">Controls Checked</span>
-            <p className="text-sm font-semibold text-[#1c1917]">
+          <div className="space-y-1 border-l-2 border-border pl-3">
+            <span className="text-[10px] uppercase font-bold text-muted">Controls Checked</span>
+            <p className="text-sm font-semibold text-ink">
               {checkedCount} / {total || '—'}
             </p>
           </div>
-          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
-            <span className="text-[10px] uppercase font-bold text-[#44403c]">Detected Risks</span>
+          <div className="space-y-1 border-l-2 border-border pl-3">
+            <span className="text-[10px] uppercase font-bold text-muted">Detected Risks</span>
             <p
-              className={`text-sm font-semibold ${failedItems.length > 0 ? 'text-[#9f403d]' : 'text-[#1c1917]'}`}
+              className={`text-sm font-semibold ${failedItems.length > 0 ? 'text-[#9f403d]' : 'text-ink'}`}
             >
               {failedItems.length > 0 ? `${failedItems.length} Critical` : 'None'}
             </p>
           </div>
-          <div className="space-y-1 border-l-2 border-[#e7e5e4] pl-3">
-            <span className="text-[10px] uppercase font-bold text-[#44403c]">Engine Load</span>
-            <p className="text-sm font-semibold text-[#1c1917]">
+          <div className="space-y-1 border-l-2 border-border pl-3">
+            <span className="text-[10px] uppercase font-bold text-muted">Engine Load</span>
+            <p className="text-sm font-semibold text-ink">
               {done ? 'Idle' : starting ? 'Warming up' : 'Active'}
             </p>
           </div>
@@ -386,19 +386,19 @@ function RunningInner() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2/3 — Real-Time Control Ledger */}
         <div className="lg:col-span-2">
-          <div className="bg-[#fafaf9] rounded-xl overflow-hidden">
-            <div className="px-6 py-4 bg-[#f5f5f4] border-b border-[#a8a29e]/10 flex justify-between items-center">
+          <div className="bg-canvas rounded-xl overflow-hidden">
+            <div className="px-6 py-4 bg-surface-sunken border-b border-[#a8a29e]/10 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-[#44403c]" />
-                <h3 className="text-[11px] font-bold uppercase tracking-widest text-[#44403c]">
+                <Shield className="w-4 h-4 text-muted" />
+                <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted">
                   Real-Time Control Ledger
                 </h3>
               </div>
               <div className="flex items-center gap-2">
                 {!done && !starting && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917] animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink animate-pulse" />
                 )}
-                <span className="text-[10px] text-[#a8a29e]">LIVE FEED FROM MICROSOFT GRAPH</span>
+                <span className="text-[10px] text-faint">LIVE FEED FROM MICROSOFT GRAPH</span>
               </div>
             </div>
 
@@ -408,13 +408,13 @@ function RunningInner() {
             >
               {items.length === 0 && (
                 <div className="py-16 text-center">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-3 text-[#a8a29e]" />
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-3 text-faint" />
                   {starting ? (
                     <>
-                      <p className="text-xs text-[#44403c] font-medium">
+                      <p className="text-xs text-muted font-medium">
                         Starting assessment engine...
                       </p>
-                      <p className="text-[11px] text-[#a8a29e] mt-1">
+                      <p className="text-[11px] text-faint mt-1">
                         {startingSeconds < 5
                           ? 'Connecting...'
                           : startingSeconds < 15
@@ -423,7 +423,7 @@ function RunningInner() {
                       </p>
                     </>
                   ) : (
-                    <p className="text-xs text-[#44403c]">Preparing...</p>
+                    <p className="text-xs text-muted">Preparing...</p>
                   )}
                 </div>
               )}
@@ -439,7 +439,11 @@ function RunningInner() {
                   <div
                     key={item.controlId}
                     className={`px-6 py-3.5 flex items-center justify-between transition-colors ${
-                      isPending ? 'opacity-50' : isActive ? 'bg-white' : 'hover:bg-[#f5f5f4]/50'
+                      isPending
+                        ? 'opacity-50'
+                        : isActive
+                          ? 'bg-surface'
+                          : 'hover:bg-surface-sunken/50'
                     }`}
                   >
                     <div className="flex items-center gap-4">
@@ -447,7 +451,7 @@ function RunningInner() {
                         {isActive ? (
                           <div className="w-4 h-4 border-2 border-[#1c1917] border-t-transparent rounded-full animate-spin" />
                         ) : isPending ? (
-                          <Clock className="w-4 h-4 text-[#a8a29e]" />
+                          <Clock className="w-4 h-4 text-faint" />
                         ) : item.status === 'pass' ? (
                           <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
                         ) : item.status === 'fail' ? (
@@ -457,10 +461,10 @@ function RunningInner() {
                         )}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-mono font-bold text-[#1c1917]">
+                        <span className="text-[10px] font-mono font-bold text-ink">
                           {item.controlId}
                         </span>
-                        <span className="text-sm font-medium text-[#1c1917]">{item.title}</span>
+                        <span className="text-sm font-medium text-ink">{item.title}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -471,11 +475,11 @@ function RunningInner() {
                           {badge.label}
                         </span>
                       ) : isActive ? (
-                        <span className="px-2 py-0.5 bg-[#e7e5e4] text-[#57534e] text-[10px] font-bold uppercase tracking-wider rounded">
+                        <span className="px-2 py-0.5 bg-[#e7e5e4] text-muted text-[10px] font-bold uppercase tracking-wider rounded">
                           In Progress
                         </span>
                       ) : isPending ? (
-                        <span className="px-2 py-0.5 bg-[#f5f5f4] text-[#44403c] text-[10px] font-bold uppercase tracking-wider rounded">
+                        <span className="px-2 py-0.5 bg-surface-sunken text-muted text-[10px] font-bold uppercase tracking-wider rounded">
                           Pending
                         </span>
                       ) : null}
@@ -522,7 +526,7 @@ function RunningInner() {
                 </span>
               </div>
             </div>
-            <div className="mt-6 p-4 bg-white/10 rounded-lg border border-white/5">
+            <div className="mt-6 p-4 bg-surface/10 rounded-lg border border-white/5">
               <div className="flex gap-3">
                 <Shield className="w-5 h-5 text-[#e7e5e4] shrink-0 mt-0.5" />
                 <div>
@@ -537,14 +541,14 @@ function RunningInner() {
 
           {/* Live Insights */}
           <div className="bg-[#d6d3d1] rounded-xl p-6">
-            <h4 className="text-[11px] font-bold uppercase tracking-widest text-[#44403c] mb-4">
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-muted mb-4">
               Live Insights
             </h4>
             <ul className="space-y-3">
               {failedItems.length > 0 && (
                 <li className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#9f403d] mt-1.5 shrink-0" />
-                  <p className="text-xs text-[#1c1917]">
+                  <p className="text-xs text-ink">
                     Detected <strong>{failedItems.length}</strong> failed control
                     {failedItems.length !== 1 ? 's' : ''} requiring attention.
                   </p>
@@ -552,8 +556,8 @@ function RunningInner() {
               )}
               {passedItems.length > 0 && (
                 <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#1c1917] mt-1.5 shrink-0" />
-                  <p className="text-xs text-[#1c1917]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-ink mt-1.5 shrink-0" />
+                  <p className="text-xs text-ink">
                     <strong>{passedItems.length}</strong> control
                     {passedItems.length !== 1 ? 's' : ''} passed compliance checks.
                   </p>
@@ -562,7 +566,7 @@ function RunningInner() {
               {failedItems.slice(0, 3).map((item) => (
                 <li key={item.controlId} className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#B45309] mt-1.5 shrink-0" />
-                  <p className="text-xs text-[#1c1917]">
+                  <p className="text-xs text-ink">
                     <span className="font-mono text-[10px] text-[#9f403d]">{item.controlId}</span> —{' '}
                     {item.title}
                   </p>
@@ -571,7 +575,7 @@ function RunningInner() {
               {checkedCount === 0 && (
                 <li className="flex items-start gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#a8a29e] mt-1.5 shrink-0" />
-                  <p className="text-xs text-[#44403c]">Waiting for results...</p>
+                  <p className="text-xs text-muted">Waiting for results...</p>
                 </li>
               )}
             </ul>
@@ -580,13 +584,11 @@ function RunningInner() {
       </div>
 
       {/* ── Footer Note ── */}
-      <div className="border-l-4 border-[#1c1917] bg-[#f5f5f4] rounded-lg p-6 flex items-center gap-4">
-        <AlertCircle className="w-6 h-6 text-[#0c0a09] shrink-0" />
+      <div className="border-l-4 border-[#1c1917] bg-surface-sunken rounded-lg p-6 flex items-center gap-4">
+        <AlertCircle className="w-6 h-6 text-ink shrink-0" />
         <div>
-          <h5 className="text-sm font-bold text-[#1c1917] uppercase tracking-tight">
-            Assessment Note
-          </h5>
-          <p className="text-xs text-[#44403c] leading-relaxed">
+          <h5 className="text-sm font-bold text-ink uppercase tracking-tight">Assessment Note</h5>
+          <p className="text-xs text-muted leading-relaxed">
             This assessment queries your Microsoft 365 tenant via the{' '}
             <strong>Microsoft Graph API</strong> using delegated permissions. Control evaluations
             are performed in real-time. Please do not close the browser until the scan reaches 100%.
@@ -602,7 +604,7 @@ export default function RunningPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center h-full">
-          <Loader2 className="w-6 h-6 animate-spin text-[#a8a29e]" />
+          <Loader2 className="w-6 h-6 animate-spin text-faint" />
         </div>
       }
     >

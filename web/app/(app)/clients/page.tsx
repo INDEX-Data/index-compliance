@@ -121,7 +121,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
     }
     if (inv.status === 'revoked') {
       return (
-        <span className="text-[10px] font-semibold text-muted bg-[#fafafa] border border-border px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-semibold text-muted bg-canvas border border-border px-2 py-0.5 rounded-full">
           Revoked
         </span>
       )
@@ -141,7 +141,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
         if (e.target === overlayRef.current) onClose()
       }}
     >
-      <div className="bg-white rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
           <div className="flex items-center gap-2">
@@ -166,7 +166,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                 onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                 placeholder="e.g. Contoso Ltd"
                 className="w-full px-3 py-2.5 rounded-lg border border-border text-sm text-ink
-                           placeholder-[#a8a29e] bg-white focus:outline-none focus:ring-2
+                           placeholder-[#a8a29e] bg-surface focus:outline-none focus:ring-2
                            focus:ring-[#1c1917]/30 focus:border-border-strong transition"
               />
             </div>
@@ -182,7 +182,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="contact@company.com"
                   className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-border text-sm text-ink
-                             placeholder-[#a8a29e] bg-white focus:outline-none focus:ring-2
+                             placeholder-[#a8a29e] bg-surface focus:outline-none focus:ring-2
                              focus:ring-[#1c1917]/30 focus:border-border-strong transition"
                 />
               </div>
@@ -199,7 +199,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
               onClick={handleGenerate}
               disabled={!clientName.trim() || generating}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg
-                         bg-ink hover:bg-ink text-white text-sm font-semibold
+                         bg-ink hover:bg-ink text-on-accent text-sm font-semibold
                          disabled:bg-[#F3F4F6] disabled:text-faint disabled:cursor-not-allowed transition"
             >
               {generating ? (
@@ -220,12 +220,12 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                 <input
                   readOnly
                   value={newLink}
-                  className="flex-1 bg-white border border-border rounded-lg px-3 py-2 text-xs font-mono text-ink focus:outline-none"
+                  className="flex-1 bg-surface border border-border rounded-lg px-3 py-2 text-xs font-mono text-ink focus:outline-none"
                 />
                 <button
                   onClick={() => handleCopy(newLink)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-border
-                             hover:bg-[#fafafa] text-xs font-medium text-ink transition shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-surface border border-border
+                             hover:bg-canvas text-xs font-medium text-ink transition shrink-0"
                 >
                   {copied ? (
                     <Check className="w-3.5 h-3.5 text-[#15803D]" />
@@ -263,8 +263,8 @@ function InviteModal({ onClose }: { onClose: () => void }) {
                   key={inv.id}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${
                     inv.status === 'revoked'
-                      ? 'opacity-50 border-border bg-[#fafafa]'
-                      : 'border-border bg-white'
+                      ? 'opacity-50 border-border bg-canvas'
+                      : 'border-border bg-surface'
                   }`}
                 >
                   <div className="flex-1 min-w-0">
@@ -359,7 +359,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
         if (e.target === overlayRef.current) onClose()
       }}
     >
-      <div className="bg-white rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-surface rounded-2xl border border-border shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle">
           <div className="flex items-center gap-2">
@@ -377,7 +377,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
             <button
               type="button"
               onClick={() => setGuideOpen((s) => !s)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-[#fafafa] hover:bg-surface-sunken text-sm font-medium text-ink transition text-left"
+              className="w-full flex items-center justify-between px-4 py-3 bg-canvas hover:bg-surface-sunken text-sm font-medium text-ink transition text-left"
             >
               <span className="flex items-center gap-2">
                 <HelpCircle className="w-3.5 h-3.5 text-ink shrink-0" />
@@ -410,7 +410,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
                   },
                 ].map((s) => (
                   <div key={s.step} className="flex items-start gap-3">
-                    <span className="w-5 h-5 rounded-full bg-ink text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="w-5 h-5 rounded-full bg-ink text-on-accent text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
                       {s.step}
                     </span>
                     <div>
@@ -443,7 +443,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Acme Corp"
               className="w-full px-3 py-2.5 rounded-lg border border-border text-sm text-ink
-                         placeholder-[#a8a29e] bg-white focus:outline-none focus:ring-2
+                         placeholder-[#a8a29e] bg-surface focus:outline-none focus:ring-2
                          focus:ring-[#1c1917]/30 focus:border-border-strong transition"
             />
           </div>
@@ -461,7 +461,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
                 onChange={(e) => setTenantId(e.target.value)}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 className="w-full px-3 py-2.5 rounded-lg border border-border text-sm font-mono text-ink
-                           placeholder-[#a8a29e] bg-white focus:outline-none focus:ring-2
+                           placeholder-[#a8a29e] bg-surface focus:outline-none focus:ring-2
                            focus:ring-[#1c1917]/30 focus:border-border-strong transition"
               />
             </div>
@@ -476,7 +476,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
                 onChange={(e) => setClientId(e.target.value)}
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 className="w-full px-3 py-2.5 rounded-lg border border-border text-sm font-mono text-ink
-                           placeholder-[#a8a29e] bg-white focus:outline-none focus:ring-2
+                           placeholder-[#a8a29e] bg-surface focus:outline-none focus:ring-2
                            focus:ring-[#1c1917]/30 focus:border-border-strong transition"
               />
             </div>
@@ -497,7 +497,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
                 onChange={(e) => setClientSecret(e.target.value)}
                 placeholder="App registration secret value"
                 className="w-full px-3 py-2.5 pr-10 rounded-lg border border-border text-sm font-mono text-ink
-                           placeholder-[#a8a29e] bg-white focus:outline-none focus:ring-2
+                           placeholder-[#a8a29e] bg-surface focus:outline-none focus:ring-2
                            focus:ring-[#1c1917]/30 focus:border-border-strong transition"
                 suppressHydrationWarning
               />
@@ -543,8 +543,8 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
             <button
               onClick={handleTest}
               disabled={!canTest || testing}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-white
-                         hover:bg-[#fafafa] text-sm font-medium text-ink
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-border bg-surface
+                         hover:bg-canvas text-sm font-medium text-ink
                          disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {testing ? (
@@ -558,7 +558,7 @@ function AddClientModal({ onAdded, onClose }: AddClientModalProps) {
               onClick={handleAdd}
               disabled={!canAdd || saving}
               className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg
-                         bg-ink hover:bg-ink text-white text-sm font-semibold
+                         bg-ink hover:bg-ink text-on-accent text-sm font-semibold
                          disabled:bg-[#F3F4F6] disabled:text-faint disabled:cursor-not-allowed transition"
             >
               {saving ? (
@@ -623,10 +623,10 @@ function ClientCard({
   return (
     <NextLink
       href={`/clients/${client.id}`}
-      className="block bg-white rounded-xl border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all overflow-hidden"
+      className="block bg-surface rounded-xl border border-border shadow-card hover:shadow-md hover:border-border-strong transition-all overflow-hidden"
     >
       <div className="flex items-center gap-4 px-5 py-4">
-        <div className="w-10 h-10 rounded-xl bg-[#fafafa] border border-border flex items-center justify-center shrink-0">
+        <div className="w-10 h-10 rounded-xl bg-canvas border border-border flex items-center justify-center shrink-0">
           <Building2 className="w-5 h-5 text-muted" />
         </div>
         <div className="flex-1 min-w-0">
@@ -664,7 +664,7 @@ function ClientCard({
           <button
             onClick={handleTest}
             disabled={testing}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-[11px] font-medium text-muted hover:bg-[#fafafa] transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-[11px] font-medium text-muted hover:bg-canvas transition-colors"
           >
             {testing ? (
               <Loader2 className="w-3 h-3 animate-spin" />
@@ -767,7 +767,7 @@ export default function ClientsPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-white border border-border flex items-center justify-center shadow-card">
+          <div className="w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center shadow-card">
             <Building2 className="w-4 h-4 text-muted" />
           </div>
           <div>
@@ -783,7 +783,7 @@ export default function ClientsPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowInvite(true)}
-            className="flex items-center gap-2 bg-white hover:bg-[#fafafa] text-ink border border-border
+            className="flex items-center gap-2 bg-surface hover:bg-canvas text-ink border border-border
                        text-sm font-semibold px-4 py-2.5 rounded-lg transition"
           >
             <Link className="w-4 h-4 text-ink" />
@@ -791,7 +791,7 @@ export default function ClientsPage() {
           </button>
           <button
             onClick={() => setShowAddForm(true)}
-            className="flex items-center gap-2 bg-ink hover:bg-ink text-white
+            className="flex items-center gap-2 bg-ink hover:bg-ink text-on-accent
                        text-sm font-semibold px-4 py-2.5 rounded-lg transition"
           >
             <Plus className="w-4 h-4" />
@@ -809,7 +809,7 @@ export default function ClientsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search clients…"
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-white text-[13px] text-ink placeholder-[#a8a29e] focus:outline-none focus:border-[#1c1d1f] transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-surface text-[13px] text-ink placeholder-[#a8a29e] focus:outline-none focus:border-[#1c1d1f] transition-colors"
           />
         </div>
       )}
@@ -830,7 +830,7 @@ export default function ClientsPage() {
         </div>
       ) : clients.length === 0 ? (
         <div className="text-center py-16">
-          <div className="w-14 h-14 rounded-2xl bg-[#fafafa] border border-border flex items-center justify-center mx-auto mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-canvas border border-border flex items-center justify-center mx-auto mb-4">
             <Building2 className="w-7 h-7 text-faint" />
           </div>
           <h3 className="text-[14px] font-semibold text-ink mb-1">No clients yet</h3>
@@ -838,7 +838,7 @@ export default function ClientsPage() {
             Connect a Microsoft 365 tenant to start running compliance assessments.
           </p>
 
-          <div className="bg-[#fafafa] border border-border rounded-xl px-5 py-4 mb-6 max-w-sm mx-auto text-left">
+          <div className="bg-canvas border border-border rounded-xl px-5 py-4 mb-6 max-w-sm mx-auto text-left">
             <p className="text-[11px] font-semibold text-faint uppercase tracking-widest mb-3">
               Before you start, you&apos;ll need:
             </p>
@@ -870,7 +870,7 @@ export default function ClientsPage() {
 
           <button
             onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 bg-ink hover:bg-ink text-white
+            className="inline-flex items-center gap-2 bg-ink hover:bg-ink text-on-accent
                        text-sm font-semibold px-5 py-2.5 rounded-lg transition"
           >
             <Plus className="w-4 h-4" />

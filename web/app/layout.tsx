@@ -13,12 +13,23 @@ export const metadata: Metadata = {
   description: 'Microsoft 365 Compliance Assessment Platform',
 }
 
+// Applied before paint to avoid a flash. Resolves the theme from the saved
+// preference ('light' | 'dark' | 'auto'); 'auto' (and no preference) follows
+// time of day — dark from 19:00 to 07:00.
+const THEME_SCRIPT = `(function(){try{
+  var t=localStorage.getItem('atlas-theme');
+  var h=new Date().getHours();
+  var dark = t==='dark' || ((t==='auto'||!t) && (h>=19||h<7));
+  document.documentElement.classList.toggle('dark', dark);
+}catch(e){}})();`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans bg-[#fafaf9] text-[#1c1917] antialiased">
-        {children}
-      </body>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body className="font-sans bg-canvas text-ink antialiased">{children}</body>
     </html>
   )
 }

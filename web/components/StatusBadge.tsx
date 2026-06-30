@@ -1,14 +1,14 @@
 import type { ComplianceStatus } from '@/lib/types'
-import { Badge, type BadgeTone } from '@/components/ui/Badge'
+import { cn } from '@/lib/cn'
 
-// Compliance status → semantic tone (token-driven; no inline hex).
-const MAP: Record<ComplianceStatus, { label: string; tone: BadgeTone }> = {
-  pass: { label: 'Pass', tone: 'pass' },
-  partial: { label: 'Partial', tone: 'warn' },
-  fail: { label: 'Fail', tone: 'fail' },
-  manual_required: { label: 'Manual', tone: 'info' },
-  not_assessed: { label: 'Not Assessed', tone: 'neutral' },
-  not_applicable: { label: 'N/A', tone: 'neutral' },
+// Quiet, Cursor-style status: a dot + colored text — no filled pill.
+const MAP: Record<ComplianceStatus, { label: string; cls: string; dot: string }> = {
+  pass: { label: 'Pass', cls: 'text-pass', dot: 'bg-pass' },
+  partial: { label: 'Partial', cls: 'text-warn', dot: 'bg-warn' },
+  fail: { label: 'Fail', cls: 'text-fail', dot: 'bg-fail' },
+  manual_required: { label: 'Manual', cls: 'text-muted', dot: 'bg-faint' },
+  not_assessed: { label: 'Not Assessed', cls: 'text-faint', dot: 'bg-faint' },
+  not_applicable: { label: 'N/A', cls: 'text-faint', dot: 'bg-faint' },
 }
 
 interface Props {
@@ -17,10 +17,11 @@ interface Props {
 }
 
 export function StatusBadge({ status, size = 'md' }: Props) {
-  const { label, tone } = MAP[status] ?? MAP.not_assessed
+  const { label, cls, dot } = MAP[status] ?? MAP.not_assessed
   return (
-    <Badge tone={tone} size={size} dot>
+    <span className={cn('inline-flex items-center gap-1.5 font-medium whitespace-nowrap', cls, size === 'sm' ? 'text-[11px]' : 'text-[12px]')}>
+      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dot)} aria-hidden />
       {label}
-    </Badge>
+    </span>
   )
 }

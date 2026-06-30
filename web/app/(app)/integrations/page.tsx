@@ -253,7 +253,7 @@ function TicketNominationsPanel({
   const confidenceColor = (c: number) => (c >= 60 ? '#0eb472' : c >= 35 ? '#f59e0b' : '#a8a29e')
 
   return (
-    <div className="bg-white rounded-xl border border-border overflow-hidden">
+    <div className="bg-surface rounded-xl border border-border overflow-hidden">
       <div className="px-5 py-4 border-b border-border-subtle">
         <p className="text-[13px] font-semibold text-ink mb-1">Ticket Nomination Engine</p>
         <p className="text-[11px] text-faint">
@@ -273,7 +273,7 @@ function TicketNominationsPanel({
               value={projectKey}
               onChange={(e) => setProjectKey(e.target.value)}
               placeholder="e.g. SEC"
-              className="w-full text-[13px] text-ink bg-[#fafafa] border border-border rounded-lg px-3 py-2 focus:outline-none focus:border-[#1c1d1f] transition-colors"
+              className="w-full text-[13px] text-ink bg-canvas border border-border rounded-lg px-3 py-2 focus:outline-none focus:border-[#1c1d1f] transition-colors"
             />
           </div>
         )}
@@ -308,7 +308,7 @@ function TicketNominationsPanel({
         <div>
           {pending.length > 0 && (
             <>
-              <div className="px-5 py-2.5 bg-[#fafafa] border-b border-[#f3f4f6]">
+              <div className="px-5 py-2.5 bg-canvas border-b border-[#f3f4f6]">
                 <p className="text-[10px] font-semibold text-faint uppercase tracking-wide">
                   {pending.length} Pending Review
                 </p>
@@ -352,7 +352,7 @@ function TicketNominationsPanel({
           )}
           {accepted.length > 0 && (
             <>
-              <div className="px-5 py-2.5 bg-[#fafafa] border-y border-[#f3f4f6]">
+              <div className="px-5 py-2.5 bg-canvas border-y border-[#f3f4f6]">
                 <p className="text-[10px] font-semibold text-faint uppercase tracking-wide">
                   {accepted.length} Accepted
                 </p>
@@ -445,7 +445,7 @@ function ConfigureModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-surface rounded-2xl border border-border shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-3 px-6 py-4 border-b border-border-subtle">
           <div
@@ -462,7 +462,7 @@ function ConfigureModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-faint hover:text-ink hover:bg-[#fafafa] transition"
+            className="p-1.5 rounded-lg text-faint hover:text-ink hover:bg-canvas transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -484,7 +484,7 @@ function ConfigureModal({
                     value={values[field.key] ?? ''}
                     onChange={(e) => setVal(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    className="w-full px-3 py-2.5 text-[13px] rounded-lg border border-border bg-white text-ink placeholder-[#d6d3d1] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/10 focus:border-[#78716c] transition pr-9"
+                    className="w-full px-3 py-2.5 text-[13px] rounded-lg border border-border bg-surface text-ink placeholder-[#d6d3d1] focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/10 focus:border-[#78716c] transition pr-9"
                   />
                   {isPwd && (
                     <button
@@ -524,11 +524,11 @@ function ConfigureModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-border-subtle bg-[#fafafa]">
+        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-border-subtle bg-canvas">
           <button
             onClick={handleTest}
             disabled={!allFilled() || testing || saving}
-            className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg border border-border bg-white text-ink hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed transition"
+            className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg border border-border bg-surface text-ink hover:bg-surface-sunken disabled:opacity-40 disabled:cursor-not-allowed transition"
           >
             {testing ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -540,14 +540,14 @@ function ConfigureModal({
           <div className="flex items-center gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-semibold rounded-lg border border-border bg-white text-muted hover:bg-surface-sunken transition"
+              className="px-4 py-2 text-[12px] font-semibold rounded-lg border border-border bg-surface text-muted hover:bg-surface-sunken transition"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={!allFilled() || saving || testing}
-              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg bg-ink text-white hover:bg-ink disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="flex items-center gap-1.5 px-4 py-2 text-[12px] font-semibold rounded-lg bg-ink text-on-accent hover:bg-ink disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
               Save Credentials
@@ -591,7 +591,7 @@ function StatusPill({ status }: { status: ConnStatus }) {
       label: 'Not connected',
       dot: 'bg-[#d6d3d1]',
       text: 'text-faint',
-      bg: 'bg-[#fafafa]',
+      bg: 'bg-canvas',
       border: 'border-border',
     },
   }
@@ -617,7 +617,7 @@ function ConnectedBadge() {
 function PlatformLogo({ color, name }: { color: string; name: string }) {
   return (
     <div
-      className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[#fafafa]"
+      className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-canvas"
       style={{ color }}
     >
       <span className="text-[14px] font-bold">{name.charAt(0)}</span>
@@ -646,7 +646,7 @@ function MicrosoftEntraCard({
     <div className="bg-canvas rounded-xl p-6 flex flex-col gap-6">
       <div className="flex justify-between items-start">
         <div className="flex gap-4">
-          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+          <div className="w-12 h-12 bg-surface rounded-lg flex items-center justify-center">
             <svg viewBox="0 0 96 96" className="w-8 h-8" fill="none">
               <path d="M48 4L4 20v56l44 16 44-16V20L48 4z" fill="#0078D4" />
               <path d="M48 4v88l44-16V20L48 4z" fill="#0050B3" opacity=".6" />
@@ -723,7 +723,7 @@ function IntegrationTile({ id, intg, onConnect }: IntegrationTileProps) {
   return (
     <div
       className={[
-        'bg-white p-6 rounded-xl group hover:shadow-lg transition-all duration-300',
+        'bg-surface p-6 rounded-xl group hover:shadow-lg transition-all duration-300',
         isActive ? 'border-l-4 border-[#1c1917]' : '',
         meta.soon ? 'opacity-50' : '',
       ].join(' ')}
@@ -938,7 +938,7 @@ export default function IntegrationsPage() {
             <div className="bg-canvas rounded-xl p-6 flex flex-col gap-6">
               <div className="flex justify-between items-start">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-surface rounded-lg flex items-center justify-center">
                     <svg viewBox="0 0 96 96" className="w-8 h-8" fill="none">
                       <circle cx="48" cy="48" r="44" fill="#00BCF2" />
                       <path
@@ -1025,7 +1025,7 @@ export default function IntegrationsPage() {
                 type="text"
                 value={filterSearch}
                 onChange={(e) => setFilterSearch(e.target.value)}
-                className="w-full bg-white border border-border rounded-lg text-xs py-2 pl-9 focus:ring-2 focus:ring-[color:var(--text-ink)]/15 focus:outline-none"
+                className="w-full bg-surface border border-border rounded-lg text-xs py-2 pl-9 focus:ring-2 focus:ring-[color:var(--text-ink)]/15 focus:outline-none"
                 placeholder="Filter by name or category..."
               />
             </div>
@@ -1041,7 +1041,7 @@ export default function IntegrationsPage() {
                     i < 2 ? 'border-r border-border' : '',
                     filter === tab
                       ? 'bg-[#d6d3d1] font-bold text-ink'
-                      : 'bg-white text-muted hover:bg-canvas',
+                      : 'bg-surface text-muted hover:bg-canvas',
                   ].join(' ')}
                 >
                   {tab}
@@ -1059,14 +1059,14 @@ export default function IntegrationsPage() {
               <div className="relative shrink-0">
                 <button
                   onClick={() => setDropdownOpen((o) => !o)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-white hover:bg-canvas text-xs font-medium text-ink transition"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface hover:bg-canvas text-xs font-medium text-ink transition"
                 >
                   <Building2 className="w-3.5 h-3.5 text-faint" />
                   {selectedClient?.name ?? 'Select client'}
                   <ChevronDown className="w-3 h-3 text-faint" />
                 </button>
                 {dropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white border border-border rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
+                  <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
                     {clients.map((c) => (
                       <button
                         key={c.id}
@@ -1095,7 +1095,7 @@ export default function IntegrationsPage() {
             <Loader2 className="w-5 h-5 animate-spin text-faint" />
           </div>
         ) : clients.length === 0 ? (
-          <div className="bg-white rounded-xl border border-border p-10 text-center">
+          <div className="bg-surface rounded-xl border border-border p-10 text-center">
             <Building2 className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3" />
             <p className="text-[13px] font-medium text-faint mb-1">No clients yet</p>
             <p className="text-[12px] text-faint">
@@ -1126,7 +1126,7 @@ export default function IntegrationsPage() {
             )}
 
             {filteredIds.length === 0 && !loadingIntgs && (
-              <div className="bg-white rounded-xl border border-border p-10 text-center">
+              <div className="bg-surface rounded-xl border border-border p-10 text-center">
                 <p className="text-[13px] text-faint">
                   {filterSearch
                     ? 'No integrations match your search.'
@@ -1191,7 +1191,7 @@ export default function IntegrationsPage() {
                 </p>
                 <p className="text-[10px] uppercase font-bold opacity-60">Systems Linked</p>
               </div>
-              <div className="w-px h-10 bg-white/20" />
+              <div className="w-px h-10 bg-surface/20" />
               <div>
                 <p className="text-2xl font-bold">—</p>
                 <p className="text-[10px] uppercase font-bold opacity-60">Monthly Syncs</p>

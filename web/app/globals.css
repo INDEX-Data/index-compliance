@@ -3,51 +3,50 @@
 @tailwind utilities;
 
 /* =============================================================================
-   ATLAS design tokens — enterprise security console (light-first, dark-ready)
-   Cool slate neutrals · INDEX orange reserved for brand mark + primary action ·
-   green = secure. Tailwind tokens (tailwind.config.ts) reference these vars.
+   ATLAS design tokens — monochrome full-dark (Cursor/Linear discipline).
+   Near-total grayscale; color appears ONLY for pass/fail status. No brand
+   accent — primary actions are a crisp near-white pill. Tailwind tokens
+   (tailwind.config.ts) reference these vars, so a recolor here cascades app-wide.
    ============================================================================= */
 :root {
-  /* ── Surfaces (cool slate) ── */
-  --surface-canvas:  #F7F8FA;   /* app/page background */
-  --surface-card:    #FFFFFF;   /* cards, panels */
-  --surface-raised:  #FFFFFF;   /* elevated cards (with shadow) */
-  --surface-sunken:  #F1F3F6;   /* inset wells, track */
+  /* ── LIGHT (default) — neutral zinc grayscale, monochrome ── */
+  --surface-canvas:  #FBFBFB;
+  --surface-card:    #FFFFFF;
+  --surface-raised:  #FFFFFF;
+  --surface-sunken:  #F4F4F5;
 
-  /* ── Text ── */
-  --text-ink:    #1A1E26;       /* primary */
-  --text-muted:  #5A6472;       /* body / secondary */
-  --text-faint:  #8A93A1;       /* captions, overlines, icons */
+  --text-ink:    #18181B;
+  --text-muted:  #6B6B72;
+  --text-faint:  #9B9BA1;
   --text-on-accent: #FFFFFF;
 
-  /* ── Borders ── */
-  --border-subtle:  #EEF0F3;
-  --border-default: #E6E9ED;
-  --border-strong:  #D5DAE0;
+  --border-subtle:  #F0F0F1;
+  --border-default: #E4E4E7;
+  --border-strong:  #D4D4D8;
 
-  /* ── Brand — INDEX orange (mark + primary action only) ── */
-  --brand:        #ED6426;
-  --brand-hover:  #D9531A;
-  --brand-active: #BF470F;
-  --brand-wash:   #FBEADF;
-  --brand-ink:    #B4451C;
+  /* Primary action = near-black pill (flips to near-white in dark) */
+  --brand:        #18181B;
+  --brand-hover:  #27272A;
+  --brand-active: #3F3F46;
+  --brand-wash:   #F4F4F5;
+  --brand-ink:    #18181B;
   --text-on-brand: #FFFFFF;
 
-  /* ── Status — semantic, distinct from brand ── */
-  --status-pass: #15803D;  --status-pass-bg: #EBF5EE;  --status-pass-border: #C6E6CF;
-  --status-warn: #B45309;  --status-warn-bg: #FEF6E7;  --status-warn-border: #F4E0B2;
-  --status-fail: #C0392B;  --status-fail-bg: #FBEDEB;  --status-fail-border: #F1D2CD;
-  --status-info: #1D6FBF;  --status-info-bg: #EAF2FB;  --status-info-border: #CBE0F5;
-  --status-neutral: #64748B; --status-neutral-bg: #F1F3F5; --status-neutral-border: #E2E6EA;
+  /* Status — muted, light-readable; the only color in the system */
+  --status-pass: #1A7F37;  --status-pass-bg: rgba(26,127,55,0.10);  --status-pass-border: rgba(26,127,55,0.24);
+  --status-warn: #9A6700;  --status-warn-bg: rgba(154,103,0,0.10);  --status-warn-border: rgba(154,103,0,0.24);
+  --status-fail: #CF222E;  --status-fail-bg: rgba(207,34,46,0.09);   --status-fail-border: rgba(207,34,46,0.24);
+  --status-info: #0969DA;  --status-info-bg: rgba(9,105,218,0.09);   --status-info-border: rgba(9,105,218,0.24);
+  --status-neutral: #6B6B72; --status-neutral-bg: #F4F4F5; --status-neutral-border: #E4E4E7;
 
-  /* ── Dark navigation rail ── */
-  --rail-bg:        #1B1F27;
-  --rail-raised:    #232831;
-  --rail-border:    #2D333E;
-  --rail-text:      #C4CAD4;
-  --rail-faint:     #828B98;
-  --rail-active-bg: rgba(255,255,255,0.08);
-  --rail-active-text: #FFFFFF;
+  /* Navigation rail (light: a touch darker than canvas) */
+  --rail-bg:        #F4F4F5;
+  --rail-raised:    #E9E9EB;
+  --rail-border:    #E4E4E7;
+  --rail-text:      #52525B;
+  --rail-faint:     #9B9BA1;
+  --rail-active-bg: #FFFFFF;
+  --rail-active-text: #18181B;
 
   /* ── Radius (crisp) ── */
   --radius-sm: 6px;
@@ -69,24 +68,44 @@
   --muted:   var(--text-muted);
 }
 
-/* Dark mode scaffold — architecture only; not yet wired to a toggle. Light ships first. */
-.dark {
-  --surface-canvas: #15181E;
-  --surface-card:   #1C2027;
-  --surface-raised: #20252D;
-  --surface-sunken: #15181E;
-  --text-ink:   #ECEFF3;
-  --text-muted: #A8B0BC;
-  --text-faint: #727B88;
-  --border-subtle:  #262B33;
-  --border-default: #2D333C;
-  --border-strong:  #3A414C;
-  --brand-wash: #3A2417;
-  --status-pass-bg: #14241A; --status-pass-border: #1F3D2B;
-  --status-warn-bg: #2A2110; --status-warn-border: #463716;
-  --status-fail-bg: #2A1714; --status-fail-border: #4A2722;
-  --status-info-bg: #15212E; --status-info-border: #1F3850;
-  --status-neutral-bg: #1E232B; --status-neutral-border: #2D333C;
+/* ── DARK — same monochrome system, near-black surfaces.
+   Applied by toggling `dark` on <html> (auto by time-of-day or manual). ── */
+html.dark {
+  --surface-canvas:  #111012;
+  --surface-card:    #18181A;
+  --surface-raised:  #1F1F22;
+  --surface-sunken:  #0D0D0F;
+
+  --text-ink:    #FAFAFA;
+  --text-muted:  #A1A1A6;
+  --text-faint:  #6E6E73;
+  --text-on-accent: #111111;
+
+  --border-subtle:  #1C1C1F;
+  --border-default: #26262A;
+  --border-strong:  #34343A;
+
+  /* Primary action = near-white pill */
+  --brand:        #FAFAFA;
+  --brand-hover:  #E4E4E7;
+  --brand-active: #D4D4D8;
+  --brand-wash:   #26262A;
+  --brand-ink:    #FAFAFA;
+  --text-on-brand: #111111;
+
+  --status-pass: #3FB950;  --status-pass-bg: rgba(63,185,80,0.12);  --status-pass-border: rgba(63,185,80,0.30);
+  --status-warn: #D29922;  --status-warn-bg: rgba(210,153,34,0.12); --status-warn-border: rgba(210,153,34,0.30);
+  --status-fail: #F85149;  --status-fail-bg: rgba(248,81,73,0.12);  --status-fail-border: rgba(248,81,73,0.32);
+  --status-info: #58A6FF;  --status-info-bg: rgba(88,166,255,0.12); --status-info-border: rgba(88,166,255,0.30);
+  --status-neutral: #A1A1A6; --status-neutral-bg: #1F1F22; --status-neutral-border: #34343A;
+
+  --rail-bg:        #0B0B0C;
+  --rail-raised:    #1F1F22;
+  --rail-border:    #1C1C1F;
+  --rail-text:      #A1A1A6;
+  --rail-faint:     #6E6E73;
+  --rail-active-bg: #27272A;
+  --rail-active-text: #FAFAFA;
 }
 
 * {
@@ -95,6 +114,12 @@
 
 html, body {
   height: 100%;
+}
+
+/* App-wide dark surface so every page is dark even without an explicit bg */
+body {
+  background: var(--surface-canvas);
+  color: var(--text-ink);
 }
 
 /* ── Inter font rendering ─────────────────────────────────────────────────── */
@@ -108,12 +133,12 @@ body {
 /* ── Scrollbar — main content ─────────────────────────────────────────────── */
 ::-webkit-scrollbar          { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track    { background: transparent; }
-::-webkit-scrollbar-thumb    { background: #e7e5e4; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #d6d3d1; }
+::-webkit-scrollbar-thumb    { background: var(--border-strong); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
 
-/* ── Scrollbar — sidebar (barely-off-white bg, ultra-subtle) ─────────────── */
-.sidebar-scroll::-webkit-scrollbar-thumb       { background: #f5f5f4; }
-.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: #e7e5e4; }
+/* ── Scrollbar — sidebar (ultra-subtle on the near-black rail) ───────────── */
+.sidebar-scroll::-webkit-scrollbar-thumb       { background: var(--rail-border); }
+.sidebar-scroll::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
 
 /* ── Smooth micro-transitions ─────────────────────────────────────────────── */
 *, *::before, *::after {
@@ -167,7 +192,7 @@ button, a {
 .copilot-markdown {
   font-size: 13.5px;
   line-height: 1.65;
-  color: #1c1917;
+  color: var(--text-ink);
   word-break: break-word;
 }
 
@@ -183,21 +208,21 @@ button, a {
   font-size: 1.15em;
   font-weight: 700;
   margin: 0.75em 0 0.35em;
-  color: #1c1917;
+  color: var(--text-ink);
   line-height: 1.3;
 }
 .copilot-markdown h2 {
   font-size: 1.05em;
   font-weight: 700;
   margin: 0.65em 0 0.3em;
-  color: #1c1917;
+  color: var(--text-ink);
   line-height: 1.3;
 }
 .copilot-markdown h3 {
   font-size: 1em;
   font-weight: 700;
   margin: 0.55em 0 0.25em;
-  color: #1c1917;
+  color: var(--text-ink);
   line-height: 1.3;
 }
 .copilot-markdown h1:first-child,
@@ -208,7 +233,7 @@ button, a {
 .copilot-markdown strong,
 .copilot-markdown b {
   font-weight: 700;
-  color: #0c0a09;
+  color: var(--text-ink);
 }
 
 /* Italic */
@@ -219,13 +244,13 @@ button, a {
 
 /* Links */
 .copilot-markdown a {
-  color: #1c1917;
+  color: var(--text-ink);
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-decoration-color: #a8a29e;
+  text-decoration-color: var(--text-faint);
 }
 .copilot-markdown a:hover {
-  text-decoration-color: #1c1917;
+  text-decoration-color: var(--text-ink);
 }
 
 /* Unordered lists */
@@ -269,14 +294,15 @@ button, a {
   border-radius: 5px;
   font-size: 0.85em;
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  color: #1c1917;
+  color: var(--text-ink);
   word-break: break-all;
 }
 
 /* Code blocks */
 .copilot-markdown pre {
-  background: #1c1917;
-  color: #fafaf9;
+  background: var(--surface-sunken);
+  color: var(--text-ink);
+  border: 1px solid var(--border-subtle);
   padding: 0.85em 1em;
   border-radius: 10px;
   overflow-x: auto;
@@ -303,28 +329,28 @@ button, a {
   overflow: hidden;
 }
 .copilot-markdown thead th {
-  background: #f5f5f4;
+  background: var(--surface-sunken);
   font-weight: 700;
   text-align: left;
-  color: #1c1917;
-  border-bottom: 2px solid #e7e5e4;
+  color: var(--text-ink);
+  border-bottom: 2px solid var(--border-default);
 }
 .copilot-markdown th,
 .copilot-markdown td {
-  border: 1px solid #e7e5e4;
+  border: 1px solid var(--border-default);
   padding: 0.45em 0.7em;
   vertical-align: top;
 }
 .copilot-markdown tbody tr:nth-child(even) {
-  background: #fafaf9;
+  background: var(--surface-raised);
 }
 
 /* Blockquotes */
 .copilot-markdown blockquote {
-  border-left: 3px solid #d6d3d1;
+  border-left: 3px solid var(--border-strong);
   padding: 0.25em 0 0.25em 0.85em;
   margin: 0.5em 0;
-  color: #44403c;
+  color: var(--text-muted);
   font-style: italic;
 }
 .copilot-markdown blockquote p {
@@ -334,7 +360,7 @@ button, a {
 /* Horizontal rule */
 .copilot-markdown hr {
   border: none;
-  border-top: 1px solid #e7e5e4;
+  border-top: 1px solid var(--border-default);
   margin: 0.75em 0;
 }
 

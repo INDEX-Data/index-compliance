@@ -106,7 +106,7 @@ function GeneralTab({
         title="Primary Azure Tenant"
         description="The Microsoft Entra ID tenant used for compliance assessments."
       >
-        <div className="bg-[#fafafa] rounded-xl border border-border p-4">
+        <div className="bg-canvas rounded-xl border border-border p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-[#EFF6FF] border border-[#DBEAFE] flex items-center justify-center">
@@ -141,9 +141,9 @@ function GeneralTab({
         description="Manage multiple Microsoft 365 tenants and run compliance assessments across all client environments."
         last
       >
-        <div className="flex items-center justify-between p-4 bg-[#fafafa] rounded-xl border border-border">
+        <div className="flex items-center justify-between p-4 bg-canvas rounded-xl border border-border">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white border border-border flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center">
               <Building2 className="w-4 h-4 text-faint" />
             </div>
             <div>
@@ -155,7 +155,7 @@ function GeneralTab({
           </div>
           <button
             onClick={() => router.push('/clients')}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink hover:text-ink bg-white border border-border hover:bg-[#fafafa] px-3 py-1.5 rounded-lg transition"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink hover:text-ink bg-surface border border-border hover:bg-canvas px-3 py-1.5 rounded-lg transition"
           >
             Manage clients <ChevronRight className="w-3.5 h-3.5" />
           </button>
@@ -232,7 +232,7 @@ function TeamTab() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-            className="flex-1 text-[13px] border border-border rounded-lg px-3.5 py-2.5 outline-none focus:border-border-strong focus:ring-2 focus:ring-[#1c1917]/10 bg-white placeholder-[#a8a29e] transition"
+            className="flex-1 text-[13px] border border-border rounded-lg px-3.5 py-2.5 outline-none focus:border-border-strong focus:ring-2 focus:ring-[#1c1917]/10 bg-surface placeholder-[#a8a29e] transition"
           />
           <button
             onClick={handleCreate}
@@ -293,7 +293,7 @@ function TeamTab() {
                   </span>
                   <button
                     onClick={() => copyText(`${window.location.origin}/join/${inv.token}`, inv.id)}
-                    className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-white/60 transition"
+                    className="p-1.5 text-faint hover:text-ink rounded-lg hover:bg-surface/60 transition"
                     title="Copy invite link"
                   >
                     {copied === inv.id ? (
@@ -307,7 +307,7 @@ function TeamTab() {
                       await revokeTeamInvite(inv.id)
                       refresh()
                     }}
-                    className="p-1.5 text-faint hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
+                    className="p-1.5 text-faint hover:text-[#DC2626] rounded-lg hover:bg-surface/60 transition"
                     title="Revoke invite"
                   >
                     <X className="w-3.5 h-3.5" />
@@ -356,7 +356,7 @@ function TeamTab() {
                     await removeTeamMember(m.id)
                     refresh()
                   }}
-                  className="p-1.5 text-faint hover:text-[#DC2626] rounded-lg hover:bg-white/60 transition"
+                  className="p-1.5 text-faint hover:text-[#DC2626] rounded-lg hover:bg-surface/60 transition"
                   title="Remove member"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -390,10 +390,10 @@ function IntegrationsTab() {
       >
         <button
           onClick={() => router.push('/integrations')}
-          className="w-full flex items-center justify-between p-4 bg-[#fafafa] rounded-xl border border-border hover:bg-white hover:border-border-strong transition group"
+          className="w-full flex items-center justify-between p-4 bg-canvas rounded-xl border border-border hover:bg-surface hover:border-border-strong transition group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white border border-border flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center">
               <Plug className="w-4 h-4 text-faint" />
             </div>
             <div className="text-left">
@@ -416,7 +416,7 @@ function IntegrationsTab() {
           {tools.map((t) => (
             <div
               key={t.name}
-              className="flex items-center gap-3 p-3.5 bg-white border border-border rounded-xl"
+              className="flex items-center gap-3 p-3.5 bg-surface border border-border rounded-xl"
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-[12px] font-bold"
@@ -453,7 +453,7 @@ function NotificationsTab() {
         last
       >
         <div className="flex flex-col items-center py-12 text-center">
-          <div className="w-12 h-12 rounded-2xl bg-white border border-border flex items-center justify-center mb-4 shadow-card">
+          <div className="w-12 h-12 rounded-2xl bg-surface border border-border flex items-center justify-center mb-4 shadow-card">
             <Bell className="w-5 h-5 text-[#d6d3d1]" />
           </div>
           <p className="text-[14px] font-semibold text-ink mb-1">Coming soon</p>
@@ -559,7 +559,7 @@ function ApiAccessTab() {
       )
     if (status === 'not_licensed')
       return (
-        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-faint bg-[#fafafa] border border-border px-2 py-0.5 rounded-full">
+        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-faint bg-canvas border border-border px-2 py-0.5 rounded-full">
           <X className="w-3 h-3" /> Not licensed
         </span>
       )
@@ -588,7 +588,7 @@ function ApiAccessTab() {
             const status = perms?.[row.key] || 'unchecked'
             const detail = perms?.details?.[row.key]
             return (
-              <div key={row.key} className="bg-[#fafafa] rounded-xl border border-border p-4">
+              <div key={row.key} className="bg-canvas rounded-xl border border-border p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2.5 mb-1">
@@ -601,7 +601,7 @@ function ApiAccessTab() {
                     </div>
                     <p className="text-[12px] text-faint leading-relaxed">{row.description}</p>
                     {status !== 'ok' && status !== 'unchecked' && (
-                      <div className="mt-2 p-2.5 bg-white rounded-lg border border-border">
+                      <div className="mt-2 p-2.5 bg-surface rounded-lg border border-border">
                         <p className="text-[11px] font-medium text-muted mb-1">
                           Required permissions:
                         </p>
@@ -622,7 +622,7 @@ function ApiAccessTab() {
           <button
             onClick={check}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink bg-white border border-border hover:bg-[#fafafa] px-3 py-1.5 rounded-lg transition disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink bg-surface border border-border hover:bg-canvas px-3 py-1.5 rounded-lg transition disabled:opacity-50"
           >
             {loading ? 'Checking...' : 'Re-check permissions'}
           </button>
@@ -688,7 +688,7 @@ export default function SettingsPage() {
   return (
     <div className="flex h-full min-h-screen">
       {/* ── Left sub-nav ── */}
-      <div className="w-[200px] shrink-0 border-r border-border-subtle bg-[#fafafa] px-3 py-6">
+      <div className="w-[200px] shrink-0 border-r border-border-subtle bg-canvas px-3 py-6">
         <p className="px-3 mb-3 text-[10px] font-semibold text-faint uppercase tracking-[0.07em]">
           Settings
         </p>
@@ -700,8 +700,8 @@ export default function SettingsPage() {
               className={[
                 'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-left transition-colors',
                 activeTab === id
-                  ? 'bg-white text-ink shadow-sm border border-border'
-                  : 'text-faint hover:text-ink hover:bg-white/50',
+                  ? 'bg-surface text-ink shadow-sm border border-border'
+                  : 'text-faint hover:text-ink hover:bg-surface/50',
               ].join(' ')}
             >
               <Icon className={`w-3.5 h-3.5 shrink-0 ${activeTab === id ? 'text-ink' : ''}`} />

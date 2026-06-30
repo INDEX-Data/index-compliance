@@ -22,7 +22,7 @@ export function ControlCard({ assessment, onViewEvidence }: Props) {
     <button
       type="button"
       onClick={() => onViewEvidence(assessment)}
-      className="w-full bg-white rounded-lg border border-border hover:border-border-strong hover:bg-[#fafafa] active:bg-surface-sunken transition-colors text-left"
+      className="w-full bg-surface rounded-lg border border-border hover:border-border-strong hover:bg-canvas active:bg-surface-sunken transition-colors text-left"
     >
       <div className="flex items-center gap-3 px-4 py-3.5">
         <span className="shrink-0 text-[10px] font-mono font-bold text-[#0F766E] bg-[#F0FDFA] border border-[#99F6E4] px-2 py-0.5 rounded">

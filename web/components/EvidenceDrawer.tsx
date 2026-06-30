@@ -163,7 +163,7 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
           'border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-colors group',
           dragOver
             ? 'border-[#1c1917] bg-ink/5'
-            : 'border-border bg-white hover:bg-canvas',
+            : 'border-border bg-surface hover:bg-canvas',
         ].join(' ')}
       >
         {uploading
@@ -201,7 +201,7 @@ function FileUploadSection({ reportId, objectiveId }: { reportId: string; object
           {files.map(f => (
             <li
               key={f.id}
-              className="flex items-center gap-2 bg-white border border-border rounded-lg px-3 py-2 group"
+              className="flex items-center gap-2 bg-surface border border-border rounded-lg px-3 py-2 group"
             >
               <FileIcon className="w-3.5 h-3.5 text-muted shrink-0" />
               <div className="flex-1 min-w-0">
@@ -289,7 +289,7 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
 
       {/* Drawer panel */}
       <div
-        className="fixed top-0 bottom-0 right-0 w-full max-w-[600px] h-screen z-[9999] bg-white shadow-2xl flex flex-col animate-slide-in-right"
+        className="fixed top-0 bottom-0 right-0 w-full max-w-[600px] h-screen z-[9999] bg-surface shadow-2xl flex flex-col animate-slide-in-right"
       >
         {/* ── Glass Header ── */}
         <div className="shrink-0 px-6 pt-5 pb-4 border-b border-border" style={{ backdropFilter: 'blur(20px)', backgroundColor: 'rgba(255,255,255,0.85)' }}>
@@ -468,7 +468,7 @@ export function EvidenceDrawer({ assessment, onClose, reportId }: Props) {
         </div>
 
         {/* ── Footer ── */}
-        <div className="shrink-0 p-4 border-t border-border bg-white flex justify-end gap-3">
+        <div className="shrink-0 p-4 border-t border-border bg-surface flex justify-end gap-3">
           <button
             onClick={onClose}
             className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-muted hover:bg-surface-sunken rounded transition-colors"

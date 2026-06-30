@@ -1,23 +1,5 @@
-import { CircleCheck, Wand2 } from 'lucide-react'
-import { Card, Badge, StatCard, SectionHeader, Button, type BadgeTone } from '@/components/ui'
-
-// Coverage/score ring — value 0–100. Green = secure (kept distinct from brand orange).
-function ScoreRing({ value, label }: { value: number; label: string }) {
-  const r = 38
-  const circ = 2 * Math.PI * r
-  const filled = (Math.max(0, Math.min(100, value)) / 100) * circ
-  return (
-    <svg viewBox="0 0 92 92" width="92" height="92" role="img" aria-label={`${label} ${value} percent`}>
-      <circle cx="46" cy="46" r={r} fill="none" stroke="var(--border-default)" strokeWidth="8" />
-      <circle
-        cx="46" cy="46" r={r} fill="none" stroke="var(--status-pass)" strokeWidth="8"
-        strokeLinecap="round" strokeDasharray={`${filled} ${circ - filled}`} transform="rotate(-90 46 46)"
-      />
-      <text x="46" y="43" textAnchor="middle" fontSize="21" fontWeight="600" fill="var(--text-ink)" fontFamily="var(--font-inter), system-ui">{value}%</text>
-      <text x="46" y="58" textAnchor="middle" fontSize="9" fill="var(--text-faint)" letterSpacing="0.5" fontFamily="var(--font-inter), system-ui">{label.toUpperCase()}</text>
-    </svg>
-  )
-}
+import { Wand2 } from 'lucide-react'
+import { SectionHeader, Button, type BadgeTone } from '@/components/ui'
 
 export interface PostureStat {
   label: string
@@ -63,35 +45,38 @@ export function PostureView({ data }: { data: PostureData }) {
         {data.syncedLabel && <span className={`text-[11.5px] text-faint font-mono ${data.monitored === false ? 'ml-auto' : ''}`}>{data.syncedLabel}</span>}
       </div>
 
-      <div className="px-8 py-6 flex flex-col gap-4 max-w-5xl">
-        {/* Hero */}
-        <Card raised padded={false} className="p-5 flex items-center gap-6">
-          <ScoreRing value={data.score} label={data.scoreLabel ?? 'Coverage'} />
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5 mb-1.5">
-              <span className="text-[23px] font-semibold text-ink tracking-[-0.02em]">{data.status}</span>
-              <Badge tone={data.statusTone ?? 'pass'} dot>
-                <CircleCheck className="w-3.5 h-3.5" aria-hidden />
-                {data.statusLabel ?? 'Passing'}
-              </Badge>
+      <div className="px-8 py-7 flex flex-col gap-6 max-w-4xl">
+        {/* Hero — monochrome score + track (no ring) */}
+        <div>
+          <div className="flex items-end justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2.5 mb-2.5">
+                <span className="text-[13px] text-muted">{data.scoreLabel ?? 'Score'}</span>
+                <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
+                  <span className={`w-1.5 h-1.5 rounded-full ${DOT[data.statusTone ?? 'neutral']}`} aria-hidden />
+                  {data.status}
+                </span>
+              </div>
+              <div className="text-[52px] font-semibold text-ink tracking-[-0.04em] leading-[0.85]">
+                {data.score}
+                <span className="text-[26px] text-faint font-medium">%</span>
+              </div>
             </div>
-            <p className="text-[13px] text-muted leading-relaxed">{data.summaryLine}</p>
+            <p className="text-[12px] text-muted leading-[1.7] text-right max-w-[260px]">{data.summaryLine}</p>
           </div>
-        </Card>
+          <div className="h-0.5 rounded-full bg-border mt-5 overflow-hidden">
+            <div className="h-full rounded-full bg-ink" style={{ width: `${Math.max(0, Math.min(100, data.score))}%` }} />
+          </div>
+        </div>
 
-        {/* Metrics */}
+        {/* Metrics — one flat hairline-divided group */}
         {data.stats.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            {data.stats.map((s) => (
-              <StatCard
-                key={s.label}
-                label={s.label}
-                value={s.value}
-                delta={s.delta}
-                deltaDirection={s.deltaDirection}
-                deltaGood={s.deltaGood}
-                hint={s.hint}
-              />
+          <div className="grid grid-cols-3 border border-border rounded-lg overflow-hidden">
+            {data.stats.map((s, i) => (
+              <div key={s.label} className={i < data.stats.length - 1 ? 'p-4 border-r border-border' : 'p-4'}>
+                <div className="text-[11.5px] text-muted mb-2">{s.label}</div>
+                <div className="text-[24px] font-semibold text-ink tracking-[-0.02em] leading-none">{s.value}</div>
+              </div>
             ))}
           </div>
         )}
@@ -100,10 +85,10 @@ export function PostureView({ data }: { data: PostureData }) {
         {data.topFinding && (
           <div>
             <SectionHeader>Top finding</SectionHeader>
-            <Card raised>
+            <div className="border border-border rounded-lg p-4">
               <div className="flex items-center gap-2.5 mb-2">
-                <Badge tone="fail" dot size="sm">Fail</Badge>
-                <span className="text-[14.5px] font-semibold text-ink">{data.topFinding.title}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-fail shrink-0" aria-hidden />
+                <span className="text-[14px] font-semibold text-ink">{data.topFinding.title}</span>
                 {data.topFinding.controlId && (
                   <span className="ml-auto font-mono text-[11px] text-faint">{data.topFinding.controlId}</span>
                 )}
@@ -122,10 +107,19 @@ export function PostureView({ data }: { data: PostureData }) {
                 </Button>
                 <Button variant="secondary" size="sm" onClick={data.topFinding.onViewEvidence}>View evidence</Button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
       </div>
     </div>
   )
+}
+
+const DOT: Record<BadgeTone, string> = {
+  pass: 'bg-pass',
+  warn: 'bg-warn',
+  fail: 'bg-fail',
+  info: 'bg-info',
+  neutral: 'bg-faint',
+  brand: 'bg-ink',
 }

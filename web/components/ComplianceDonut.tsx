@@ -26,8 +26,8 @@ export function ComplianceDonut({ summary }: Props) {
   ].filter(d => d.value > 0)
 
   return (
-    <div className="lg:col-span-1 bg-[#fafaf9] p-6 rounded-xl flex flex-col items-center justify-center text-center">
-      <h3 className="text-sm font-bold text-[#1c1917] uppercase tracking-widest mb-8">Status Distribution</h3>
+    <div className="lg:col-span-1 bg-canvas p-6 rounded-xl flex flex-col items-center justify-center text-center">
+      <h3 className="text-sm font-bold text-ink uppercase tracking-widest mb-8">Status Distribution</h3>
 
       <div className="relative w-48 h-48 mb-8">
         <ResponsiveContainer width="100%" height="100%">
@@ -60,8 +60,8 @@ export function ComplianceDonut({ summary }: Props) {
           </PieChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-3xl font-bold text-[#1c1917]">{totalControls}</span>
-          <span className="text-[10px] text-[#44403c] font-bold uppercase">Total Controls</span>
+          <span className="text-3xl font-bold text-ink">{totalControls}</span>
+          <span className="text-[10px] text-muted font-bold uppercase">Total Controls</span>
         </div>
       </div>
 
@@ -75,7 +75,7 @@ export function ComplianceDonut({ summary }: Props) {
         ].filter(d => d.val > 0).map(({ key, color, pct }) => (
           <div key={key} className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-            <span className="text-xs text-[#44403c]">{key} ({pct}%)</span>
+            <span className="text-xs text-muted">{key} ({pct}%)</span>
           </div>
         ))}
       </div>

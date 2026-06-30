@@ -51,9 +51,8 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
       {children}
       <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-2.5 z-[999]
                       opacity-0 group-hover/tip:opacity-100 transition-opacity delay-300 duration-75">
-        <div className="bg-[#1c1d1f] text-[#f3f4f6] text-[12px] font-medium
-                        px-2.5 py-1.5 rounded-[8px] shadow-lg whitespace-nowrap
-                        border border-[#2e3238]/60">
+        <div className="bg-ink text-on-accent text-[12px] font-medium
+                        px-2.5 py-1.5 rounded-[8px] shadow-float whitespace-nowrap">
           {label}
         </div>
       </div>
@@ -83,13 +82,13 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
         'group/nav relative flex items-center gap-3 rounded-md select-none outline-none',
         collapsed ? 'w-9 h-9 justify-center mx-auto' : 'h-10 px-3 w-full',
         active
-          ? 'bg-[color:var(--rail-active-bg)] text-white font-medium'
-          : 'text-rail-text hover:bg-rail-raised hover:text-white',
-        'transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-white/25',
+          ? 'bg-[color:var(--rail-active-bg)] text-rail-active-text font-medium'
+          : 'text-rail-text hover:bg-rail-raised hover:text-rail-active-text',
+        'transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[color:var(--rail-active-text)]/20',
       ].join(' ')}
     >
       <Icon
-        className={['shrink-0 w-[18px] h-[18px]', active ? 'text-white' : 'text-rail-faint'].join(' ')}
+        className={['shrink-0 w-[18px] h-[18px]', active ? 'text-rail-active-text' : 'text-rail-faint'].join(' ')}
         strokeWidth={1.6}
       />
 
@@ -100,7 +99,7 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
           {badge != null && badge > 0 && (
             <span className={[
               'text-[10.5px] font-medium tabular-nums rounded-full px-[7px] py-[3px] leading-none font-mono',
-              active ? 'bg-white/15 text-white' : 'bg-rail-raised text-rail-faint group-hover/nav:bg-rail-border',
+              active ? 'bg-rail-raised text-rail-active-text' : 'bg-rail-raised text-rail-faint group-hover/nav:bg-rail-border',
             ].join(' ')}>
               {badge}
             </span>
@@ -147,22 +146,22 @@ function WorkspaceMenu({ orgName, onClose, toggleRef }: { orgName: string; onClo
     <div
       ref={ref}
       className="absolute top-[calc(100%+4px)] left-0 right-0 z-[999]
-                 bg-white border border-[#e7e5e4] rounded-[10px] overflow-hidden
+                 bg-surface border border-border rounded-[10px] overflow-hidden
                  shadow-[0_4px_16px_0_rgba(28,29,31,0.08),0_1px_4px_0_rgba(28,29,31,0.04)]"
     >
       {/* Org identity */}
-      <div className="px-3 py-2.5 border-b border-[#f5f5f4]">
+      <div className="px-3 py-2.5 border-b border-border-subtle">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-[8px] bg-[#1c1917]/10 border border-[#1c1917]/20
+          <div className="w-7 h-7 rounded-[8px] bg-ink/10 border border-[#1c1917]/20
                           flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#1c1917]" strokeWidth={1.5} />
+            <ShieldCheck className="w-3.5 h-3.5 text-ink" strokeWidth={1.5} />
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-[#1c1d1f] truncate leading-none" style={{ letterSpacing: '-0.01em' }}>
+            <p className="text-[13px] font-semibold text-ink truncate leading-none" style={{ letterSpacing: '-0.01em' }}>
               {orgName}
             </p>
             <span className="inline-block mt-1.5 text-[9px] font-bold uppercase tracking-widest
-                             text-[#1c1917] bg-[#1c1917]/10 px-1.5 py-[2px] rounded-full leading-none">
+                             text-ink bg-ink/10 px-1.5 py-[2px] rounded-full leading-none">
               MSP PRO
             </span>
           </div>
@@ -181,8 +180,8 @@ function WorkspaceMenu({ orgName, onClose, toggleRef }: { orgName: string; onClo
             href={href}
             onClick={onClose}
             className="flex items-center gap-2 px-3 py-[6px]
-                       text-[13px] font-medium text-[#505967]
-                       hover:text-[#1c1d1f] hover:bg-[#f3f4f6]
+                       text-[13px] font-medium text-muted
+                       hover:text-ink hover:bg-surface-sunken
                        transition-colors duration-300 hover:duration-50"
           >
             <Icon className="w-3.5 h-3.5 shrink-0" strokeWidth={1.5} />
@@ -192,7 +191,7 @@ function WorkspaceMenu({ orgName, onClose, toggleRef }: { orgName: string; onClo
       </nav>
 
       {/* Sign out — separated */}
-      <div className="border-t border-[#f5f5f4] py-1.5">
+      <div className="border-t border-border-subtle py-1.5">
         <button
           onClick={handleSignOut}
           className="w-full flex items-center gap-2 px-3 py-[6px]
@@ -278,12 +277,12 @@ export function Sidebar() {
           className={`group w-full flex items-center rounded-md hover:bg-rail-raised transition-colors
                       ${collapsed ? 'justify-center p-1.5' : 'gap-2.5 px-2 py-1.5'}`}
         >
-          <span className="w-7 h-7 rounded-md bg-brand flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-4 h-4 text-white" strokeWidth={2} />
+          <span className="w-7 h-7 rounded-md bg-rail-raised border border-rail-border flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-rail-active-text" strokeWidth={1.8} />
           </span>
           {!collapsed && (
             <>
-              <span className="flex-1 text-left text-[15px] font-semibold text-white tracking-[-0.01em]">ATLAS</span>
+              <span className="flex-1 text-left text-[15px] font-semibold text-rail-active-text tracking-[-0.01em]">Atlas</span>
               <ChevronDown className={`w-3.5 h-3.5 text-rail-faint transition-transform ${wsOpen ? 'rotate-180' : ''}`} />
             </>
           )}

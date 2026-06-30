@@ -178,7 +178,7 @@ export default function ReportPage() {
       {showKeyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div
-            className="bg-white rounded-2xl w-full max-w-md p-6"
+            className="bg-surface rounded-2xl w-full max-w-md p-6"
             style={{ boxShadow: '0 24px 60px rgba(0,0,0,0.25)' }}
           >
             <div className="flex items-center gap-3 mb-4">
@@ -298,7 +298,7 @@ export default function ReportPage() {
         </button>
         <button
           onClick={exportJSON}
-          className="bg-ink text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-ink transition-colors"
+          className="bg-ink text-on-accent text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-ink transition-colors"
         >
           Export JSON
         </button>
@@ -341,7 +341,7 @@ export default function ReportPage() {
         )}
         <button
           onClick={() => router.push(`/assess/running?framework=${report.frameworkId}`)}
-          className="bg-ink text-white text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-ink transition ml-auto"
+          className="bg-ink text-on-accent text-[11px] px-3 py-1.5 font-semibold rounded-lg hover:bg-ink transition ml-auto"
         >
           <Play className="w-3 h-3 inline mr-1" /> Re-run
         </button>
@@ -404,7 +404,7 @@ export default function ReportPage() {
               (report.summary.topFindings ?? []).slice(0, 4).map((finding, i) => (
                 <div
                   key={i}
-                  className={`bg-white p-4 rounded-lg flex gap-4 ${i === 0 ? 'border-l-4 border-[#9f403d]' : i < 2 ? 'border-l-4 border-[#9f403d]/50' : 'border-l-4 border-[#78716c]'}`}
+                  className={`bg-surface p-4 rounded-lg flex gap-4 ${i === 0 ? 'border-l-4 border-[#9f403d]' : i < 2 ? 'border-l-4 border-[#9f403d]/50' : 'border-l-4 border-[#78716c]'}`}
                 >
                   <AlertTriangle
                     className={`w-5 h-5 shrink-0 mt-0.5 ${i < 2 ? 'text-[#9f403d]' : 'text-faint'}`}
@@ -415,7 +415,7 @@ export default function ReportPage() {
                 </div>
               ))
             ) : (
-              <div className="bg-white p-4 rounded-lg text-center text-sm text-muted">
+              <div className="bg-surface p-4 rounded-lg text-center text-sm text-muted">
                 No critical findings detected.
               </div>
             )}
@@ -424,17 +424,19 @@ export default function ReportPage() {
       </section>
 
       {/* ── Tab Bar (Controls / DIBCAC) ── */}
-      <div className="flex items-center gap-1 bg-white border border-border rounded-xl p-1">
+      <div className="flex items-center gap-1 bg-surface border border-border rounded-xl p-1">
         <button
           onClick={() => setActiveTab('controls')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
-            activeTab === 'controls' ? 'bg-ink text-white shadow-sm' : 'text-muted hover:text-ink'
+            activeTab === 'controls'
+              ? 'bg-ink text-on-accent shadow-sm'
+              : 'text-muted hover:text-ink'
           }`}
         >
           <Shield className="w-3.5 h-3.5" />
           Control Assessments
           <span
-            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted'}`}
+            className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'controls' ? 'bg-surface/20 text-white' : 'bg-surface-sunken text-muted'}`}
           >
             {report.controlAssessments.length}
           </span>
@@ -444,13 +446,15 @@ export default function ReportPage() {
           <button
             onClick={() => setActiveTab('dibcac')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-[12px] font-semibold transition ${
-              activeTab === 'dibcac' ? 'bg-ink text-white shadow-sm' : 'text-muted hover:text-ink'
+              activeTab === 'dibcac'
+                ? 'bg-ink text-on-accent shadow-sm'
+                : 'text-muted hover:text-ink'
             }`}
           >
             <ClipboardList className="w-3.5 h-3.5" />
             DIBCAC 320 Objectives
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-white/20 text-white' : 'bg-surface-sunken text-muted'}`}
+              className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${activeTab === 'dibcac' ? 'bg-surface/20 text-white' : 'bg-surface-sunken text-muted'}`}
             >
               320
             </span>
@@ -460,7 +464,7 @@ export default function ReportPage() {
 
       {/* ── Control Assessments Ledger (Table) ── */}
       {activeTab === 'controls' && (
-        <section className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#a8a29e]/10">
+        <section className="bg-surface rounded-xl shadow-sm overflow-hidden border border-[#a8a29e]/10">
           {/* Table header */}
           <div className="p-6 border-b border-[#a8a29e]/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h3 className="text-lg font-bold text-ink">Control Assessments Ledger</h3>
@@ -470,7 +474,9 @@ export default function ReportPage() {
                   key={f.value}
                   onClick={() => setFilter(f.value)}
                   className={`px-4 py-1 text-[11px] font-bold rounded-md transition-colors ${
-                    filter === f.value ? 'bg-white shadow-sm text-ink' : 'text-muted hover:text-ink'
+                    filter === f.value
+                      ? 'bg-surface shadow-sm text-ink'
+                      : 'text-muted hover:text-ink'
                   }`}
                 >
                   {f.label}
@@ -534,7 +540,7 @@ export default function ReportPage() {
                               e.stopPropagation()
                               window.open(portalLinks[0].url, '_blank')
                             }}
-                            className="bg-ink text-white text-[10px] font-bold px-3 py-1.5 rounded hover:bg-ink transition"
+                            className="bg-ink text-on-accent text-[10px] font-bold px-3 py-1.5 rounded hover:bg-ink transition"
                           >
                             Fix in Azure
                           </button>

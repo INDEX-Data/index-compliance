@@ -1,19 +1,20 @@
 import type { RiskScore } from '@/lib/types'
-import { Badge, type BadgeTone } from '@/components/ui/Badge'
+import { cn } from '@/lib/cn'
 
-// Risk level → semantic tone (token-driven; no inline hex).
-const MAP: Record<RiskScore, { label: string; tone: BadgeTone }> = {
-  low: { label: 'Low Risk', tone: 'pass' },
-  medium: { label: 'Medium Risk', tone: 'warn' },
-  high: { label: 'High Risk', tone: 'warn' },
-  critical: { label: 'Critical Risk', tone: 'fail' },
+// Quiet, Cursor-style risk: a dot + colored text — no filled pill.
+const MAP: Record<RiskScore, { label: string; cls: string; dot: string }> = {
+  low: { label: 'Low', cls: 'text-pass', dot: 'bg-pass' },
+  medium: { label: 'Medium', cls: 'text-warn', dot: 'bg-warn' },
+  high: { label: 'High', cls: 'text-warn', dot: 'bg-warn' },
+  critical: { label: 'Critical', cls: 'text-fail', dot: 'bg-fail' },
 }
 
 export function RiskBadge({ score }: { score: RiskScore }) {
-  const { label, tone } = MAP[score] ?? MAP.critical
+  const { label, cls, dot } = MAP[score] ?? MAP.critical
   return (
-    <Badge tone={tone} dot>
+    <span className={cn('inline-flex items-center gap-1.5 text-[12px] font-medium whitespace-nowrap', cls)}>
+      <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', dot)} aria-hidden />
       {label}
-    </Badge>
+    </span>
   )
 }

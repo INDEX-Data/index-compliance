@@ -7,11 +7,11 @@ import Image from 'next/image'
 import { createClientSupabase } from '@/lib/supabase'
 
 const FRAMEWORKS = [
-  { name: 'CMMC Level 2',  desc: '110 practices' },
-  { name: 'NIST 800-171',  desc: '110 controls'  },
-  { name: 'HIPAA',         desc: '45 CFR §164'   },
-  { name: 'FINRA',         desc: 'Rule 4370'      },
-  { name: 'FERPA',         desc: 'Student privacy' },
+  { name: 'CMMC Level 2', desc: '110 practices' },
+  { name: 'NIST 800-171', desc: '110 controls' },
+  { name: 'HIPAA', desc: '45 CFR §164' },
+  { name: 'FINRA', desc: 'Rule 4370' },
+  { name: 'FERPA', desc: 'Student privacy' },
 ]
 
 interface LastUser {
@@ -83,7 +83,9 @@ export default function SignInPage() {
         email: data.user.email ?? email,
         avatar: meta?.avatar_url,
       }
-      try { localStorage.setItem(LAST_USER_KEY, JSON.stringify(stored)) } catch {}
+      try {
+        localStorage.setItem(LAST_USER_KEY, JSON.stringify(stored))
+      } catch {}
     }
 
     router.push('/dashboard')
@@ -96,31 +98,37 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen flex">
-
       {/* ── Left panel — dark branding ─────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-[400px] xl:w-[460px] shrink-0 flex-col bg-[#1c1d1f] text-white px-10 py-12">
-
+      <div className="hidden lg:flex lg:w-[400px] xl:w-[460px] shrink-0 flex-col bg-ink text-on-accent px-10 py-12">
         {/* Logo */}
         <div className="flex items-center">
-          <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto invert" />
+          <Image
+            src="/atlas-logo.svg"
+            alt="Atlas"
+            width={160}
+            height={64}
+            className="h-10 w-auto invert"
+          />
         </div>
 
         {/* Value prop */}
         <div className="mt-auto mb-auto py-16">
           <h2 className="text-3xl font-bold leading-snug tracking-tight mb-3">
-            Compliance visibility<br />for Microsoft 365
+            Compliance visibility
+            <br />
+            for Microsoft 365
           </h2>
           <p className="text-white/50 text-sm leading-relaxed mb-10">
-            Automated security assessments across your M365 tenant.
-            Identify gaps, track progress, export audit-ready reports.
+            Automated security assessments across your M365 tenant. Identify gaps, track progress,
+            export audit-ready reports.
           </p>
 
           {/* Framework list */}
           <div className="space-y-2">
-            {FRAMEWORKS.map(f => (
+            {FRAMEWORKS.map((f) => (
               <div
                 key={f.name}
-                className="flex items-center justify-between bg-white/5 border border-white/8 rounded-lg px-3.5 py-2.5"
+                className="flex items-center justify-between bg-surface/5 border border-white/8 rounded-lg px-3.5 py-2.5"
               >
                 <span className="text-sm font-medium text-white/90">{f.name}</span>
                 <span className="text-[11px] text-white/35">{f.desc}</span>
@@ -130,21 +138,23 @@ export default function SignInPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-[11px] text-white/25 mt-auto">
-          Powered by Microsoft Graph API
-        </div>
+        <div className="text-[11px] text-white/25 mt-auto">Powered by Microsoft Graph API</div>
       </div>
 
       {/* ── Right panel — Sign in form ──────────────────────────────── */}
-      <div className="flex-1 bg-[#fafafa] flex flex-col items-center justify-center px-8 py-12">
-
+      <div className="flex-1 bg-canvas flex flex-col items-center justify-center px-8 py-12">
         {/* Mobile logo (hidden on lg+) */}
         <div className="flex items-center mb-8 lg:hidden">
-          <Image src="/atlas-logo.svg" alt="Atlas" width={160} height={64} className="h-10 w-auto" />
+          <Image
+            src="/atlas-logo.svg"
+            alt="Atlas"
+            width={160}
+            height={64}
+            className="h-10 w-auto"
+          />
         </div>
 
         <div className="w-full max-w-sm">
-
           {/* Returning user header */}
           {showReturning ? (
             <div className="mb-6">
@@ -153,32 +163,30 @@ export default function SignInPage() {
                   <img
                     src={lastUser.avatar}
                     alt=""
-                    className="w-12 h-12 rounded-full object-cover border border-[#e7e5e4]"
+                    className="w-12 h-12 rounded-full object-cover border border-border"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-[#1c1917] flex items-center justify-center text-[16px] font-bold text-white">
+                  <div className="w-12 h-12 rounded-full bg-ink flex items-center justify-center text-[16px] font-bold text-white">
                     {initials}
                   </div>
                 )}
                 <div>
-                  <h1 className="text-2xl font-bold text-[#1c1d1f]">Welcome back, {firstName}</h1>
-                  <p className="text-sm text-[#78716c]">{lastUser.email}</p>
+                  <h1 className="text-2xl font-bold text-ink">Welcome back, {firstName}</h1>
+                  <p className="text-sm text-faint">{lastUser.email}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={handleNotYou}
-                className="text-[13px] text-[#78716c] hover:text-[#1c1917] underline underline-offset-2 transition-colors"
+                className="text-[13px] text-faint hover:text-ink underline underline-offset-2 transition-colors"
               >
                 Not {firstName}?
               </button>
             </div>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-[#1c1d1f] mb-1">Welcome back</h1>
-              <p className="text-sm text-[#78716c] mb-6">
-                Sign in to your account to continue
-              </p>
+              <h1 className="text-2xl font-bold text-ink mb-1">Welcome back</h1>
+              <p className="text-sm text-faint mb-6">Sign in to your account to continue</p>
             </>
           )}
 
@@ -192,28 +200,32 @@ export default function SignInPage() {
             {/* Email — hidden when returning user recognized, shown with pre-fill */}
             {!showReturning && (
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-[#1c1d1f] mb-1">Email</label>
+                <label htmlFor="email" className="block text-sm font-medium text-ink mb-1">
+                  Email
+                </label>
                 <input
                   id="email"
                   type="email"
                   value={email}
-                  onChange={e => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-3 py-2.5 bg-white border border-[#e7e5e4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
+                  className="w-full px-3 py-2.5 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
                   placeholder="you@company.com"
                 />
               </div>
             )}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#1c1d1f] mb-1">Password</label>
+              <label htmlFor="password" className="block text-sm font-medium text-ink mb-1">
+                Password
+              </label>
               <input
                 id="password"
                 type="password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 autoFocus={!!showReturning}
-                className="w-full px-3 py-2.5 bg-white border border-[#e7e5e4] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
+                className="w-full px-3 py-2.5 bg-surface border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1c1d1f]/20 focus:border-[#1c1d1f]"
                 placeholder="Enter your password"
               />
             </div>
@@ -227,21 +239,20 @@ export default function SignInPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1c1917] text-white text-sm font-semibold py-2.5 rounded-lg transition hover:bg-[#0c0a09] disabled:opacity-50"
+              className="w-full bg-ink text-on-accent text-sm font-semibold py-2.5 rounded-lg transition hover:bg-ink disabled:opacity-50"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
-          <p className="text-sm text-[#78716c] text-center mt-6">
+          <p className="text-sm text-faint text-center mt-6">
             Don&apos;t have an account?{' '}
-            <Link href="/sign-up" className="text-[#1c1d1f] font-medium hover:underline">
+            <Link href="/sign-up" className="text-ink font-medium hover:underline">
               Sign up
             </Link>
           </p>
         </div>
       </div>
-
     </div>
   )
 }

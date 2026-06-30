@@ -159,7 +159,7 @@ export default function AssessPage() {
                   return (
                     <div
                       key={fw.id}
-                      className={`group relative bg-white p-8 rounded-2xl border border-slate-100 flex flex-col
+                      className={`group relative bg-surface p-8 rounded-2xl border border-slate-100 flex flex-col
                                   transition-all
                                   ${
                                     disabled
@@ -243,7 +243,7 @@ export default function AssessPage() {
                 Client Tenant
               </label>
               {clients.length === 1 ? (
-                <div className="flex items-center gap-4 py-4 px-6 bg-white border border-slate-100 rounded-xl">
+                <div className="flex items-center gap-4 py-4 px-6 bg-surface border border-slate-100 rounded-xl">
                   <div className="w-10 h-10 rounded-full bg-canvas flex items-center justify-center">
                     <Building2 className="w-5 h-5 text-ink" strokeWidth={1.5} />
                   </div>
@@ -258,7 +258,7 @@ export default function AssessPage() {
                 <div className="relative">
                   <button
                     onClick={() => setClientDropdown((s) => !s)}
-                    className="w-full flex items-center gap-4 py-4 px-6 bg-white border border-slate-100 rounded-xl
+                    className="w-full flex items-center gap-4 py-4 px-6 bg-surface border border-slate-100 rounded-xl
                                hover:border-[#1c1917]/30 transition-all cursor-pointer"
                   >
                     <div className="w-10 h-10 rounded-full bg-canvas flex items-center justify-center">
@@ -279,7 +279,7 @@ export default function AssessPage() {
 
                   {clientDropdown && (
                     <div
-                      className="absolute top-full left-0 right-0 mt-1 z-20 bg-white border border-border
+                      className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface border border-border
                                     rounded-xl shadow-lg overflow-hidden"
                     >
                       {clients.map((c) => (
@@ -315,7 +315,7 @@ export default function AssessPage() {
               <label className="block text-[11px] font-bold text-muted uppercase tracking-widest opacity-60">
                 Assessment Details
               </label>
-              <div className="flex items-center gap-4 py-4 px-6 bg-white border border-slate-100 rounded-xl">
+              <div className="flex items-center gap-4 py-4 px-6 bg-surface border border-slate-100 rounded-xl">
                 <Shield className="w-5 h-5 text-ink" strokeWidth={1.5} />
                 <div>
                   <span className="text-sm font-semibold text-ink">Real-time M365 query</span>
@@ -350,7 +350,7 @@ export default function AssessPage() {
               onClick={() => setConfirmFw(null)}
             >
               <div
-                className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+                className="relative bg-surface rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Header */}
@@ -392,7 +392,7 @@ export default function AssessPage() {
                       Target Tenant
                     </p>
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-white flex items-center justify-center border border-border">
+                      <div className="w-9 h-9 rounded-full bg-surface flex items-center justify-center border border-border">
                         <Building2 className="w-4 h-4 text-ink" strokeWidth={1.5} />
                       </div>
                       <div>
@@ -441,7 +441,7 @@ export default function AssessPage() {
                   </button>
                   <button
                     onClick={handleConfirmRun}
-                    className="flex-1 px-4 py-2.5 rounded-lg bg-ink text-white text-sm font-semibold
+                    className="flex-1 px-4 py-2.5 rounded-lg bg-ink text-on-accent text-sm font-semibold
                              flex items-center justify-center gap-2
                              hover:bg-ink transition-colors"
                   >

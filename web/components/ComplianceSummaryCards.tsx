@@ -33,7 +33,7 @@ export function ComplianceSummaryCards({ summary, className }: Props) {
           return (
             <div
               key={label}
-              className={`bg-white p-5 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}
+              className={`bg-surface p-5 rounded-xl border border-border shadow-sm hover:shadow-md transition-all duration-300 ${danger ? 'border-l-4 border-l-[#9f403d]' : ''}`}
             >
               <div className="flex justify-between items-start mb-4">
                 <p className="text-xs font-bold text-muted uppercase tracking-wider">{label}</p>
