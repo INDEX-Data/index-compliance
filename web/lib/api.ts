@@ -505,6 +505,24 @@ export async function completeOnboard(token: string, data: object) {
   return invoke<{ ok: boolean; clientId: string }>('complete-onboard', { token, ...data })
 }
 
+// ── Connector grants (OAuth) ────────────────────────────────────────────────
+// Reads the M365 admin-consent grant status for a client. RLS scopes this to the
+// current user. Returns connected=false when only a legacy secret exists.
+export async function getM365GrantStatus(
+  clientId: string
+): Promise<{ connected: boolean; tier: 'read' | 'write' | null }> {
+  const { data } = await supa()
+    .from('connector_grants')
+    .select('status, consented_tier')
+    .eq('client_id', clientId)
+    .eq('platform', 'm365')
+    .maybeSingle()
+  return {
+    connected: data?.status === 'connected',
+    tier: (data?.consented_tier as 'read' | 'write' | null) ?? null,
+  }
+}
+
 export async function saveOnboardIntegration(token: string, platform: string, config: object) {
   return invoke<{ ok: boolean }>('save-onboard-integration', { token, platform, config })
 }
