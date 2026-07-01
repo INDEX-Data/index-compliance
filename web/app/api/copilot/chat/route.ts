@@ -513,6 +513,44 @@ export async function POST(request: Request) {
       clientRow = data
     }
 
+    // ── Resolve auth credentials ──────────────────────────────────────────────
+    // OAuth grant (admin-consent) → use OUR Azure app creds + the customer's tenant ID.
+    // Legacy → use the per-customer secret stored on the clients row.
+    // authCreds is the single source of truth for all token calls below.
+    interface AuthCreds {
+      tenantId: string
+      clientId: string
+      clientSecret: string
+    }
+    let authCreds: AuthCreds | null = null
+
+    if (clientRow) {
+      const { data: grant } = await admin
+        .from('connector_grants')
+        .select('grant_type, external_tenant_id, status')
+        .eq('client_id', clientRow.id)
+        .eq('platform', 'm365')
+        .maybeSingle()
+
+      if (
+        grant?.status === 'connected' &&
+        grant.grant_type === 'app_consent' &&
+        grant.external_tenant_id
+      ) {
+        authCreds = {
+          tenantId: grant.external_tenant_id,
+          clientId: process.env.AZURE_CLIENT_ID ?? '',
+          clientSecret: process.env.AZURE_CLIENT_SECRET ?? '',
+        }
+      } else if (clientRow.client_id && clientRow.client_secret) {
+        authCreds = {
+          tenantId: decryptIfNeeded(clientRow.tenant_id),
+          clientId: decryptIfNeeded(clientRow.client_id),
+          clientSecret: decryptIfNeeded(clientRow.client_secret),
+        }
+      }
+    }
+
     // ── Load all context IN PARALLEL ──────────────────────────────────────────
     const [
       allClientsResult,
@@ -554,12 +592,12 @@ export async function POST(request: Request) {
             .eq('user_id', user.id)
             .single()
         : Promise.resolve({ data: null }),
-      // 5. API permissions (cached 10 min)
-      clientRow
+      // 5. API permissions (cached 10 min) — uses resolved authCreds
+      authCreds
         ? getCachedPermissions(
-            decryptIfNeeded(clientRow.tenant_id),
-            decryptIfNeeded(clientRow.client_id),
-            decryptIfNeeded(clientRow.client_secret)
+            authCreds.tenantId,
+            authCreds.clientId,
+            authCreds.clientSecret
           ).catch(() => null)
         : Promise.resolve(null),
     ])
@@ -714,11 +752,11 @@ ${currentReportSection}`
     let graphToken: string | null = null
     async function getToken(): Promise<string> {
       if (graphToken) return graphToken
-      if (!clientRow) throw new Error('No client connected')
+      if (!authCreds) throw new Error('No client connected')
       graphToken = await getGraphToken(
-        decryptIfNeeded(clientRow.tenant_id),
-        decryptIfNeeded(clientRow.client_id),
-        decryptIfNeeded(clientRow.client_secret)
+        authCreds.tenantId,
+        authCreds.clientId,
+        authCreds.clientSecret
       )
       return graphToken
     }
@@ -811,11 +849,11 @@ ${currentReportSection}`
                   : `${desc} — done`
               )
             } else if (toolCall.name === 'query_defender') {
-              if (!clientRow) throw new Error('No client connected')
+              if (!authCreds) throw new Error('No client connected')
               const defToken = await getDefenderToken(
-                decryptIfNeeded(clientRow.tenant_id),
-                decryptIfNeeded(clientRow.client_id),
-                decryptIfNeeded(clientRow.client_secret)
+                authCreds.tenantId,
+                authCreds.clientId,
+                authCreds.clientSecret
               )
               const defResult = await executeDefenderQuery(
                 defToken,
@@ -825,15 +863,15 @@ ${currentReportSection}`
               result = truncateResult(defResult.data)
               sendStatus('tool_done', `${desc} — ${defResult.summary}`)
             } else if (toolCall.name === 'query_audit_log') {
-              if (!clientRow) throw new Error('No client connected')
+              if (!authCreds) throw new Error('No client connected')
               const auditToken = await getManagementActivityToken(
-                decryptIfNeeded(clientRow.tenant_id),
-                decryptIfNeeded(clientRow.client_id),
-                decryptIfNeeded(clientRow.client_secret)
+                authCreds.tenantId,
+                authCreds.clientId,
+                authCreds.clientSecret
               )
               const auditResult = await executeAuditQuery(
                 auditToken,
-                decryptIfNeeded(clientRow.tenant_id),
+                authCreds.tenantId,
                 input.query_type,
                 input.params || {}
               )
