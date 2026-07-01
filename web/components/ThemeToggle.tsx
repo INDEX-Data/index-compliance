@@ -11,6 +11,9 @@ function isAutoDark() {
   return h >= 19 || h < 7
 }
 
+// Light-first: an unset preference resolves to light, not auto.
+const DEFAULT_MODE: Mode = 'light'
+
 function apply(mode: Mode) {
   const dark = mode === 'dark' || (mode === 'auto' && isAutoDark())
   document.documentElement.classList.toggle('dark', dark)
@@ -23,12 +26,12 @@ const OPTIONS: { mode: Mode; label: string; icon: typeof Sun }[] = [
 ]
 
 export function ThemeToggle() {
-  const [mode, setMode] = useState<Mode>('auto')
+  const [mode, setMode] = useState<Mode>(DEFAULT_MODE)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const saved = (localStorage.getItem(KEY) as Mode | null) ?? 'auto'
+    const saved = (localStorage.getItem(KEY) as Mode | null) ?? DEFAULT_MODE
     setMode(saved)
     apply(saved)
   }, [])

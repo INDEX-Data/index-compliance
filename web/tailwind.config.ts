@@ -33,6 +33,13 @@ const config: Config = {
           ink:     'var(--brand-ink)',
         },
         'on-brand': 'var(--text-on-brand)',
+        // ── Accent (INDEX orange, rationed to interactive/focal moments) ─────
+        accent: {
+          DEFAULT: 'var(--accent)',
+          hover:   'var(--accent-hover)',
+          wash:    'var(--accent-wash)',
+        },
+        'on-accent-brand': 'var(--text-on-accent-brand)',
         // ── Dark navigation rail ─────────────────────────────────────────────
         rail: {
           DEFAULT: 'var(--rail-bg)',
@@ -55,10 +62,6 @@ const config: Config = {
         sidebar: {
           bg: 'var(--rail-bg)', border: 'var(--rail-border)',
           hover: 'var(--rail-raised)', active: 'var(--rail-active-bg)', text: 'var(--rail-text)',
-        },
-        accent: {
-          DEFAULT: 'var(--brand)', hover: 'var(--brand-hover)',
-          dark: 'var(--brand-active)', light: 'var(--text-faint)', wash: 'var(--brand-wash)',
         },
         'surface-low':  'var(--surface-canvas)',
         'surface-mid':  'var(--surface-sunken)',

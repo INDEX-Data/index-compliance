@@ -25,6 +25,7 @@ import {
   permissionsToPromptSection,
   type PermissionsReport,
 } from '@/lib/permissions-check'
+import { buildPostureArtifact } from '@/lib/posture'
 import Anthropic from '@anthropic-ai/sdk'
 
 // ── Rate limiter ──────────────────────────────────────────────────────────────
@@ -229,6 +230,27 @@ You can use OData query params like $select, $filter, $top, $orderby, $count, $e
     // Cache the always-present tool pair (query_graph_api + get_assessment_reports).
     // These never change, so this anchors the stable tool-definition prefix.
     cache_control: { type: 'ephemeral' } as const,
+  },
+  {
+    name: 'render_artifact',
+    description:
+      "Render a rich VISUAL artifact inline in the conversation (not text). Use this when the user wants to SEE where they stand / their posture / an overview, rather than read numbers in prose. kind 'posture' renders the live security-posture card — overall score, open findings, frameworks monitored, and the top finding — aggregated from the latest assessment per framework. Prefer this for 'how do I stand', 'show me my posture', 'where am I on <framework>'. After calling it, add one or two sentences of narration; do not repeat all the numbers the card already shows.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        kind: {
+          type: 'string',
+          enum: ['posture'],
+          description: "Which artifact to render. 'posture' = the security-posture overview card.",
+        },
+        framework_id: {
+          type: 'string',
+          description:
+            'Optional: limit the posture to a single framework (e.g. "cmmc-l2"). Omit for all frameworks.',
+        },
+      },
+      required: ['kind'],
+    },
   },
   {
     name: 'query_defender',
@@ -735,6 +757,9 @@ ${currentReportSection}`
           return `Pulling ${input.framework_id.toUpperCase()} assessment reports`
         return 'Pulling assessment reports'
       }
+      if (toolName === 'render_artifact') {
+        return 'Building your posture overview'
+      }
       if (toolName === 'query_integration') {
         const platform = String(input.platform || '').replace(/_/g, ' ')
         const queryType = String(input.query_type || '').replace(/_/g, ' ')
@@ -849,6 +874,45 @@ ${currentReportSection}`
                 'tool_done',
                 `${desc} — ${(rpts || []).length} report${(rpts || []).length !== 1 ? 's' : ''}`
               )
+            } else if (toolCall.name === 'render_artifact') {
+              if (!clientRow) throw new Error('No client connected')
+              const kind = String(input.kind || 'posture')
+              if (kind !== 'posture') throw new Error(`Unknown artifact kind: ${kind}`)
+
+              let q = admin
+                .from('reports')
+                .select('framework_id, generated_at, data')
+                .eq('user_id', user!.id)
+                .eq('client_id', clientRow.id)
+                .order('generated_at', { ascending: false })
+                .limit(50)
+              if (input.framework_id) q = q.eq('framework_id', input.framework_id)
+              const { data: rpts, error } = await q
+              if (error) throw new Error(error.message)
+
+              const inputs = (rpts || [])
+                .map((r: any) => ({
+                  frameworkId: r.framework_id,
+                  generatedAt: r.generated_at,
+                  summary: (r.data as any)?.summary,
+                }))
+                .filter((r: any) => r.summary)
+              const posture = buildPostureArtifact(inputs)
+
+              if (!posture) {
+                result =
+                  'No assessments exist yet, so there is no posture to render. Tell the user to connect Microsoft 365 and run an assessment first.'
+                sendStatus('tool_done', `${desc} — no data`)
+              } else {
+                // Emit the artifact to the client (rendered inline as a React card).
+                sendStatus('artifact', JSON.stringify({ kind: 'posture', data: posture }))
+                result =
+                  `Rendered the posture card inline: ${posture.score}% overall (${posture.status}), ` +
+                  `${posture.openFindings} open findings, ${posture.needsReview} needs review, across ` +
+                  `${posture.frameworkCount} framework(s): ${posture.frameworkNames.join(', ')}.` +
+                  (posture.topFinding ? ` Top finding: ${posture.topFinding.title}.` : '')
+                sendStatus('tool_done', `${desc} — rendered`)
+              }
             } else if (toolCall.name === 'query_integration') {
               const intConfig = integrations.find((i) => i.platform === input.platform)
               if (!intConfig) throw new Error(`Integration "${input.platform}" is not connected`)

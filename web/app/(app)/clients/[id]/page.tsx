@@ -1036,10 +1036,10 @@ export default function ClientDetailPage() {
     <div className="p-8 max-w-4xl mx-auto">
       {/* Back */}
       <Link
-        href="/clients"
+        href="/integrations"
         className="inline-flex items-center gap-1.5 text-[12px] font-medium text-faint hover:text-ink transition-colors mb-6"
       >
-        <ArrowLeft className="w-3.5 h-3.5" /> All Clients
+        <ArrowLeft className="w-3.5 h-3.5" /> Connect
       </Link>
 
       {/* Header */}

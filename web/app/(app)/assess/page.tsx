@@ -124,8 +124,8 @@ export default function AssessPage() {
           <ShieldCheck className="w-5 h-5 text-[#B45309] shrink-0" />
           <p className="text-sm text-[#92400E]">
             No Microsoft 365 tenant connected.{' '}
-            <a href="/connect" className="font-semibold underline hover:text-[#78350F]">
-              Connect your tenant to get started →
+            <a href="/integrations" className="font-semibold underline hover:text-[#78350F]">
+              Connect your environment to get started →
             </a>
           </p>
         </div>
@@ -255,57 +255,20 @@ export default function AssessPage() {
                   </div>
                 </div>
               ) : (
-                <div className="relative">
-                  <button
-                    onClick={() => setClientDropdown((s) => !s)}
-                    className="w-full flex items-center gap-4 py-4 px-6 bg-surface border border-slate-100 rounded-xl
-                               hover:border-[#1c1917]/30 transition-all cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-canvas flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-ink" strokeWidth={1.5} />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <span className="text-base font-semibold text-ink">
-                        {selectedClient?.name ?? 'Select client…'}
-                      </span>
-                      {selectedClient && (
-                        <p className="text-[11px] font-mono text-faint">
-                          {selectedClient.tenantId.slice(0, 12)}…
-                        </p>
-                      )}
-                    </div>
-                    <ChevronDown className="w-4 h-4 text-slate-300" />
-                  </button>
-
-                  {clientDropdown && (
-                    <div
-                      className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface border border-border
-                                    rounded-xl shadow-lg overflow-hidden"
-                    >
-                      {clients.map((c) => (
-                        <button
-                          key={c.id}
-                          onClick={() => {
-                            setSelectedClient(c)
-                            setClientDropdown(false)
-                          }}
-                          className={`w-full flex items-center gap-3 px-6 py-3.5 text-left hover:bg-canvas transition
-                                      ${c.id === selectedClient?.id ? 'bg-canvas' : ''}`}
-                        >
-                          <Building2 className="w-4 h-4 text-faint shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-ink truncate">{c.name}</p>
-                            <p className="text-[11px] font-mono text-faint truncate">
-                              {c.tenantId}
-                            </p>
-                          </div>
-                          {c.id === selectedClient?.id && (
-                            <CheckCircle2 className="w-4 h-4 text-[#15803D] shrink-0" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                <div className="w-full flex items-center gap-4 py-4 px-6 bg-surface border border-slate-100 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-canvas flex items-center justify-center">
+                    <Building2 className="w-5 h-5 text-ink" strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="text-base font-semibold text-ink">
+                      {selectedClient?.name ?? 'No environment connected'}
+                    </span>
+                    {selectedClient && (
+                      <p className="text-[11px] font-mono text-faint">
+                        {selectedClient.tenantId.slice(0, 12)}…
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

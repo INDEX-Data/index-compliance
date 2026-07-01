@@ -42,11 +42,12 @@ export default function OnboardingPage() {
 
   // Phase: loading = checking for existing profile; wizard = show the form
   const [phase, setPhase] = useState<'loading' | 'wizard'>('loading')
-  const [step, setStep] = useState<1 | 2>(1)
+  // Single-environment product: no account-type choice. Onboarding is company
+  // details only, then straight to Connect. (Step 1 machinery is retained but
+  // unreachable — the wizard starts on the details step.)
+  const [step, setStep] = useState<1 | 2>(2)
   const [transitioning, setTransitioning] = useState(false)
-
-  // Step 1
-  const [accountType, setAccountType] = useState<'org' | 'msp' | null>(null)
+  const [accountType, setAccountType] = useState<'org' | 'msp' | null>('org')
 
   // Step 2
   const [fullName, setFullName] = useState('')
@@ -79,8 +80,7 @@ export default function OnboardingPage() {
         // Re-trigger /onboard-finish to set the flags, then hard-navigate.
         if (profile.companyName) {
           await fetch('/onboard-finish', { method: 'POST' }).catch(() => {})
-          const dest = profile.accountType === 'msp' ? '/clients' : '/dashboard'
-          window.location.href = dest // hard nav so browser sends fresh cookie
+          window.location.href = '/dashboard' // hard nav so browser sends fresh cookie
           return
         }
         setPhase('wizard')
@@ -129,7 +129,8 @@ export default function OnboardingPage() {
       })
 
       // Hard navigation so the browser sends the fresh idx_onboarded cookie.
-      window.location.href = accountType === 'msp' ? '/clients' : '/dashboard'
+      // First stop is Connect — the user links their Microsoft 365 environment.
+      window.location.href = '/integrations'
     } catch (e) {
       setSaving(false)
       setError(e instanceof Error ? e.message : 'Something went wrong — please try again.')
@@ -226,18 +227,6 @@ export default function OnboardingPage() {
         className="flex-1 bg-surface relative flex flex-col items-center justify-center
                       px-6 sm:px-10 py-12"
       >
-        {/* Step indicator — top right */}
-        <div className="absolute top-8 right-10 flex items-center gap-1.5">
-          {[1, 2].map((n) => (
-            <div
-              key={n}
-              className={`rounded-full transition-all duration-300 ${
-                step === n ? 'bg-ink w-6 h-2' : 'bg-[#e7e5e4] w-2 h-2'
-              }`}
-            />
-          ))}
-        </div>
-
         {/* Form card — centered, max width */}
         <div className="w-full max-w-[480px]">
           {/* Step content with fade transition */}
@@ -487,15 +476,6 @@ export default function OnboardingPage() {
 
                 {/* Buttons */}
                 <div className="flex gap-3 mt-8">
-                  <button
-                    onClick={() => goToStep(1)}
-                    disabled={saving}
-                    className="px-5 py-3.5 rounded-xl border border-border text-[13px]
-                               font-medium text-muted hover:bg-surface-sunken transition-colors
-                               disabled:opacity-40"
-                  >
-                    ← Back
-                  </button>
                   <button
                     onClick={handleFinish}
                     disabled={!fullName.trim() || !companyName.trim() || saving}

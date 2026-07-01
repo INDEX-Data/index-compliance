@@ -32,6 +32,13 @@
   --brand-ink:    #18181B;
   --text-on-brand: #FFFFFF;
 
+  /* Accent — INDEX orange, RATIONED. Interactive/focal moments only (links,
+     focus rings, active state, the agent send action). Never a large fill. */
+  --accent:        #ED6426;
+  --accent-hover:  #D9551F;
+  --accent-wash:   rgba(237, 100, 38, 0.10);
+  --text-on-accent-brand: #FFFFFF;
+
   /* Status — muted, light-readable; the only color in the system */
   --status-pass: #1A7F37;  --status-pass-bg: rgba(26,127,55,0.10);  --status-pass-border: rgba(26,127,55,0.24);
   --status-warn: #9A6700;  --status-warn-bg: rgba(154,103,0,0.10);  --status-warn-border: rgba(154,103,0,0.24);
@@ -92,6 +99,12 @@ html.dark {
   --brand-wash:   #26262A;
   --brand-ink:    #FAFAFA;
   --text-on-brand: #111111;
+
+  /* Accent — INDEX orange, a touch brighter for dark legibility */
+  --accent:        #F2763F;
+  --accent-hover:  #ED6426;
+  --accent-wash:   rgba(242, 118, 63, 0.14);
+  --text-on-accent-brand: #111111;
 
   --status-pass: #3FB950;  --status-pass-bg: rgba(63,185,80,0.12);  --status-pass-border: rgba(63,185,80,0.30);
   --status-warn: #D29922;  --status-warn-bg: rgba(210,153,34,0.12); --status-warn-border: rgba(210,153,34,0.30);
@@ -242,15 +255,16 @@ button, a {
   font-style: italic;
 }
 
-/* Links */
+/* Links — the rationed accent moment */
 .copilot-markdown a {
-  color: var(--text-ink);
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
-  text-decoration-color: var(--text-faint);
+  text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .copilot-markdown a:hover {
-  text-decoration-color: var(--text-ink);
+  color: var(--accent-hover);
+  text-decoration-color: var(--accent-hover);
 }
 
 /* Unordered lists */
