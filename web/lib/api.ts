@@ -144,26 +144,9 @@ export const getClients = async (): Promise<Client[]> => {
   return invokeMethod<Client[]>('clients', 'GET')
 }
 
-export const addClient = async (data: {
-  name: string
-  tenantId: string
-  clientId: string
-  clientSecret: string
-}): Promise<Client> => {
-  return invoke('clients', data)
-}
-
-export const updateClient = async (
-  id: string,
-  data: Partial<{
-    name: string
-    tenantId: string
-    clientId: string
-    clientSecret: string
-  }>
-): Promise<Client> => {
-  return invokeMethod<Client>('clients', 'PATCH', { id, ...data })
-}
+// addClient / updateClient (manual paste-credential creation) were removed:
+// environments are created via OAuth admin-consent (the connector callback),
+// never by typing a client secret. deleteClient below = "disconnect".
 
 export const deleteClient = async (id: string): Promise<{ ok: boolean }> => {
   return invokeMethod<{ ok: boolean }>(`clients?id=${id}`, 'DELETE')
@@ -484,48 +467,27 @@ export const getClientIntegrations = async (clientId: string): Promise<ClientInt
   }))
 }
 
-// ── Public onboard endpoints ─────────────────────────────────────────────────
-
-export async function getOnboardInfo(token: string) {
-  const { data: row, error } = await supa()
-    .from('client_invitations')
-    .select('client_name, email, status, expires_at')
-    .eq('token', token)
-    .single()
-  if (error || !row) throw new Error('Invite not found or has expired.')
+// ── Connector grants (OAuth) ────────────────────────────────────────────────
+// Reads the M365 admin-consent grant status for a client. RLS scopes this to the
+// current user. Returns connected=false when only a legacy secret exists.
+export async function getM365GrantStatus(
+  clientId: string
+): Promise<{ connected: boolean; tier: 'read' | 'write' | null }> {
+  const { data } = await supa()
+    .from('connector_grants')
+    .select('status, consented_tier')
+    .eq('client_id', clientId)
+    .eq('platform', 'm365')
+    .maybeSingle()
   return {
-    clientName: row.client_name,
-    email: row.email,
-    status: row.status,
-    expiresAt: row.expires_at,
+    connected: data?.status === 'connected',
+    tier: (data?.consented_tier as 'read' | 'write' | null) ?? null,
   }
 }
 
-export async function completeOnboard(token: string, data: object) {
-  return invoke<{ ok: boolean; clientId: string }>('complete-onboard', { token, ...data })
-}
-
-export async function saveOnboardIntegration(token: string, platform: string, config: object) {
-  return invoke<{ ok: boolean }>('save-onboard-integration', { token, platform, config })
-}
-
-export async function testOnboardIntegration(token: string, platform: string, config: object) {
-  return invoke<{ ok: boolean; message?: string; tenantName?: string }>(
-    'test-onboard-integration',
-    { token, platform, config }
-  )
-}
-
-export async function getOnboardIntegrations(token: string): Promise<ClientIntegration[]> {
-  // Look up invitation → find client → get integrations
-  const { data: inv } = await supa()
-    .from('client_invitations')
-    .select('client_id')
-    .eq('token', token)
-    .single()
-  if (!inv?.client_id) return []
-  return getClientIntegrations(inv.client_id)
-}
+// saveOnboardIntegration / testOnboardIntegration / getOnboardIntegrations were
+// removed with the retired invite-onboarding flow (they called API routes that
+// never existed). Connecting an environment is OAuth admin-consent only.
 
 // ── Client Integrations: MSP-authenticated write endpoints ───────────────────
 

@@ -34,6 +34,7 @@ import {
   getClientIntegrations,
   saveClientIntegration,
   testClientIntegration,
+  getM365GrantStatus,
 } from '@/lib/api'
 import type { Client, ClientIntegration } from '@/lib/types'
 
@@ -631,6 +632,8 @@ function MicrosoftEntraCard({
   connected,
   tenantName,
   tenantId,
+  clientId,
+  authSource,
   onReconfigure,
   onTest,
   testing,
@@ -638,10 +641,24 @@ function MicrosoftEntraCard({
   connected: boolean
   tenantName: string
   tenantId: string
+  clientId?: string
+  authSource?: 'grant' | 'legacy'
   onReconfigure: () => void
   onTest: () => void
   testing: boolean
 }) {
+  // OAuth admin-consent: no secret is ever entered. These navigate the browser to
+  // Microsoft's consent screen via our authorize route. Read connect always works:
+  // with a selected client it reconnects that client; without one it starts a
+  // "new tenant" flow and the callback creates the client from the consented
+  // tenant. Write access is a separate consent round and requires an existing
+  // connection (tier=write).
+  const connectHref = clientId
+    ? `/api/connectors/m365/authorize?clientId=${clientId}&tier=read`
+    : `/api/connectors/m365/authorize?tier=read`
+  const writeHref = clientId
+    ? `/api/connectors/m365/authorize?clientId=${clientId}&tier=write`
+    : undefined
   return (
     <div className="bg-canvas rounded-xl p-6 flex flex-col gap-6">
       <div className="flex justify-between items-start">
@@ -665,9 +682,9 @@ function MicrosoftEntraCard({
         <div className="grid grid-cols-2 gap-y-4 gap-x-8 py-4 border-y border-[#a8a29e]/10">
           {[
             ['Tenant Name', tenantName],
-            ['Auth Method', 'OAuth 2.0 / App Secret'],
+            ['Auth Method', authSource === 'grant' ? 'Admin Consent (OAuth)' : 'Legacy App Secret'],
             ['Tenant ID', tenantId],
-            ['Current Scope', 'Read.Directory.All, User.Read'],
+            ['Current Scope', 'Graph application (admin-consented)'],
           ].map(([k, v]) => (
             <div key={k}>
               <p className="text-[10px] uppercase font-bold text-muted tracking-tighter mb-1">
@@ -683,23 +700,57 @@ function MicrosoftEntraCard({
         </div>
       )}
 
-      <div className="flex gap-3 mt-auto">
-        <button
-          onClick={onReconfigure}
-          className="bg-[#e7e5e4] text-ink text-xs font-semibold py-2 px-4 rounded-lg hover:bg-[#d6d3d1] transition-colors"
+      {connected && authSource === 'legacy' && (
+        <div className="flex items-start gap-2 rounded-lg border border-status-warn-border bg-status-warn-bg px-3 py-2">
+          <AlertCircle className="w-4 h-4 text-status-warn shrink-0 mt-0.5" />
+          <p className="text-[12px] text-ink">
+            Connected with a legacy app secret. Reconnect with Microsoft to upgrade to admin-consent
+            — no secret to manage, and a prerequisite for remediation.
+          </p>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-3 mt-auto">
+        <a
+          href={connectHref ?? '#'}
+          aria-disabled={!connectHref}
+          className={`text-xs font-semibold py-2 px-4 rounded-lg transition-colors ${
+            connectHref
+              ? 'bg-ink text-on-accent hover:bg-brand-hover'
+              : 'bg-surface-sunken text-faint pointer-events-none'
+          }`}
         >
-          {connected ? 'Reconfigure' : 'Connect'}
-        </button>
+          {connected ? 'Reconnect with Microsoft' : 'Connect with Microsoft'}
+        </a>
+        {connected && (
+          <a
+            href={writeHref ?? '#'}
+            aria-disabled={!writeHref}
+            className={`text-xs font-semibold py-2 px-4 rounded-lg border transition-colors ${
+              writeHref
+                ? 'border-border-strong text-ink hover:bg-surface-sunken'
+                : 'border-border text-faint pointer-events-none'
+            }`}
+          >
+            Enable remediation (write access)
+          </a>
+        )}
         {connected && (
           <button
             onClick={onTest}
             disabled={testing}
-            className="text-ink text-xs font-semibold py-2 px-4 rounded-lg border border-[#1c1917]/20 hover:bg-ink/5 transition-colors disabled:opacity-60"
+            className="text-ink text-xs font-semibold py-2 px-4 rounded-lg border border-border-strong hover:bg-surface-sunken transition-colors disabled:opacity-60"
           >
             {testing ? <Loader2 className="w-3 h-3 animate-spin inline mr-1" /> : null}
             Test Connection
           </button>
         )}
+        <button
+          onClick={onReconfigure}
+          className="text-faint text-xs font-medium py-2 px-3 rounded-lg hover:text-ink transition-colors"
+        >
+          Legacy setup
+        </button>
       </div>
     </div>
   )
@@ -795,6 +846,37 @@ export default function IntegrationsPage() {
   const [filter, setFilter] = useState<FilterTab>('all')
   const [filterSearch, setFilterSearch] = useState('')
   const [configuringPlatform, setConfiguringPlatform] = useState<string | null>(null)
+  const [m365Grant, setM365Grant] = useState<{ connected: boolean; tier: 'read' | 'write' | null }>(
+    { connected: false, tier: null }
+  )
+
+  // Surface the OAuth admin-consent callback result (?m365=connected|error).
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search)
+    const m365 = sp.get('m365')
+    if (!m365) return
+    if (m365 === 'connected') {
+      setTestResult({ ok: true, msg: 'Microsoft 365 connected via admin consent.' })
+    } else {
+      setTestResult({
+        ok: false,
+        msg: `Microsoft connection failed: ${sp.get('reason') ?? 'unknown'}`,
+      })
+    }
+    // Strip the query so a refresh doesn't re-show the banner.
+    window.history.replaceState({}, '', window.location.pathname)
+  }, [])
+
+  // Load the M365 admin-consent grant status for the active client (grant vs legacy).
+  useEffect(() => {
+    if (!selectedClient) {
+      setM365Grant({ connected: false, tier: null })
+      return
+    }
+    getM365GrantStatus(selectedClient.id)
+      .then(setM365Grant)
+      .catch(() => setM365Grant({ connected: false, tier: null }))
+  }, [selectedClient])
 
   useEffect(() => {
     getConfigStatus()
@@ -926,9 +1008,11 @@ export default function IntegrationsPage() {
         ) : (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             <MicrosoftEntraCard
-              connected={azureConnected}
+              connected={azureConnected || m365Grant.connected}
               tenantName={tenantName}
               tenantId={tenantId}
+              clientId={selectedClient?.id}
+              authSource={m365Grant.connected ? 'grant' : azureConnected ? 'legacy' : undefined}
               onReconfigure={() => router.push('/setup')}
               onTest={handleTest}
               testing={testing}
@@ -1054,37 +1138,11 @@ export default function IntegrationsPage() {
               ))}
             </div>
 
-            {/* Client selector */}
-            {!loadingClients && clients.length > 0 && (
-              <div className="relative shrink-0">
-                <button
-                  onClick={() => setDropdownOpen((o) => !o)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface hover:bg-canvas text-xs font-medium text-ink transition"
-                >
-                  <Building2 className="w-3.5 h-3.5 text-faint" />
-                  {selectedClient?.name ?? 'Select client'}
-                  <ChevronDown className="w-3 h-3 text-faint" />
-                </button>
-                {dropdownOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-xl shadow-xl z-10 min-w-[180px] overflow-hidden">
-                    {clients.map((c) => (
-                      <button
-                        key={c.id}
-                        onClick={() => {
-                          setSelectedClient(c)
-                          setDropdownOpen(false)
-                        }}
-                        className={`w-full text-left px-4 py-2.5 text-[12px] font-medium transition ${
-                          selectedClient?.id === c.id
-                            ? 'bg-canvas text-ink'
-                            : 'text-ink hover:bg-canvas'
-                        }`}
-                      >
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {/* Connected environment (single-environment product — no switcher) */}
+            {!loadingClients && selectedClient && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-surface text-xs font-medium text-ink shrink-0">
+                <Building2 className="w-3.5 h-3.5 text-faint" />
+                {selectedClient.name}
               </div>
             )}
           </div>
@@ -1097,13 +1155,9 @@ export default function IntegrationsPage() {
         ) : clients.length === 0 ? (
           <div className="bg-surface rounded-xl border border-border p-10 text-center">
             <Building2 className="w-8 h-8 text-[#d6d3d1] mx-auto mb-3" />
-            <p className="text-[13px] font-medium text-faint mb-1">No clients yet</p>
+            <p className="text-[13px] font-medium text-faint mb-1">No environment connected yet</p>
             <p className="text-[12px] text-faint">
-              Add a client on the{' '}
-              <button onClick={() => router.push('/clients')} className="text-ink hover:underline">
-                Clients page
-              </button>{' '}
-              to configure integrations.
+              Connect your Microsoft 365 environment with the card above to configure integrations.
             </p>
           </div>
         ) : (

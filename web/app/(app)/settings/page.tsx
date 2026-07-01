@@ -103,8 +103,9 @@ function GeneralTab({
   return (
     <div>
       <Section
-        title="Primary Azure Tenant"
+        title="Microsoft 365 Environment"
         description="The Microsoft Entra ID tenant used for compliance assessments."
+        last
       >
         <div className="bg-canvas rounded-xl border border-border p-4">
           <div className="flex items-center justify-between">
@@ -129,37 +130,11 @@ function GeneralTab({
           </div>
         </div>
         <button
-          onClick={() => router.push('/setup')}
+          onClick={() => router.push('/integrations')}
           className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-faint hover:text-ink transition"
         >
-          Reconfigure Azure credentials <ChevronRight className="w-3.5 h-3.5" />
+          Reconnect Microsoft 365 <ChevronRight className="w-3.5 h-3.5" />
         </button>
-      </Section>
-
-      <Section
-        title="MSP / Multi-Client Mode"
-        description="Manage multiple Microsoft 365 tenants and run compliance assessments across all client environments."
-        last
-      >
-        <div className="flex items-center justify-between p-4 bg-canvas rounded-xl border border-border">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-surface border border-border flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-faint" />
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold text-ink">
-                {loading ? '—' : `${clientCount} ${clientCount === 1 ? 'client' : 'clients'}`}
-              </p>
-              <p className="text-[11px] text-faint mt-0.5">Active tenants</p>
-            </div>
-          </div>
-          <button
-            onClick={() => router.push('/clients')}
-            className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink hover:text-ink bg-surface border border-border hover:bg-canvas px-3 py-1.5 rounded-lg transition"
-          >
-            Manage clients <ChevronRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
       </Section>
     </div>
   )

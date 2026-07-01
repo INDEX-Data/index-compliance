@@ -10,28 +10,35 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClientSupabase } from '@/lib/supabase'
-import { getClients, getConfigStatus, getProfile } from '@/lib/api'
+import { getConfigStatus, getProfile } from '@/lib/api'
 import { useCopilot } from '@/contexts/CopilotContext'
 import type { UserProfile } from '@/lib/types'
 
-// Audit-centric information architecture (the locked direction's nav).
+// Agent-native IA: the home is a conversation, and the nav mirrors the workflow
+// you run on an environment (Connect → Ask → Discover → Plan → Act → Monitor).
+// The structured pages remain reachable as "full views" under Library.
 const NAV_SECTIONS = [
   {
-    label: 'The Audit',
+    label: 'Workspace',
     items: [
-      { href: '/dashboard', label: 'Posture', icon: ShieldCheck },
-      { href: '/findings', label: 'Findings', icon: AlertTriangle },
-      { href: '/remediation', label: 'Remediation', icon: Wrench },
-      { href: '/drift', label: 'Drift', icon: Waves },
-      { href: '/evidence', label: 'Evidence', icon: FileCheck },
-      { href: '/reports', label: 'Reports', icon: FileText },
+      { href: '/dashboard', label: 'Ask', icon: Sparkles },
     ],
   },
   {
-    label: 'Setup',
+    label: 'Workflow',
     items: [
-      { href: '/clients', label: 'Connections', icon: Plug },
-      { href: '/assess', label: 'Frameworks', icon: Layers },
+      { href: '/integrations', label: 'Connect', icon: Plug },
+      { href: '/findings', label: 'Discover', icon: AlertTriangle },
+      { href: '/assess', label: 'Plan', icon: Layers },
+      { href: '/remediation', label: 'Act', icon: Wrench },
+      { href: '/drift', label: 'Monitor', icon: Waves },
+    ],
+  },
+  {
+    label: 'Library',
+    items: [
+      { href: '/reports', label: 'Reports', icon: FileText },
+      { href: '/evidence', label: 'Evidence', icon: FileCheck },
     ],
   },
 ]
@@ -87,8 +94,14 @@ function NavItem({ href, label, icon: Icon, active, collapsed, badge }: NavItemP
         'transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[color:var(--rail-active-text)]/20',
       ].join(' ')}
     >
+      {active && !collapsed && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2.5px] rounded-full bg-accent"
+        />
+      )}
       <Icon
-        className={['shrink-0 w-[18px] h-[18px]', active ? 'text-rail-active-text' : 'text-rail-faint'].join(' ')}
+        className={['shrink-0 w-[18px] h-[18px]', active ? 'text-accent' : 'text-rail-faint'].join(' ')}
         strokeWidth={1.6}
       />
 
@@ -219,7 +232,6 @@ export function Sidebar() {
   const [hydrated,    setHydrated]    = useState(false)
   const [wsOpen,      setWsOpen]      = useState(false)
   const brandRef = useRef<HTMLDivElement>(null)
-  const [clientCount, setClientCount] = useState<number | null>(null)
   const [orgName,     setOrgName]     = useState('Atlas')
   const [profile,     setProfile]     = useState<UserProfile | null>(null)
 
@@ -236,9 +248,6 @@ export function Sidebar() {
   }, [])
 
   useEffect(() => {
-    getClients()
-      .then(c => setClientCount(c.length))
-      .catch(() => {})
     getConfigStatus()
       .then(s => { if (s.tenantName) setOrgName(s.tenantName) })
       .catch(() => {})
@@ -306,7 +315,6 @@ export function Sidebar() {
                 {...item}
                 active={isActive(item.href)}
                 collapsed={collapsed}
-                badge={item.href === '/clients' ? clientCount : null}
               />
             ))}
           </div>

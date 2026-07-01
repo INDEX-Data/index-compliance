@@ -224,7 +224,7 @@ function RunningInner() {
           <div className="flex flex-col gap-2 items-center">
             {noTenant && (
               <button
-                onClick={() => router.push('/connect')}
+                onClick={() => router.push('/integrations')}
                 className="w-full bg-ink hover:bg-ink text-on-accent text-sm font-semibold px-5 py-2.5 rounded-lg transition"
               >
                 Connect Microsoft 365

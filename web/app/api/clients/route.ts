@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { createServerSupabase } from '@/lib/supabase'
-import { encrypt, decryptIfNeeded } from '@/lib/crypto'
+import { decryptIfNeeded } from '@/lib/crypto'
 
 function getAdmin() {
   return createClient(
@@ -13,11 +13,15 @@ function getAdmin() {
 
 async function getUser() {
   const supabase = await createServerSupabase()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   return user
 }
 
-function maskSecret(secret: string): string {
+function maskSecret(secret: string | null | undefined): string {
+  // OAuth/admin-consent clients have no per-customer secret.
+  if (!secret) return ''
   const plain = decryptIfNeeded(secret)
   if (plain.length <= 4) return '\u2022'.repeat(plain.length)
   return plain.slice(0, 4) + '\u2022'.repeat(Math.min(plain.length - 4, 20))
@@ -27,8 +31,8 @@ function formatClient(row: any) {
   return {
     id: row.id,
     name: row.name,
-    tenantId: decryptIfNeeded(row.tenant_id),
-    clientId: decryptIfNeeded(row.client_id),
+    tenantId: row.tenant_id ? decryptIfNeeded(row.tenant_id) : '',
+    clientId: row.client_id ? decryptIfNeeded(row.client_id) : '',
     clientSecret: maskSecret(row.client_secret),
     addedAt: row.added_at,
     notes: row.notes,
@@ -58,89 +62,12 @@ export async function GET() {
   }
 }
 
-// ── POST: Add client ──────────────────────────────────────────────────────────
+// POST (manual add-client) and PATCH (edit credentials) were removed. Environments
+// are created via OAuth admin-consent in the connector callback
+// (web/app/api/connectors/m365/callback), never by posting a client secret here.
+// Only GET (list) and DELETE (disconnect) remain.
 
-export async function POST(request: Request) {
-  try {
-    const user = await getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const body = await request.json()
-    const { name, tenantId, clientId, clientSecret } = body
-
-    if (!tenantId || !clientId || !clientSecret) {
-      return NextResponse.json(
-        { error: 'tenantId, clientId, and clientSecret are required' },
-        { status: 400 }
-      )
-    }
-
-    const { data: row, error } = await getAdmin()
-      .from('clients')
-      .insert({
-        user_id: user.id,
-        external_id: crypto.randomUUID(),
-        name: name ?? 'Default Tenant',
-        tenant_id: encrypt(tenantId),
-        client_id: encrypt(clientId),
-        client_secret: encrypt(clientSecret),
-      })
-      .select()
-      .single()
-
-    if (error) throw new Error(error.message)
-    return NextResponse.json(formatClient(row))
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to add client' },
-      { status: 500 }
-    )
-  }
-}
-
-// ── PATCH: Update client ──────────────────────────────────────────────────────
-
-export async function PATCH(request: Request) {
-  try {
-    const user = await getUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-    const body = await request.json()
-    const { id, name, tenantId, clientId, clientSecret } = body
-
-    if (!id) {
-      return NextResponse.json({ error: 'id is required' }, { status: 400 })
-    }
-
-    const update: Record<string, unknown> = {}
-    if (name !== undefined) update.name = name
-    if (tenantId !== undefined) update.tenant_id = encrypt(tenantId)
-    if (clientId !== undefined) update.client_id = encrypt(clientId)
-    if (clientSecret !== undefined) update.client_secret = encrypt(clientSecret)
-
-    if (Object.keys(update).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 })
-    }
-
-    const { data: row, error } = await getAdmin()
-      .from('clients')
-      .update(update)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single()
-
-    if (error) throw new Error(error.message)
-    return NextResponse.json(formatClient(row))
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Failed to update client' },
-      { status: 500 }
-    )
-  }
-}
-
-// ── DELETE: Remove client ─────────────────────────────────────────────────────
+// ── DELETE: Disconnect environment ────────────────────────────────────────────
 
 export async function DELETE(request: Request) {
   try {
@@ -153,11 +80,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'id query param is required' }, { status: 400 })
     }
 
-    const { error } = await getAdmin()
-      .from('clients')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', user.id)
+    const { error } = await getAdmin().from('clients').delete().eq('id', id).eq('user_id', user.id)
 
     if (error) throw new Error(error.message)
     return NextResponse.json({ ok: true })
